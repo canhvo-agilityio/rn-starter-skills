@@ -1,0 +1,103 @@
+# Special components (maps, sheets, media, charts…)
+
+Some parts of a design aren't layout + text + images: a map with a route, a draggable bottom sheet, a camera view, a chart. Drawing them with static images and absolute-positioned SVG looks right in a screenshot and is useless in the app. Detect them, pick a real library with the dev, wrap it, and verify it renders.
+
+## 1. Detect (Phase 2)
+
+Look for these in the design and list each one under **Special components** in `docs/design-spec.md`:
+
+| Signal in the design | Need |
+|---|---|
+| Map tiles, pins, a route line, "my location" button | map (+ location) |
+| Panel with a grab handle over content, half-height sheets | bottom sheet |
+| Swipeable banners/cards with page dots | carousel / pager |
+| Line/bar/pie charts, progress rings with data | charts |
+| Video thumbnail with play button, inline player | video |
+| Camera viewfinder, QR/barcode frame | camera / scanner |
+| "Upload photo", avatar picker | image picker |
+| Date/time fields, booking calendars | date picker / calendar |
+| Animated illustrations (Lottie-style) | animation |
+| Row actions revealed by swiping | swipeable rows |
+| Very long or infinite lists | high-performance list |
+| Embedded web content, payment pages | web view |
+
+Don't over-detect: a static illustration of a map in a marketing banner is an image.
+
+## 2. Check candidates live (don't trust this file's versions)
+
+```bash
+bash "<skill-dir>/scripts/lib-info.sh" <project-dir> react-native-maps expo-location
+```
+
+It prints, per package: latest npm version, the version pinned by the project's Expo SDK (`not bundled` = not part of the SDK), React Native Directory's New Architecture and Expo Go status, whether it's maintained, and the last push.
+
+Rules:
+- **Unmaintained → don't propose it** (pick the alternative; mention why if the dev asked for it).
+- **New Architecture**: React Native 0.82+ only runs the New Architecture. `true`/`new-arch-only` is fine; `unknown` → tell the dev it's untested and check the library's README/issues before committing to it.
+- **Expo + "not bundled" + native code** → not available in Expo Go; needs a development build (`npx expo run:ios|android`, i.e. the simulator/emulator toolchain). If the dev only runs in Expo Go, prefer a bundled option or a placeholder. Pure-JS libraries (e.g. `@gorhom/bottom-sheet`, built on bundled reanimated/gesture-handler) work in Expo Go even though they're "not bundled".
+
+## 3. Ask the dev (one `AskUserQuestion`, one question per special component, max 4)
+
+Options per component:
+1. **The recommended library (Recommended)** — one line on what it gives and what it needs (API key, permission, dev build).
+2. **Static placeholder for now** — image/mock UI clearly marked `// TODO: replace with <library>`; useful when the screen is only a UI preview.
+3. **Other** — the dev names a library (e.g. Mapbox). Run `lib-info.sh` on it before agreeing.
+
+Say the requirements up front, e.g. "Android needs a Google Maps API key to show tiles in a native build — do you have one?" The dev adds keys themselves (in `.env` / native config); never ask them to paste secrets into the chat.
+
+## 4. Catalog
+
+Defaults per framework. Expo projects use `npx expo install` (SDK-matched versions) and config plugins in `app.json`; RN CLI projects use `<pm> add`, then `cd ios && pod install`, then a **rebuild** — native code doesn't arrive through a Metro reload.
+
+| Need | Expo | RN CLI | Native setup on CLI |
+|---|---|---|---|
+| Map | `react-native-maps` (in Expo Go) | `react-native-maps` | Android: Google Maps API key in `AndroidManifest.xml` (`<meta-data android:name="com.google.android.geo.API_KEY" …/>`), else the map is a grey grid. iOS: Apple Maps, no key |
+| Location | `expo-location` | `expo-location` via `npx install-expo-modules` (Recommended), or `react-native-nitro-geolocation` | `NSLocationWhenInUseUsageDescription` in `Info.plist`; `ACCESS_FINE_LOCATION` in `AndroidManifest.xml`. Avoid `@react-native-community/geolocation` and `react-native-geolocation-service` (unmaintained) |
+| Runtime permissions | handled by each `expo-*` module | `react-native-permissions` (unless using Expo modules) | its own Podfile setup — follow its README |
+| Bottom sheet | `@gorhom/bottom-sheet` | same | needs `react-native-reanimated` + `react-native-gesture-handler` (CLI: install both, `GestureHandlerRootView` at the root) |
+| Carousel / pager | `react-native-reanimated-carousel`; simple cases: `FlatList` + `pagingEnabled` | same | — |
+| Charts | `victory-native` (on `@shopify/react-native-skia`) or `react-native-gifted-charts` (on `react-native-svg`) | same | install Skia or SVG; pods + rebuild |
+| Video | `expo-video` | `react-native-video`, or `expo-video` via Expo modules | — |
+| Camera / QR | `expo-camera` | `react-native-vision-camera` | `NSCameraUsageDescription`; `CAMERA` permission |
+| Image picker | `expo-image-picker` | `expo-image-picker` via Expo modules, or `react-native-image-crop-picker` | `NSPhotoLibraryUsageDescription` (+ camera keys if it can shoot) |
+| Date/time picker | `@react-native-community/datetimepicker` | same | — |
+| Calendar | `react-native-calendars` (pure JS) | same | — |
+| Animation | `lottie-react-native` | same | with Re.Pack, check that `.json` animations are bundled as assets |
+| Swipeable rows | `react-native-gesture-handler` `Swipeable` | same | — |
+| Long lists | `@shopify/flash-list` | same | — |
+| Web view | `react-native-webview` | same | — |
+
+Expo permission strings go in `app.json` through the module's config plugin, e.g.:
+
+```json
+{ "expo": { "plugins": [["expo-location", { "locationWhenInUsePermission": "Show nearby coffee shops." }]] } }
+```
+
+Write real, specific permission texts — App Store review rejects vague ones.
+
+## 5. Wrap the library in a feature component
+
+Screens never import the library directly. A component in the owning feature adapts it to the app's data:
+
+```
+features/delivery/
+  components/delivery-map.tsx   uses react-native-maps; props: route: LatLng[], courier: LatLng, destination: LatLng
+  api.ts / mocks.ts             mock coordinates (a real route in the design's city)
+  types.ts                      LatLng etc. — app types, not the library's
+```
+
+Switching to Mapbox later is then one file. Keep library-specific props (map style, provider) inside the wrapper. Feed it mock data through the feature's hooks like everything else — no coordinates hard-coded in the screen.
+
+If the dev chose the placeholder, keep the same wrapper and props, render the static version inside, and mark it `// TODO: replace with <library>` — swapping later doesn't touch the screen.
+
+## 6. Verify
+
+- The component actually renders: map tiles visible (not a grey grid or blank view), sheet opens and drags, video plays a frame, chart shows data.
+- Check **both** platforms when both are run targets: maps use different engines (Apple Maps / Google Maps), sheets and gestures behave differently.
+- Permissions on simulators/emulators without tapping:
+  - iOS: `xcrun simctl privacy booted grant location <bundle-id>`, fake position `xcrun simctl location booted set 52.37,4.89`.
+  - Android: `adb shell pm grant <package> android.permission.ACCESS_FINE_LOCATION`, fake position `adb emu geo fix 4.89 52.37` (longitude first).
+  - In Expo Go the bundle/package is Expo Go's (`host.exp.Exponent` / `host.exp.exponent`).
+- CLI: verify on a fresh build after `pod install`; a reload after adding a native library proves nothing.
+
+Record each special component in the spec with its library, the native setup done, anything left for the dev (API keys, store permission texts), and the platforms it was verified on.

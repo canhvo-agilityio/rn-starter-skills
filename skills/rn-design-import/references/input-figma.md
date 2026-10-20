@@ -1,0 +1,84 @@
+# Input: Figma
+
+Preferred: the **Figma MCP server** connected in the dev's Claude Code (tools like `get_metadata`, `get_variable_defs`, `get_design_context`, `get_screenshot`). If it isn't connected, or it hits its rate limit (Starter / free plans allow only a handful of calls per month), use **Fallback: Figma in a browser** at the end of this file. Last resort: exported PNGs (`input-image.md`).
+
+If a Figma design-to-code skill is available (e.g. `figma-design-to-code`, `figma-implement-design`, or the MCP resource `skill://figma/figma-design-to-code/SKILL.md`), load it before calling `get_design_context` — the Figma server expects it.
+
+## Be frugal with calls
+
+Figma MCP is rate-limited per plan, and Starter / View seats get very few calls per month. Plan the calls before making them:
+
+1. `get_metadata` on the page (or on the file without `nodeId` to list pages) — **once** — to see all frames, their names and ids.
+2. Pick the frames that are real screens (ignore components pages, archives, variants). Confirm the list with the dev if there are more than ~8.
+3. `get_variable_defs` on one screen frame — **once** — gives the color/typography/spacing variables used. If the file has no variables, derive tokens from step 4.
+4. `get_design_context` per screen frame — one call each. It returns reference code (web/React + Tailwind), a screenshot, and asset download URLs.
+5. Only call `get_screenshot` if you need a larger image for comparison in Phase 5.
+
+If a call fails with a rate-limit or permission error, run `whoami` to see the plan/seat, tell the dev, and switch to **Fallback: Figma in a browser** below — keep whatever the successful calls already returned.
+
+## URL → ids
+
+`https://www.figma.com/design/<fileKey>/<name>?node-id=12-345` → `fileKey=<fileKey>`, `nodeId=12:345`. Branch URLs `/design/<fileKey>/branch/<branchKey>/…` → use `branchKey`. A link without `node-id` → call `get_metadata` without `nodeId` to list pages.
+
+## Translating the reference code
+
+`get_design_context` returns **web** code. Treat it as a description of the design, never paste it:
+
+| Web / Tailwind | React Native |
+|---|---|
+| `div` | `View` |
+| text elements | `Text` (all text must be inside `Text`) |
+| `img` | `Image` / `expo-image` |
+| `flex` default row | RN default is **column**; set `flexDirection: 'row'` explicitly |
+| `gap-4` | `gap: theme.spacing[4]` (RN supports `gap`) |
+| `px`, `rem` | unitless numbers (1 px in Figma = 1 pt/dp) |
+| `font-weight` | a `fontFamily` per weight (see `fonts.md`) |
+| `box-shadow` | `boxShadow` style (RN 0.76+) or the theme's shadow tokens |
+| absolute-positioned frames | prefer flex layout; use `position: 'absolute'` only for real overlays |
+| fixed frame width (375/390) | `flex: 1` / percentage widths; screens must adapt to device size |
+
+Replace raw values with tokens: if a Figma variable exists, its name becomes the token name (`color/primary/500` → `colors.primary500` or a semantic alias).
+
+## Assets
+
+Asset URLs returned by Figma expire — download them right away:
+
+```bash
+curl -fsSL "<url>" -o assets/images/<meaningful-name>.png
+```
+
+Prefer SVG for icons only if the project already uses `react-native-svg`; otherwise PNG @3x, or map to an icon font glyph when the icon is standard (home, search, user, chevron…).
+
+## Fonts
+
+Figma gives exact family and weight. Google Font → `google-font.sh`. Otherwise ask the dev for the files.
+
+## Fallback: Figma in a browser
+
+When the MCP is unavailable or rate-limited, read the file in a browser instead. Figma's canvas is WebGL (not readable as HTML), but the **properties panel on the right is ordinary HTML**: select a layer and its exact values — hex colors, font family/style/size, line height, letter spacing, width/height, corner radius — can be read as text. Accuracy is close to the MCP; it costs no API calls; it's slower because each value needs a selection.
+
+### Setup
+
+1. Ask the dev which browser: **Claude in Chrome** (their own Chrome, usually already signed in to Figma) or the **built-in browser** (they sign in once; never type their credentials yourself).
+2. Open the link. If Figma shows a sign-in page, stop and ask the dev to sign in, then continue.
+3. Make the viewport large so frames are legible in screenshots: built-in browser `resize_window` 1600×1400 (reset to `desktop` when done); in Chrome, a maximized window is enough.
+4. Paste `scripts/figma-panel.js` into the JavaScript tool once per page load. It defines `figmaPanel.read()`.
+
+### Recipe (per file, not per layer)
+
+1. **Frames** — read the layer list with the page-text tool. Top-level frames (e.g. `Login`, `Home`, `Product Detail`) are the screens. Duplicates and hidden copies (shown greyed / "Toggle layer visibility") are usually old versions — confirm with the dev if unclear.
+2. **Per screen:** click the frame's name in the layer list (more reliable than clicking the canvas), press `Shift+2` (zoom to selection), wait ~1 s, take a screenshot → layout and content. Then `figmaPanel.read()` → frame size and its **Selection colors** (the whole palette used in that screen, in one read). If the panel shows "Selection colors" swatches with a `+N` and no hex values, click `+N` once, then read again.
+3. **Text styles — one read per style, not per text layer.** Expand the frame in the layer list and click one text layer for each visual style you see (screen title, section heading, body, caption, button label, input placeholder). `figmaPanel.read()` returns `typography: [family, style]`, `Font size`, `Line height`, `Letter spacing`, `Color`.
+4. **Components — one read per kind.** Click one primary button, one input, one card, one list row, one tab bar: `Width`/`Height`, corner radius (under `?`), `Color` (fill then stroke), `Stroke weight`. Auto-layout frames also expose padding and gap.
+5. Later screens reuse the same styles: only read what looks new.
+
+### Pitfalls seen in practice
+
+- The panel renders lazily: wait ~1 s after selecting before reading, and read again if values look like the previous selection (`nodeId` in the result tells you what is selected).
+- The selected row scrolls to the same place in the layer list, so consecutive clicks can land on the same coordinates — that's normal; verify with `nodeId` or a screenshot.
+- Never type into the panel's inputs or press keys while a text field is focused (including Figma's AI "Ask for changes" box): you would edit the file. Press `Escape` and click empty canvas first.
+- `Cmd+\` toggles Figma's whole UI and can take effect late. If the panels disappear, press `Escape`, click the canvas, press `Cmd+\` again.
+- View-only access may show fewer properties. If values are missing, ask the dev for edit access or a duplicate of the file in their drafts.
+- Font names come out exactly (`Montserrat`, `Medium`) → straight into `google-font.sh`.
+
+Write what you read into `docs/design-spec.md` as you go (palette, type scale, component specs), then continue with Phase 3 as usual.
