@@ -72,10 +72,11 @@ A run is successful when:
 
 | Area | macOS | Windows | Linux |
 |---|---|---|---|
-| Environment install (Node, Android) | ✓ verified on a simulated clean home | written, parse-checked, **not run on real Windows yet** | scripts shared with macOS, not run |
-| Expo on iOS Simulator / Android emulator | ✓ | Android: pending test | pending |
-| RN CLI on iOS Simulator / Android emulator | ✓ | Android: pending test | pending |
+| Environment install (Node, Android) | ✓ verified on a simulated clean home | ✓ clean machine, end to end | scripts shared with macOS, not run |
+| Expo on iOS Simulator / Android emulator | ✓ | ✓ Android emulator | pending |
+| RN CLI on iOS Simulator / Android emulator | ✓ | pending | pending |
 | Quality tooling (Jest, Husky, commitlint, custom rule) | ✓ on Expo + pnpm | pending | pending |
+| Design import from Figma | ✓ (browser panel reading) | ✓ clean machine, end to end | — |
 | Design import from text | ✓ (subagent run, 14 findings fixed) | pending | — |
 | Figma via browser panel reading | ✓ manual | — | — |
 | Not yet exercised anywhere | Re.Pack, Ignite, NativeWind, Unistyles, Figma MCP end to end, screenshot input end to end, special-components flow, a truly clean Mac | | |

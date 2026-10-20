@@ -172,11 +172,11 @@ flowchart LR
 - Clean-machine simulation: `env -i HOME=<empty dir> PATH=/usr/bin:/bin bash <script>` — installs Node, Android SDK, creates AVDs from nothing (found the AVD-location bug).
 - End-to-end on macOS: Expo and RN CLI apps on the iOS Simulator and Android emulator, screenshots read back.
 - A subagent ran `rn-design-import` from a text description and reported every instruction that was wrong or ambiguous (14 findings, all fixed).
-- Windows: PowerShell parsed with pwsh, helper logic and live download selection exercised, Git Bash delegation simulated with stub `uname`/`cygpath`/`powershell.exe`. Not yet run on Windows hardware.
+- Windows: PowerShell parsed with pwsh, helper logic and live download selection exercised, Git Bash delegation simulated with stub `uname`/`cygpath`/`powershell.exe`; then run end to end on a clean Windows machine (environment install → Expo app built from a Figma design).
 
 ## Limitations and risks
 
-- **Windows scripts are untested on real hardware**; first runs will surface fixes.
+- On Windows only the Expo + Android emulator + Figma path has run on real hardware; RN CLI and quality tooling there are still untested.
 - Tool versions drift (Expo SDK, RN, Xcode, pnpm). `compatibility.md` records what was verified; `lib-info.sh` covers libraries, not the toolchain.
 - Figma browser reading depends on Figma's UI; layout changes can break `figma-panel.js` selectors.
 - Screenshot input can't reveal font names, hidden states or scrolled-off content — written to Open points.
