@@ -1,6 +1,6 @@
 {
   "name": "rn-starter",
-  "version": "0.6.2",
+  "version": "1.0.0",
   "description": "Takes a clean machine to a running React Native app (rn-starter), and turns a screen list, screenshots or a Figma design into themed, navigable screens (rn-design-import).",
   "author": {
     "name": "Canh Vo",

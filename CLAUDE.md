@@ -37,8 +37,9 @@ PowerShell files: parse them with `pwsh` (`[System.Management.Automation.Languag
 
 ## Publishing
 
-- Repo: github.com/canhvo-agilityio/rn-starter-skills (public). `main` holds only an init commit; work goes to `feat-rn-starter-skill` until the PR is merged.
-- Testers: `claude plugin marketplace add canhvo-agilityio/rn-starter-skills#feat-rn-starter-skill`, then `claude plugin install rn-starter@rn-starter-skills`; after a push, `claude plugin marketplace update rn-starter-skills`.
+- Repo: github.com/canhvo-agilityio/rn-starter-skills (public). `main` holds only an init commit; `dev` is the integration branch (1.0.0 is the first version). New work goes on a feature branch and into `dev` by pull request.
+- Testers: `claude plugin marketplace add canhvo-agilityio/rn-starter-skills#dev`, then `claude plugin install rn-starter@rn-starter-skills`; after a push, `claude plugin marketplace update rn-starter-skills`.
+- Versioning: semver from 1.0.0 — patch for fixes, minor for new options or skills, major for breaking changes to `.rn-starter.json` or the generated structure.
 - Evidence of runs (screenshots, recordings) goes in `docs/evidence/`.
 
 ## Traps already hit
