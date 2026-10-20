@@ -11,6 +11,8 @@ Look at the image, find the element you care about (primary button, background, 
 
 Text colors are anti-aliased; sample the thickest part of a heading, or use the darkest dominant entry close to the text hue.
 
+`palette.py` needs Python 3. A clean Windows has none (`python3` opens the Microsoft Store): read colors from the image yourself and say they're approximate, or offer to install Python (`winget install Python.Python.3.12`). macOS has it once the Command Line Tools are installed.
+
 ## Measure
 
 Screenshots are usually @2x or @3x. Determine the scale from the image width: 1170/1179/1206/1290 px wide → iPhone @3x (390–430 pt); 750/828 → @2x; Android 1080 px → ~@2.6x (411 dp). Divide pixel measurements by the scale to get RN units, then snap to the spacing scale (4/8 grid) — consistent spacing beats replicating a designer's 13 px.

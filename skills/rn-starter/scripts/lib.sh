@@ -12,8 +12,18 @@ os_name() {
   case "$(uname -s)" in
     Darwin) echo mac ;;
     Linux)  echo linux ;;
+    MINGW*|MSYS*|CYGWIN*) echo windows ;;   # Git Bash — what Claude Code uses on Windows
     *)      echo unsupported ;;
   esac
+}
+
+# On Windows the bash entry scripts hand over to their PowerShell twin in scripts/windows/,
+# so the skill runs the same command on every OS. Flags are passed through unchanged.
+# Usage (right after sourcing lib.sh): delegate_to_windows <name>.ps1 "$@"
+delegate_to_windows() {
+  [ "$(os_name)" = windows ] || return 0
+  local ps1="$here/windows/$1"; shift
+  exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$ps1")" "$@"
 }
 
 # Normalized CPU arch: arm64 | x64

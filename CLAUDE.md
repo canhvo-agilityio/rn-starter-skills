@@ -10,6 +10,8 @@ Claude Code plugin (`rn-starter`) with two skills for React Native developers. U
 
 - Expo is the default; RN CLI is the advanced option. Re.Pack only with CLI.
 - pnpm uses `pnpm-workspace.yaml` with `nodeLinker: hoisted` (not `.npmrc`, which makes npm warn).
+- Windows is supported: `.sh` scripts detect Git Bash and delegate to `scripts/windows/*.ps1` (Windows PowerShell 5.1 compatible, per-user installs under `%LOCALAPPDATA%`, no admin). Only admin step: Windows Hypervisor Platform for the emulator (install-android exits 2). No iOS Simulator on Windows. PowerShell scripts were parse-checked with pwsh on macOS and their logic partly exercised, but have NOT run on a real Windows machine yet.
+- The wizard clears blockers itself (asks, then installs); it stops only for steps needing a human (admin/sudo, Apple ID, reboot, license, file access).
 - iOS: Xcode download, `sudo xcode-select`, `sudo xcodebuild -license accept` are the dev's steps; `setup-ios.sh` exits 2 with exact commands. CocoaPods via Homebrew (`brew install cocoapods`); macOS system Ruby 2.6 is too old.
 - Android: JDK 17 (Temurin) + command-line tools, no Android Studio; the dev must explicitly accept the SDK license before `install-android.sh --accept-licenses`.
 - Code quality is part of the wizard (Phase 3 questions, `setup-quality.sh` in Phase 6): Jest + RNTL 14 (async API: `await render`, `userEvent`), Husky with pre-commit (lint-staged: eslint --fix, prettier, related tests), pre-push (tsc, jest, protect main), commitlint (conventional, or custom like Jira keys via "Other"). Commit the scaffold BEFORE installing hooks (templates may fail lint). Never leave a type-check hook on a project that fails tsc (script exits 3).
@@ -30,7 +32,8 @@ Claude Code plugin (`rn-starter`) with two skills for React Native developers. U
 1. The user is testing the full flow in Claude desktop (Code tab), scenarios: A) new app, no design; B) 5 screens by text; C) Figma link via browser fallback. Fix the skills from their feedback.
 2. Untested branches: Re.Pack, Ignite, NativeWind, Unistyles, Linux, Figma via MCP end to end, screenshot input end to end, a truly clean Mac (new macOS user or Tart VM).
 3. Quality tooling tested on an Expo SDK 58 + pnpm 12 project (hooks, commitlint incl. a Jira rule, RNTL tests) — not yet on RN CLI or npm/yarn.
-4. Nothing is committed yet (branch `feat/rn-starter-skill`).
+4. Published at github.com/canhvo-agilityio/rn-starter-skills (public). `main` holds only an init commit; work goes to `feat-rn-starter-skill`, which testers install with `claude plugin marketplace add canhvo-agilityio/rn-starter-skills#feat-rn-starter-skill`. Bump `version` in `.claude-plugin/plugin.json` on every push so `claude plugin update` picks it up.
+5. Windows support is untested on real hardware — the next tester run is on a clean Windows machine.
 
 ## Working on this repo
 

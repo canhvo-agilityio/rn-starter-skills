@@ -13,6 +13,7 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 . "$here/lib.sh"
+delegate_to_windows install-android.ps1 "$@"
 
 api=35
 avd=rn_pixel
@@ -30,7 +31,7 @@ done
 [ "$accepted" -eq 1 ] || die "The Android SDK license must be accepted by the developer first. Ask them, then rerun with --accept-licenses."
 
 os="$(os_name)"; arch="$(cpu_arch)"
-[ "$os" = unsupported ] && die "Only macOS and Linux are supported."
+[ "$os" = unsupported ] && die "Unsupported OS: $(uname -s)."
 mkdir -p "$RN_STARTER_HOME"
 
 # shellcheck source=env.sh
