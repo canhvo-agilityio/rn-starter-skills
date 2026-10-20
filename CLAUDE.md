@@ -1,42 +1,50 @@
 # rn-starter-skills
 
-Claude Code plugin (`rn-starter`) with two skills for React Native developers. User docs are in `README.md`. Everything in this repo is written in English; the skills themselves talk to each developer in the language that developer uses.
+Claude Code plugin `rn-starter` with two skills for React Native developers:
 
-- `skills/rn-starter/` — wizard: clean machine → running RN app. Checks env (`doctor.sh`), installs Node via fnm (no Homebrew/sudo), asks framework (Expo / RN CLI; Rock deliberately excluded), bundler (Metro / Re.Pack), template, libraries, run target (Expo Go on phone / iOS Simulator / Android emulator / web), scaffolds, writes `.rn-starter.json`, runs the app. Phase 7b hands off to rn-design-import when the dev gave a screen list, screenshots or a Figma link.
-- `skills/rn-design-import/` — design → themed, navigable screens in an existing RN/Expo project. Inputs: text list of screens, screenshots (`palette.py` for exact colors), Figma (MCP first; when MCP is missing or rate-limited, read Figma in a browser with `scripts/figma-panel.js`). Writes `docs/design-spec.md` for approval, then theme → Google Fonts (`google-font.sh`) → shared components → feature data layer → screens → navigation, then verifies each screen by deep link + screenshot.
-- Structure (both skills): feature-first — thin route files re-exporting screens, `features/<domain>/{screens,components,api.ts,hooks.ts,store.ts,mocks.ts,types.ts,index.ts}`, shared `components/ theme/ lib/ utils/`, tests next to code, boundaries enforced by `no-restricted-imports` (see `skills/rn-starter/references/structure.md`).
+- `skills/rn-starter/` — wizard: clean machine (macOS, Windows, Linux) → running RN app, with stack questions, toolchain installs, feature-first scaffold, quality tooling, and a run on every selected target.
+- `skills/rn-design-import/` — text / screenshots / Figma → themed, navigable screens in an RN/Expo project, via an approved `docs/design-spec.md`.
 
-## Decisions already made (don't relitigate)
+Read before changing anything:
+- [spec.md](spec.md) — intent, scope, acceptance criteria, current test status.
+- [DESIGN.md](DESIGN.md) — architecture, contracts between the skills, script conventions, cross-platform strategy, and the **key decisions table**. Don't relitigate a decision listed there without new evidence; most came from real test failures.
 
-- Expo is the default; RN CLI is the advanced option. Re.Pack only with CLI.
-- pnpm uses `pnpm-workspace.yaml` with `nodeLinker: hoisted` (not `.npmrc`, which makes npm warn).
-- Windows is supported: `.sh` scripts detect Git Bash and delegate to `scripts/windows/*.ps1` (Windows PowerShell 5.1 compatible, per-user installs under `%LOCALAPPDATA%`, no admin). Only admin step: Windows Hypervisor Platform for the emulator (install-android exits 2). No iOS Simulator on Windows. PowerShell scripts were parse-checked with pwsh on macOS and their logic partly exercised, but have NOT run on a real Windows machine yet.
-- The wizard clears blockers itself (asks, then installs); it stops only for steps needing a human (admin/sudo, Apple ID, reboot, license, file access).
-- iOS: Xcode download, `sudo xcode-select`, `sudo xcodebuild -license accept` are the dev's steps; `setup-ios.sh` exits 2 with exact commands. CocoaPods via Homebrew (`brew install cocoapods`); macOS system Ruby 2.6 is too old.
-- Android: JDK 17 (Temurin) + command-line tools, no Android Studio; the dev must explicitly accept the SDK license before `install-android.sh --accept-licenses`.
-- Code quality is part of the wizard (Phase 3 questions, `setup-quality.sh` in Phase 6): Jest + RNTL 14 (async API: `await render`, `userEvent`), Husky with pre-commit (lint-staged: eslint --fix, prettier, related tests), pre-push (tsc, jest, protect main), commitlint (conventional, or custom like Jira keys via "Other"). Commit the scaffold BEFORE installing hooks (templates may fail lint). Never leave a type-check hook on a project that fails tsc (script exits 3).
-- pnpm: `strictDepBuilds: false` in `pnpm-workspace.yaml` (pnpm 11+ otherwise fails on skipped install scripts). pnpm 11.x hangs after "Done" (keeps registry sockets open) — doctor warns, recommend updating to 12.
-- TypeScript 6 doesn't auto-load `@types/*`: `jest-env.d.ts` with `/// <reference types="jest" />`.
-- Special components (map, sheet, charts, camera…): real library chosen with the dev, per framework (Expo vs CLI), checked live with `lib-info.sh` (unmaintained → never; New Arch required on RN 0.82+), wrapped in a feature component. `@react-native-community/geolocation` is unmaintained — on CLI use `expo-location` via `install-expo-modules`.
-- Figma Starter/free plans allow ~6 MCP calls/month → frugal call plan, browser fallback reads the properties panel (HTML) for exact values.
-- Versions verified 2026-10: Expo SDK 58, RN 0.88, Node 24 LTS, JDK 17, Android API 35, Xcode 26.6 / iOS 26.5 (see top of `skills/rn-starter/references/compatibility.md`).
+## Rules for this repo
 
-## Testing done
+- Everything in the repo is English. The skills talk to each developer in that developer's language.
+- Keep each `SKILL.md` short; detail goes in `references/` and is pointed to from the phase that needs it.
+- Deterministic work belongs in a script with stable output and the exit-code convention (0 done · 1 error · 2 waiting on the developer · 3 done with a decision needed). Every script must be idempotent and non-interactive.
+- Every bash entry script that installs or checks tools has a PowerShell twin in `skills/rn-starter/scripts/windows/` (Windows PowerShell 5.1 syntax only) and calls `delegate_to_windows` right after sourcing `lib.sh`.
+- When options depend on an earlier answer, ask them in a later `AskUserQuestion` call.
+- Bump `version` in `.claude-plugin/plugin.json` on every push — testers' `claude plugin update` only sees version changes.
 
-- Simulated clean machine with `env -i HOME=<empty dir> PATH=/usr/bin:/bin bash <script>`: install-node, install-android (+ AVD), Expo + pnpm, RN CLI + pod install + run-ios, Expo/CLI on Android emulator — all reached the app's first screen.
-- rn-design-import, text input ("5 screens: Login, Home, Search, Detail, Profile") run end to end by a subagent on the iOS Simulator; its 14 findings were fixed in the references.
-- Figma browser fallback tried manually on the dev's "Grocery App" file (palette #33907C/#F6F9FF…, Montserrat): works.
+## Validate before committing
 
-## Not tested yet / next steps
+```bash
+claude plugin validate .
+for f in skills/*/scripts/*.sh; do bash -n "$f" || echo "BAD $f"; done
+node --check skills/rn-design-import/scripts/figma-panel.js
+```
 
-1. The user is testing the full flow in Claude desktop (Code tab), scenarios: A) new app, no design; B) 5 screens by text; C) Figma link via browser fallback. Fix the skills from their feedback.
-2. Untested branches: Re.Pack, Ignite, NativeWind, Unistyles, Linux, Figma via MCP end to end, screenshot input end to end, a truly clean Mac (new macOS user or Tart VM).
-3. Quality tooling tested on an Expo SDK 58 + pnpm 12 project (hooks, commitlint incl. a Jira rule, RNTL tests) — not yet on RN CLI or npm/yarn.
-4. Published at github.com/canhvo-agilityio/rn-starter-skills (public). `main` holds only an init commit; work goes to `feat-rn-starter-skill`, which testers install with `claude plugin marketplace add canhvo-agilityio/rn-starter-skills#feat-rn-starter-skill`. Bump `version` in `.claude-plugin/plugin.json` on every push so `claude plugin update` picks it up.
-5. Windows support is untested on real hardware — the next tester run is on a clean Windows machine.
+PowerShell files: parse them with `pwsh` (`[System.Management.Automation.Language.Parser]::ParseFile`) if it's available; on macOS a portable pwsh in a scratch folder works.
 
-## Working on this repo
+## How to test changes
 
-- Validate after edits: `claude plugin validate .` and `bash -n skills/*/scripts/*.sh`.
-- Users install locally with `claude plugin marketplace add <repo path>` + `claude plugin install rn-starter@rn-starter-skills`; after changes they run `claude plugin marketplace update rn-starter-skills` and `claude plugin update rn-starter@rn-starter-skills`.
-- Keep test projects and downloads in a scratch folder, never in this repo.
+- Clean machine, simulated: `env -i HOME=<empty dir> SHELL=/bin/zsh PATH=/usr/bin:/bin:/usr/sbin:/sbin bash <script>`. System-wide installs (Xcode, `/Library/Java`) still leak through — say so when reporting.
+- End to end: create a test app in a scratch folder (never in this repo), follow the skill, run it on the simulators/emulators, and read the screenshots back.
+- Skill instructions: have a subagent follow a `SKILL.md` literally on a test project and report every instruction that was wrong, ambiguous or missing — that found more bugs than anything else.
+- Windows: no Windows machine here. Real runs happen on the tester's machine; they send screenshots.
+
+## Publishing
+
+- Repo: github.com/canhvo-agilityio/rn-starter-skills (public). `main` holds only an init commit; work goes to `feat-rn-starter-skill` until the PR is merged.
+- Testers: `claude plugin marketplace add canhvo-agilityio/rn-starter-skills#feat-rn-starter-skill`, then `claude plugin install rn-starter@rn-starter-skills`; after a push, `claude plugin marketplace update rn-starter-skills`.
+- Evidence of runs (screenshots, recordings) goes in `docs/evidence/`.
+
+## Traps already hit
+
+- pnpm 11 hangs after "Done" and fails on skipped build scripts → doctor warns; `strictDepBuilds: false`.
+- Expo templates ship type and lint errors → take baselines; commit the scaffold before hooks.
+- `Stack.Protected` doesn't redirect → navigate explicitly after sign-in/out.
+- avdmanager and the emulator disagree on the AVD folder → `ANDROID_USER_HOME` pinned.
+- zsh treats `===` as a command and doesn't word-split `$var` — quote test commands accordingly.
