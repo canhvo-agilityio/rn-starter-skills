@@ -33,7 +33,7 @@ PowerShell files: parse them with `pwsh` (`[System.Management.Automation.Languag
 - Clean machine, simulated: `env -i HOME=<empty dir> SHELL=/bin/zsh PATH=/usr/bin:/bin:/usr/sbin:/sbin bash <script>`. System-wide installs (Xcode, `/Library/Java`) still leak through — say so when reporting.
 - End to end: create a test app in a scratch folder (never in this repo), follow the skill, run it on the simulators/emulators, and read the screenshots back.
 - Skill instructions: have a subagent follow a `SKILL.md` literally on a test project and report every instruction that was wrong, ambiguous or missing — that found more bugs than anything else.
-- Windows: no Windows machine here. Real runs happen on the tester's machine; they send screenshots.
+- Windows: no Windows machine here. Real runs happen on the tester's machine (a clean Windows run of Expo + Android emulator + Figma passed); they send screenshots.
 
 ## Publishing
 
