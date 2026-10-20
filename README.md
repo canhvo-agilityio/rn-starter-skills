@@ -40,12 +40,13 @@ Steps:
 
 UI only. Code is feature-first: each feature owns its screens, components, `api.ts` (mocked for now), hooks and logic, and exposes a public `index.ts`; route files are one-line re-exports, and ESLint enforces the boundaries. Switching a feature to the real API is a change to its `api.ts`.
 
-Local development only: no code signing, no paid Apple Developer account. Supports macOS and Linux (no iOS Simulator on Linux).
+Local development only: no code signing, no paid Apple Developer account. Supports macOS, Windows and Linux (the iOS Simulator is macOS-only; on Windows the scripts run through PowerShell twins in `scripts/windows/`, installing per user without admin rights).
 
 **Steps the developer does themselves with `rn-starter`** (the skill stops, explains, and waits):
 - Download Xcode from the App Store (a free Apple ID is enough), or install it from the team's `.xip`.
 - Run the `sudo` commands, e.g. `sudo xcodebuild -license accept`.
 - Install Homebrew (only for RN CLI + iOS).
+- Windows: turn on *Windows Hypervisor Platform* for the Android emulator (admin PowerShell command + reboot, once).
 - Accept the Android SDK license.
 
 ## Step 0 on a clean machine: install Claude Code
@@ -106,6 +107,7 @@ skills/rn-starter/
     start-simulator.sh   # boots the iOS Simulator and waits for it
     setup-quality.sh     # Jest + RNTL, Husky (pre-commit / pre-push), lint-staged, commitlint
     lib.sh               # shared helpers
+    windows/             # PowerShell twins of the scripts above (doctor, env, install-node, install-android, start-emulator), used automatically on Windows
   references/
     compatibility.md     # which combinations work (used to filter options)
     frameworks.md        # create commands per framework/template

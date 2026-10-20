@@ -4,6 +4,16 @@ Use this to decide which options to show. If a combination is marked ✗, don't 
 
 Last verified: 2026-10 (Expo SDK 58, React Native 0.88, @react-native-community/cli 20, Re.Pack 5, Xcode 26.6, CocoaPods 1.17). Tested end to end: Expo + pnpm on the iOS Simulator; RN CLI + pnpm + pod install + run-ios on the iOS Simulator; install-android.sh from a clean home, then Expo and RN CLI (run-android) on the Android emulator.
 
+## Operating system × run target
+
+| | Expo Go (phone) | iOS Simulator | Android emulator | Web |
+|---|---|---|---|---|
+| macOS | ✓ | ✓ (Xcode) | ✓ | ✓ (Expo) |
+| Windows | ✓ | ✗ Apple only ships it for macOS | ✓ needs *Windows Hypervisor Platform* (admin + reboot, once) | ✓ (Expo) |
+| Linux | ✓ | ✗ | ✓ needs KVM | ✓ (Expo) |
+
+Windows scripts live in `scripts/windows/*.ps1` (Windows PowerShell 5.1 compatible) and are called automatically by the `.sh` scripts under Git Bash. They install per user without admin: Node zip → `%LOCALAPPDATA%\rn-starter\node`, JDK → `%LOCALAPPDATA%\rn-starter\jdk-17`, Android SDK → `%LOCALAPPDATA%\Android\Sdk` (Android Studio's default), with user-level `PATH`, `JAVA_HOME`, `ANDROID_HOME`. Windows on ARM gets arm64 Node/JDK and an `arm64-v8a` system image; emulator support there is more limited than on x64.
+
 ## Framework × bundler
 
 | | Metro | Re.Pack (Rspack) |

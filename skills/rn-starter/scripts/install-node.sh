@@ -7,9 +7,10 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 . "$here/lib.sh"
+delegate_to_windows install-node.ps1 "$@"
 
 node_version="${1:-lts-latest}"
-[ "$(os_name)" = unsupported ] && die "Only macOS and Linux are supported."
+[ "$(os_name)" = unsupported ] && die "Unsupported OS: $(uname -s)."
 
 fnm_dir="${FNM_DIR:-$FNM_DIR_DEFAULT}"
 

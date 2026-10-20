@@ -4,6 +4,15 @@ Preferred: the **Figma MCP server** connected in the dev's Claude Code (tools li
 
 If a Figma design-to-code skill is available (e.g. `figma-design-to-code`, `figma-implement-design`, or the MCP resource `skill://figma/figma-design-to-code/SKILL.md`), load it before calling `get_design_context` — the Figma server expects it.
 
+## Files you can't open: Community files and other people's files
+
+Figma Community files (links under `figma.com/community/file/…`, or a `/design/` link to a community file) and files owned by someone else usually fail through the MCP with a permission error ("no access" / "can't edit"), even when the dev can view them in the browser. Handle it in one message, early, and keep the rest of the wizard moving:
+
+1. Ask the dev to **duplicate** the file: open the link → *Open in Figma* / *Duplicate* (Community) or *File → Duplicate to your drafts* (shared file) → copy the new link (better: right-click the screens' frame or section → *Copy link to selection*, so it has a `node-id`). The duplicate is theirs, so the MCP can read everything.
+2. If they'd rather not, offer the browser fallback below (view access may show fewer values), or exported PNGs.
+
+While waiting for the new link, continue with whatever doesn't need the design — environment setup, scaffolding, running the empty app. Never stop the whole flow for it.
+
 ## Be frugal with calls
 
 Figma MCP is rate-limited per plan, and Starter / View seats get very few calls per month. Plan the calls before making them:

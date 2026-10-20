@@ -13,6 +13,7 @@ set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 . "$here/lib.sh"
+delegate_to_windows doctor.ps1 "$@"
 # shellcheck source=env.sh
 . "$here/env.sh"
 

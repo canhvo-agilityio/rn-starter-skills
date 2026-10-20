@@ -1,6 +1,6 @@
 ---
 name: rn-starter
-description: Step-by-step wizard that takes a developer's machine — even a brand-new one with nothing installed — to a running React Native app. Checks Node/package manager/Android/Xcode tooling, installs what is missing, asks the dev which framework (Expo or React Native CLI), bundler (Metro or Re.Pack), template, libraries and run target they want, scaffolds the project with a clean folder structure (and, when the dev describes screens or shares a screenshot/Figma design, builds those screens via the rn-design-import skill), and runs it on a phone (Expo Go on iPhone or Android), iOS Simulator, Android emulator or web. Use this whenever someone wants to start, create, init, bootstrap or scaffold a React Native / Expo app, set up a machine for React Native development, onboard a new mobile dev, or asks "how do I get a RN app running" — even if they don't say "wizard" or name a specific tool.
+description: Step-by-step wizard that takes a developer's machine — macOS, Windows or Linux, even a brand-new one with nothing installed — to a running React Native app. Checks Node/package manager/Android/Xcode tooling, installs what is missing, asks the dev which framework (Expo or React Native CLI), bundler (Metro or Re.Pack), template, libraries and run target they want, scaffolds the project with a clean folder structure (and, when the dev describes screens or shares a screenshot/Figma design, builds those screens via the rn-design-import skill), and runs it on a phone (Expo Go on iPhone or Android), iOS Simulator, Android emulator or web. Use this whenever someone wants to start, create, init, bootstrap or scaffold a React Native / Expo app, set up a machine for React Native development, onboard a new mobile dev, or asks "how do I get a RN app running" — even if they don't say "wizard" or name a specific tool.
 ---
 
 # React Native starter wizard
@@ -17,6 +17,8 @@ Ask questions with the `AskUserQuestion` tool (up to 4 questions per call, 2–4
 
 **"Other" answers** are real requirements, not noise. For each one: (1) turn it into a concrete command or config, (2) show the dev exactly what you'll apply and get a yes — free text is easy to misread, (3) check it against `references/compatibility.md`; if it can't work, say why and offer the closest valid option instead of silently dropping it, (4) verify it like a built-in option, (5) record it in `.rn-starter.json` and the README. `references/quality.md` has worked examples (Jira-style commit messages, branch-name rules).
 
+**Clear blockers yourself; stop only for what needs a human.** A missing tool is the wizard's job, not the dev's homework: ask once ("Install Node LTS? (Recommended)"), then install it with the scripts here and carry on. Only stop for things you truly can't do — an admin/sudo password, an Apple ID sign-in, a reboot, a license only the dev can accept, access to someone else's file — and even then, finish everything that doesn't depend on it first. Never end a turn with a list of things for the dev to install by hand when a script in this skill installs them.
+
 Only offer combinations that work together. `references/compatibility.md` is the source of truth — read it before Phase 2 and filter options with it, so the dev is never offered something that will fail later. `AskUserQuestion` shows all questions of one call at once, so **a question whose options depend on another answer goes in a later call** than that answer (e.g. run targets after the framework). Never put both in the same call and hope to filter afterwards.
 
 Keep a running record of the dev's answers (framework, bundler, template, package manager, libraries, run target, app name, location, design input). You will show it in Phase 5 and write it into the project README in Phase 8.
@@ -30,6 +32,8 @@ source "<skill-dir>/scripts/env.sh" && <command>
 ```
 
 `env.sh` is safe to source repeatedly and silently skips tools that are not installed.
+
+**Windows:** Claude Code runs commands in Git Bash, and the same `bash <skill-dir>/scripts/*.sh` commands work there — each script hands over to its PowerShell twin in `scripts/windows/` (no admin rights needed; tools go under `%LOCALAPPDATA%`). `env.sh` also works in Git Bash. If only PowerShell is available, call the twins directly — `powershell -NoProfile -ExecutionPolicy Bypass -File <skill-dir>\scripts\windows\doctor.ps1 --android` — and dot-source `scripts\windows\env.ps1` instead of `env.sh`. iOS scripts (`setup-ios.sh`, `start-simulator.sh`) need macOS.
 
 Long-running commands (Android SDK or iOS runtime download, first Gradle/Xcode build, `pnpm install` on a slow network) can exceed the Bash timeout: run them with `run_in_background` and tell the dev what is happening while they wait.
 
@@ -45,14 +49,14 @@ bash "<skill-dir>/scripts/doctor.sh"
 
 It prints one line per tool: `ok`, `warn` or `missing`, plus a summary. It only reads; it installs nothing. On macOS also add `--ios`, and add `--android` if an Android SDK might already be there. Knowing what's already installed lets you recommend the run target that needs the least setup in Phase 2.
 
-Show the dev a short table of the result (tool → status → version). If the OS is Windows (not WSL), stop and explain that this wizard currently supports macOS and Linux only.
+Show the dev a short table of the result (tool → status → version). On Windows this runs `scripts/windows/doctor.ps1` automatically; the run targets there are Expo Go on a phone, the Android emulator and web — the iOS Simulator needs macOS, so mention that once instead of offering it. (WSL is a Linux environment and follows the Linux path, but it can't run the Android emulator with graphics — recommend native Windows.)
 
 ## Phase 1 — Base tools (Node + package manager)
 
 Required for every path: **git**, **Node LTS** (current React Native / Expo need `^22.13 || ^24.3 || >=26`; odd-numbered Node versions are not supported), and a package manager.
 
-- **git missing on macOS** → run `xcode-select --install`. This opens a system dialog: tell the dev to click *Install* (it is the small Command Line Tools package, ~1 GB, not Xcode and no Apple ID). Wait for them to confirm, then re-check with `git --version`. On Linux, ask the dev to install git with their distro package manager (needs sudo, so they run it themselves).
-- **Node missing or too old** → ask before installing (one question: "Install Node LTS via fnm? (Recommended)" / "I'll install Node myself"). Then run `bash "<skill-dir>/scripts/install-node.sh"`. It installs [fnm](https://github.com/Schniz/fnm) into the home directory (no Homebrew, no sudo), installs Node LTS and adds a marked block to the shell rc file.
+- **git missing on macOS** → run `xcode-select --install`. This opens a system dialog: tell the dev to click *Install* (it is the small Command Line Tools package, ~1 GB, not Xcode and no Apple ID). Wait for them to confirm, then re-check with `git --version`. On Linux, ask the dev to install git with their distro package manager (needs sudo, so they run it themselves). On Windows, Claude Code itself needs Git for Windows, so git is normally there; if not, the dev runs `winget install --id Git.Git -e` (or the installer from git-scm.com) and restarts the Claude app.
+- **Node missing or too old** → ask before installing (one question: "Install Node LTS? (Recommended)" / "I'll install Node myself"), then install it right away with `bash "<skill-dir>/scripts/install-node.sh"` and continue. macOS/Linux: [fnm](https://github.com/Schniz/fnm) in the home directory plus Node LTS, and a marked block in the shell rc file. Windows: the official Node LTS zip into `%LOCALAPPDATA%\rn-starter\node` plus the user PATH — no installer, no admin. Either way no Homebrew/sudo/admin. Then `source env.sh` so the rest of this session sees it.
 - **Package manager** → ask which one, offering only those that make sense:
   - `npm` — already comes with Node, zero extra setup.
   - `pnpm` (Recommended if the dev has no preference) — faster, less disk. Install with `source env.sh && npm install -g pnpm`. If `doctor.sh` warns about pnpm 11, offer to update it first (installs hang on 11.x); if the dev declines, recommend npm instead.
@@ -80,7 +84,7 @@ The run-target options depend on this answer, so it must come back before you bu
      - iOS Simulator — macOS only. Needs Xcode (~15 GB + ~8 GB iOS runtime). The dev downloads Xcode themselves (App Store with a free Apple ID, or the team's `.xip`). Running in the simulator needs no Apple ID or signing.
      - Android emulator — installs JDK 17 + Android SDK (~5–8 GB, 20–40 min).
      - Web browser — fastest, but not a real native environment.
-   - **RN CLI:** only iOS Simulator (macOS only) and Android emulator — never Expo Go or web. Recommend whichever matches a toolchain `doctor.sh` already found (on a Mac with Xcode installed, the iOS Simulator is the quicker start). On Linux that leaves only the Android emulator: say so instead of asking.
+   - **RN CLI:** only iOS Simulator (macOS only) and Android emulator — never Expo Go or web. Recommend whichever matches a toolchain `doctor.sh` already found (on a Mac with Xcode installed, the iOS Simulator is the quicker start). On Windows and Linux that leaves only the Android emulator: say so instead of asking.
 3. **Bundler** — skip for Expo (Metro is the only supported bundler; say so in one line). For CLI:
    - Metro (Recommended) — default, simplest.
    - Re.Pack (Rspack) — for code splitting / Module Federation / super-apps; more config.
@@ -119,14 +123,15 @@ Skip this phase entirely when the run targets are only Expo Go and/or web. Do An
 
 ### Android emulator
 
-1. Explain what will be installed and roughly how big it is: JDK 17 ~200 MB, Android SDK + emulator + system image ~3–4 GB. For RN CLI, the first Gradle build also pulls the NDK, CMake and Gradle caches, another ~3 GB. Check free disk space first (`df -h ~`) and warn if under ~15 GB.
+1. Explain what will be installed and roughly how big it is: JDK 17 ~200 MB, Android SDK + emulator + system image ~3–4 GB. For RN CLI, the first Gradle build also pulls the NDK, CMake and Gradle caches, another ~3 GB. Check free disk space first (`df -h ~`; Windows: `powershell -Command "Get-PSDrive C"`) and warn if under ~15 GB.
 2. The Android SDK requires accepting Google's license terms. Ask the dev explicitly: "The Android SDK requires accepting the Android SDK License Agreement (https://developer.android.com/studio/terms). Do you accept?" Only continue on a clear yes — that acceptance is theirs to give, not yours.
 3. Run in the background (it can take a long time):
    ```bash
    bash "<skill-dir>/scripts/install-android.sh" --accept-licenses
    ```
-   It installs JDK 17 (Temurin) if no JDK 17 exists, the Android command-line tools, platform-tools, emulator, Android 15 (API 35) platform and system image, creates an AVD named `rn_pixel`, and writes `JAVA_HOME` / `ANDROID_HOME` to the shell rc file. It is idempotent — rerunning only fills gaps.
-4. Verify with `bash "<skill-dir>/scripts/doctor.sh" --android` — every Android line must be `ok`.
+   It installs JDK 17 (Temurin) if no JDK 17 exists, the Android command-line tools, platform-tools, emulator, Android 15 (API 35) platform and system image, creates an AVD named `rn_pixel`, and writes `JAVA_HOME` / `ANDROID_HOME` to the shell rc file (Windows: user environment variables). It is idempotent — rerunning only fills gaps.
+   **Windows, exit code 2:** everything is installed but the emulator has no hardware acceleration. Turning on *Windows Hypervisor Platform* needs an administrator: relay the printed steps (an admin PowerShell command, then a reboot; BIOS virtualization if it still fails). This is the dev's step — don't try to elevate. After the reboot, rerun the script; it only re-checks. Meanwhile, continue with anything that doesn't need the emulator (scaffolding, Expo Go on a phone, web).
+4. Verify with `bash "<skill-dir>/scripts/doctor.sh" --android` — every Android line must be `ok` (on Windows that includes `acceleration`).
 
 ### iOS Simulator (macOS only)
 

@@ -57,6 +57,18 @@ Find the symptom, apply the fix, rerun the step that failed. If nothing here mat
 | Build error after adding a native library | pods not updated | `cd ios && pod install`, then rebuild |
 | Simulator very slow / black screen | low disk space, or too many simulators booted | `xcrun simctl shutdown all`; free disk space (Xcode + runtimes need ~25 GB) |
 
+## Windows
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `node` / `java` / `adb` "not recognized" right after installing | apps started before the install (including Claude and open terminals) keep the old PATH | in this session: `source <skill-dir>/scripts/env.sh` (Git Bash) or `. <skill-dir>\scripts\windows\env.ps1` (PowerShell); for the dev: restart the terminal / Claude app |
+| `running scripts is disabled on this system` | PowerShell execution policy | the `.sh` wrappers pass `-ExecutionPolicy Bypass`; when calling a `.ps1` yourself, do the same: `powershell -NoProfile -ExecutionPolicy Bypass -File …` |
+| Emulator: `x86_64 emulation currently requires hardware acceleration` / `-accel-check` not usable | Windows Hypervisor Platform off, or virtualization off in BIOS | dev runs in an **admin** PowerShell: `Enable-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform -All`, reboots; if still failing, enable Intel VT-x / AMD SVM in BIOS |
+| An old Node keeps winning after `install-node` | a system-wide Node (MSI) is in the *system* PATH, which Windows puts before the user PATH | dev uninstalls the old Node (Settings → Apps), or upgrades it to an LTS ≥ 22.13 |
+| Gradle: `Filename longer than 260 characters` / weird path errors | Windows path length limit with deep `node_modules` | keep projects in a short path (e.g. `C:\dev\app`); enabling long paths needs admin: `New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem -Name LongPathsEnabled -Value 1 -PropertyType DWORD -Force` |
+| Installs/builds extremely slow | antivirus scanning `node_modules` and Gradle caches | suggest the dev excludes the project folder and `%USERPROFILE%\.gradle` from real-time scanning (their/IT's call) |
+| `python3` opens the Microsoft Store / isn't found | no Python on a clean Windows | `palette.py` / `ttf-name.py` (rn-design-import) need Python: skip them and read colors from the design yourself, or ask the dev to install Python (`winget install Python.Python.3.12`) |
+
 ## Re.Pack
 
 | Symptom | Fix |
