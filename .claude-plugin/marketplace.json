@@ -1,0 +1,15 @@
+{
+  "name": "rn-starter-skills",
+  "description": "React Native onboarding skills: clean machine to running app.",
+  "owner": {
+    "name": "Canh Vo",
+    "email": "canh.vo@asnet.com.vn"
+  },
+  "plugins": [
+    {
+      "name": "rn-starter",
+      "source": "./",
+      "description": "Clean machine to running React Native app, step by step."
+    }
+  ]
+}
