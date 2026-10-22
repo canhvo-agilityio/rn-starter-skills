@@ -36,7 +36,8 @@ Deciding where something goes:
 |---|---|
 | A screen | `screens/<name>/index.tsx` + a one-line route file in `app/` |
 | UI used by one screen | `screens/<name>/components/` |
-| UI used by 2+ screens (button, card shell, rating stars) | `components/` |
+| UI used by 2+ screens (button, card shell, rating stars) | `components/` — when a new screen needs UI from another screen's `components/`, move it here (`follow-up.md`) |
+| Data that one screen changes and others show (favorites, cart) | a mutable mock in `services/` + a mutation hook (Data seams → Data that screens change) |
 | Data a screen shows (products, user, delivery status) | `services/<domain>.ts` → `hooks/use-<domain>.ts`; mock in `mocks/<domain>.ts`; type in `types/<domain>.ts` |
 | A calculation (totals, fees, discounts, validation) | `utils/<logic>.ts`, tested |
 | An icon | `components/icons/<name>.tsx`, generated from its SVG by `svg-icons.sh`; never a PNG in `assets/` |
@@ -107,6 +108,66 @@ export const useProducts = () => useQuery({ queryKey: ['products'], queryFn: get
 ```
 
 Screens and components get data only through hooks — never by importing services or mocks. Then connecting the real API is a change to `services/` alone.
+
+Mocks import only types, never other mocks (the boundary rules reject it). When one domain's data refers to another's (favorites are coffee ids, an order line names a coffee), keep ids in the mock and join them in the service, which may call another service.
+
+### Data that screens change
+
+Favorites, a cart, read flags: one screen writes, others show it at once. Don't keep it in a screen's `useState` (other screens can't see it) and don't invent a store for mock data. The service holds the mock in a module variable, standing in for the server, and the hook writes through a mutation that updates the query cache first:
+
+```ts
+// src/services/favorites.ts
+import { mockFavoriteIds } from '@/mocks/favorites';
+import type { Coffee } from '@/types/coffee';
+
+import { getCoffees } from './coffees';
+
+// Stands in for the server until the favorites API exists: kept in memory, reset on reload.
+let favoriteIds = [...mockFavoriteIds];
+
+// TODO: replace with API calls (GET /favorites, PUT / DELETE /favorites/:coffeeId)
+export const getFavorites = async (): Promise<Coffee[]> => {
+  const coffees = await getCoffees();
+  return favoriteIds.flatMap((id) => coffees.find((c) => c.id === id) ?? []);
+};
+
+export const setFavorite = async (coffeeId: string, favorite: boolean): Promise<void> => {
+  const others = favoriteIds.filter((id) => id !== coffeeId);
+  favoriteIds = favorite ? [coffeeId, ...others] : others;
+};
+```
+
+```ts
+// src/hooks/use-favorites.ts
+const FAVORITES_KEY = ['favorites'] as const;
+
+export const useFavorites = () => useQuery({ queryKey: FAVORITES_KEY, queryFn: getFavorites });
+
+// Same cache, so the heart on Detail and the Favorites tab never disagree.
+export const useIsFavorite = (coffeeId?: string) =>
+  useQuery({ queryKey: FAVORITES_KEY, queryFn: getFavorites, select: (list) => list.some((c) => c.id === coffeeId) });
+
+// Updates the cached list before the call returns, so every screen changes at once.
+export const useSetFavorite = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ coffee, favorite }: { coffee: Coffee; favorite: boolean }) => setFavorite(coffee.id, favorite),
+    onMutate: async ({ coffee, favorite }) => {
+      await queryClient.cancelQueries({ queryKey: FAVORITES_KEY });
+      const previous = queryClient.getQueryData<Coffee[]>(FAVORITES_KEY);
+      queryClient.setQueryData<Coffee[]>(FAVORITES_KEY, (list = []) => {
+        const others = list.filter((c) => c.id !== coffee.id);
+        return favorite ? [coffee, ...others] : others;
+      });
+      return { previous };
+    },
+    onError: (_error, _input, context) => queryClient.setQueryData(FAVORITES_KEY, context?.previous),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: FAVORITES_KEY }),
+  });
+};
+```
+
+Connecting the API later replaces the two service functions; hooks and screens stay. Without a query library, the same service sits behind the project's store (`stores/`) instead.
 
 ## Tests (when Jest + RNTL are installed)
 

@@ -48,10 +48,25 @@ Button (primary, secondary, ghost) · TextField · Card · ListItem · Avatar ·
 
 logo.png (Figma) · empty-cart.png (Figma) · icons: home, heart, bag, bell, search (Iconly Bulk, SVG → src/components/icons)
 
+## Data (mocked)
+
+products, cart, profile: types/ → mocks/ → services/ → hooks/ (TanStack Query). Cart is mutable in memory (mutation hooks). Totals in utils/pricing.ts (tested).
+
 ## Open points
 
 - Font guessed from screenshot (Inter) — confirm with designer
 - Pressed/disabled button states not in design — derived from primary color
 ```
 
-Status values: `planned` → `built` → `verified` (after Phase 5 comparison).
+Status values: `planned` → `built` → `verified` (after Phase 5 comparison). `existing` marks screens that were in the app before the spec was started.
+
+## Later imports
+
+The spec covers the whole app, so a later import edits the same file:
+
+- **Source:** add a line per import with its date and input (`2026-11-03 — Favorites & Order History, text description`). Keep the earlier lines.
+- **Screens:** add rows with status `planned`; a screen without a design frame gets `— (text)` or `— (screenshot)` in the frame column. Update rows of existing screens you change (a placeholder replaced by a real screen).
+- **Navigation:** redraw the whole tree with the new routes in place, not a separate tree for the feature.
+- **Theme:** add new tokens, and a line mapping the new design's colors that were merged into existing tokens (`#C67C4F → primary`). Existing values stay unless the dev chose to change them.
+- **Shared components, Data, Assets:** add to the lists; note components that moved or gained variants.
+- **Open points:** remove the ones the new import resolves; add new ones.

@@ -24,7 +24,7 @@ Tabs: 2–5. With more candidates than that, keep the most frequently used as ta
 
 - Names carry no meaning ("A, B, C", "Screen1"): ask in plain text what each screen shows and how the user gets there. Don't guess.
 - It's unclear whether there's authentication.
-- There's no visual direction: ask primary color (offer 3 swatches + "you choose"), light/dark/both, and font (default **Inter**; for Vietnamese-heavy UIs suggest **Be Vietnam Pro**).
+- There's no visual direction and the project has no theme yet (an app with screens already has one — reuse it, `follow-up.md`): ask primary color (offer 3 swatches + "you choose"), light/dark/both, and font (default **Inter**; for Vietnamese-heavy UIs suggest **Be Vietnam Pro**).
 
 One `AskUserQuestion` call holds at most 4 questions: put navigation shape, primary color, light/dark and font in it; anything else becomes a line in the spec the dev can correct at approval.
 

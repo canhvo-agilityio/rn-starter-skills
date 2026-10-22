@@ -19,6 +19,18 @@ Read `styling` and `uiLibrary` from `detect-project.sh`. The tokens (section 1) 
   - Add the design's text variants to `ThemedText` (and adjust its sizes, e.g. its `title` is 48) instead of creating a second Text component.
 - **Never run two theme systems.** With a UI library, the library's theme is the theme. A separate `useTheme()` next to it drifts within weeks.
 
+### Colors from a later design
+
+A new design for an app that already has a theme repeats most of its colors, often a step off (exported from another file, picked by hand, rounded). Taking them literally gives `primary2` next to `primary`. Match each color in the new design against the existing tokens, in both palettes when the app has dark mode:
+
+| The new color | Do |
+|---|---|
+| Every RGB channel within 3 of a token (`#C67C4F` vs `primary #C67C4E`) | use that token; the difference is noise |
+| Further off, but in the same role as a token (an error red `#E5484D` next to `danger #ED5151`) | ask the dev: use the existing token (Recommended) / add a new token for this use / change the existing token everywhere |
+| No token in that role (a soft green badge fill) | add a semantic token named for the role (`successSoft`, `onDangerSoft`), to light and dark |
+
+Never change the value of an existing token unless the dev picks that option: it repaints every screen built on it. List the mapping (design color → token, or new token) in the spec's Theme section, so the designer can see which colors were merged.
+
 ## 1. Tokens (every setup)
 
 Two layers. Raw values (a palette scale, only if the design defines one) feed **semantic** names, and components use only the semantic names. Light and dark have the same keys, enforced by the type:
@@ -103,7 +115,20 @@ These files are plain data, so the same values feed any setup below: a UI librar
       },
     };
     ```
-  - the status bar: `<StatusBar style="auto" />` from `expo-status-bar` (CLI: `barStyle` from the scheme);
+  - the status bar: `<StatusBar style="auto" />` from `expo-status-bar` (CLI: `barStyle` from the scheme). A screen whose header needs another style (light text on a dark header) sets its own, and **inside tabs only while focused**: tab screens stay mounted after you leave them, and the most recently mounted `StatusBar` wins, so a hidden tab keeps forcing its style onto the visible one. Render it through a small shared component:
+    ```tsx
+    // src/components/focused-status-bar.tsx
+    import { useIsFocused } from 'expo-router'; // React Navigation: '@react-navigation/native'
+    import { StatusBar, type StatusBarStyle } from 'expo-status-bar';
+
+    interface FocusedStatusBarProps {
+      style: StatusBarStyle;
+    }
+
+    export const FocusedStatusBar = ({ style }: FocusedStatusBarProps) =>
+      useIsFocused() ? <StatusBar style={style} /> : null;
+    ```
+    Check it in Phase 5 by switching tabs in both directions (dark-header tab → light tab → back), not only by opening each tab fresh;
   - the root background, so dark mode doesn't flash white on launch or behind modals: `SystemUI.setBackgroundColorAsync(colors.background)` from `expo-system-ui` (Expo), or the native window background (CLI).
 
 ## 3. StyleSheet only (no UI library) — the default

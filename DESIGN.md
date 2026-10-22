@@ -29,7 +29,8 @@ skills/
     scripts/             detect-project, palette, google-font, ttf-name,
                          figma-panel.js, lib-info, svg-icons
     references/          input-text/image/figma, spec-template, theme, fonts,
-                         navigation, special-components, conventions, verify
+                         navigation, special-components, conventions, verify,
+                         follow-up
 ```
 
 Each `SKILL.md` stays short (~200 lines) and points to references for detail, so only what the current phase needs is loaded into context.
@@ -173,6 +174,9 @@ flowchart LR
 | Figma browser fallback reading the properties panel | Starter/free plans allow ~6 MCP calls/month; the panel is HTML with exact values | exported PNGs only |
 | Live `lib-info.sh` checks | a static list recommended an unmaintained geolocation library | curated table only |
 | Two skills instead of one | design import is reused daily on existing apps; keeps the wizard small | one big skill |
+| Later designs map colors onto existing tokens (channels within 3 = same token; same role but visibly different = ask) | a feature design repeated the theme's colors one step off; taking them literally adds near-duplicate tokens | a new token per hex |
+| Shared mutable mock state = module variable in the service + mutation updating the query cache | favorites written on Detail must show at once on another tab; services stay the only thing the API swap touches | screen `useState`, a store for mock data |
+| Per-screen `StatusBar` inside tabs renders only while focused | mounted hidden tabs override the visible tab's style (found in the Bag tab of the first coffee-shop import) | one global style |
 
 ## Verification
 
