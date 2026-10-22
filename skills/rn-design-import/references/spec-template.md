@@ -46,7 +46,7 @@ Button (primary, secondary, ghost) · TextField · Card · ListItem · Avatar ·
 
 ## Assets
 
-logo.png (Figma) · empty-cart.png (Figma) · icons → Ionicons
+logo.png (Figma) · empty-cart.png (Figma) · icons: home, heart, bag, bell, search (Iconly Bulk, SVG → src/components/icons)
 
 ## Open points
 

@@ -1,6 +1,6 @@
 # Team folder structure
 
-Feature-first. Each feature owns everything it needs — screens, components, data access, state, mocks, tests — and exposes a small public API. Routes are thin. Shared code never depends on features. The goal: a new dev can guess where any file lives, and deleting or changing a feature means touching one folder.
+Layered: code is grouped by what it is — routes, screens, shared components, hooks, services, state — the way Expo's own guidance, Ignite and most team RN codebases do it. A new dev can guess where any file lives from its kind alone. Three things keep it from turning into a tangle: routes are thin, UI never touches data access directly, and shared code never depends on a screen.
 
 ```
 <project>/
@@ -8,84 +8,75 @@ Feature-first. Each feature owns everything it needs — screens, components, da
 │   ├── app/                        routes only (expo-router) — each file a few lines
 │   │   ├── _layout.tsx             providers, fonts, auth guard
 │   │   ├── (tabs)/_layout.tsx      tab navigator
-│   │   ├── (tabs)/index.tsx        export { HomeScreen as default } from '@/features/home';
-│   │   └── product/[id].tsx        export { ProductDetailScreen as default } from '@/features/product';
-│   ├── features/
-│   │   └── <feature>/
-│   │       ├── screens/            <name>-screen.tsx — the actual screens
-│   │       ├── components/         UI used only by this feature
-│   │       ├── api.ts              data access (returns mocks until the API exists)
-│   │       ├── hooks.ts            TanStack Query hooks / feature hooks over api.ts
-│   │       ├── store.ts            feature state (Zustand etc.), only if needed
-│   │       ├── mocks.ts            mock data, imported only by api.ts and tests
-│   │       ├── types.ts            domain types (shaped like the future API data)
-│   │       ├── <logic>.ts          pure logic (pricing, validation…) + <logic>.test.ts
-│   │       └── index.ts            public API — the only file other code imports
-│   ├── components/                 shared UI (Button, TextField, Card…), no feature knowledge
-│   │   └── icons/                  icon components, kept apart from regular components
-│   ├── theme/                      tokens.ts, use-theme.ts, themed-text.tsx (see theme.md in rn-design-import)
-│   ├── lib/                        app-wide infrastructure: query-client.ts, http client, storage
-│   └── utils/                      pure helpers (format, dates)
+│   │   ├── (tabs)/index.tsx        export { HomeScreen as default } from '@/screens/home';
+│   │   └── product/[id].tsx        export { ProductDetailScreen as default } from '@/screens/product-detail';
+│   ├── screens/
+│   │   └── <name>/                 kebab-case, one folder per screen
+│   │       ├── index.tsx           export const <Name>Screen = () => …
+│   │       ├── components/         UI used only by this screen
+│   │       ├── hooks.ts            the screen's state and handlers, only if needed
+│   │       ├── types.ts, utils.ts  only if needed
+│   │       └── __tests__/
+│   ├── components/                 shared UI (button.tsx, product-card/index.tsx), no screen knowledge
+│   │   └── icons/                  icon components generated from SVG (rn-design-import `svg-icons.sh`), with index.ts
+│   ├── hooks/                      shared hooks: use-products.ts (TanStack Query over services/)
+│   ├── services/                   data access: products.ts (returns mocks until the API exists)
+│   ├── mocks/                      mock data, imported only by services/ and tests
+│   ├── stores/                     app state (Zustand etc.), only if needed
+│   ├── types/                      domain types, shaped like the future API data
+│   ├── constants/                  app-wide constants
+│   ├── theme/                      colors.ts, tokens.ts, typography.ts, use-theme.ts, create-themed-styles.ts, themed-text.tsx (theme.md)
+│   ├── lib/                        app-wide infrastructure: query-client.ts, http client, env.ts
+│   └── utils/                      pure logic and helpers (pricing, validation, format)
 ├── assets/                         images, fonts, icons
 ├── .env.example                    documented env vars (no secrets)
 └── README.md
 ```
 
-Tests sit **next to the file they test** (`button.tsx` + `button.test.tsx`, `pricing.ts` + `pricing.test.ts`), so changing a file shows its test right beside it. A root `__tests__/` only holds shared test helpers (`__tests__/utils.tsx` with `renderWithProviders`).
+Files and folders are kebab-case, as in the Expo templates. Components are arrow functions with named exports; route files are the only default exports. The full naming and code-style list is in rn-design-import's `references/conventions.md`.
 
-Create only folders that will have something in them right away (a small real file, not `.gitkeep`). On a fresh scaffold that means one example feature (e.g. `home` with `screens/home-screen.tsx` and `index.ts`) wired to the first route.
+Tests go in a `__tests__/` folder beside the code they test, named after the file (`components/__tests__/button.test.tsx`, `utils/__tests__/pricing.test.ts`, `screens/cart/__tests__/index.test.tsx`). Shared test helpers (`renderWithProviders`) go in `src/test-utils.tsx`.
 
-## The three rules
+Create only folders that will have something in them right away (a small real file, not `.gitkeep`). On a fresh scaffold that means one screen (`screens/home/index.tsx`) wired to the first route, plus the theme.
 
-1. **`app/` files only declare routes.** A route file re-exports a screen from a feature's public API; at most it adds route-only exports (`unstable_settings`, `generateStaticParams`) or a layout. No UI, no data fetching, no logic.
-2. **Features talk to each other only through `index.ts`.** `import { CoffeeCard, useCoffee } from '@/features/coffee'` — never `@/features/coffee/components/coffee-card`. Inside a feature, use relative imports (`./components/coffee-card`).
-3. **Shared code doesn't import features.** `components/`, `theme/`, `lib/`, `utils/` must not import from `@/features/*`. If shared code needs something from a feature, the thing belongs in shared code.
+## The rules
 
-Plus one data rule: **only `api.ts` (and tests) import `mocks.ts`.** Screens and components get data through hooks, so swapping in the real API is a change to `api.ts` only.
+1. **`app/` files only declare routes.** A route file re-exports a screen; at most it adds route-only exports (`unstable_settings`, `generateStaticParams`) or a layout. No UI, no data fetching, no logic.
+2. **UI gets data through hooks.** Components and screens (`.tsx` files) never import `@/services` or `@/mocks`. They call a hook (`hooks/use-products.ts`, or the screen's `hooks.ts`), and the hook calls the service. Swapping in the real API is then a change to `services/` only.
+3. **Only `services/` and tests import `mocks/`.**
+4. **Shared code doesn't import screens.** `components/`, `hooks/`, `services/`, `stores/`, `theme/`, `lib/`, `utils/`, `types/`, `constants/` never import from `@/screens`. If a screen's piece is needed elsewhere, move it to the shared folder it belongs in.
 
-`index.ts` exports only what other code uses — screens for the routes, and whatever another feature genuinely needs. Prefer explicit named re-exports over `export *` (keeps the public surface visible and avoids accidental cycles):
-
-```ts
-// src/features/coffee/index.ts
-export { ProductDetailScreen } from './screens/product-detail-screen';
-export { CoffeeCard } from './components/coffee-card';
-export { useCoffee, useCoffees } from './hooks';
-export type { Coffee, CoffeeSize } from './types';
-```
-
-App-wide state that isn't a feature (the signed-in session) lives in its own feature, e.g. `features/auth/` (`store.ts`, `screens/onboarding-screen.tsx`, `index.ts`).
+A screen's own `components/` is private to it. When a second screen needs one, move it to `src/components/` instead of importing across screen folders.
 
 ## Enforce the rules with ESLint
 
-Add to `eslint.config.js` (flat config) after the existing entries. Later entries override earlier ones for matching files, which is why the shared-code block repeats the deep-import pattern.
+Add to `eslint.config.js` (flat config) after the existing entries. For files matched by several blocks the last one wins, which is why each block lists every pattern that applies to its files.
 
 ```js
-const deepFeatureImport = {
-  group: ['@/features/*/*'],
-  message: "Import from the feature's public API ('@/features/<name>'); inside a feature use relative imports.",
-};
 const mocksImport = {
-  group: ['**/mocks', './mocks', '../mocks'],
-  message: 'Only api.ts and tests may import mocks — get data through the feature hooks.',
+  group: ['@/mocks', '@/mocks/*'],
+  message: 'Only services and tests import mocks. Get data through a hook.',
 };
+const servicesImport = {
+  group: ['@/services', '@/services/*'],
+  message: 'UI gets data through a hook (src/hooks or the screen hooks.ts), not from services.',
+};
+const screensImport = {
+  group: ['@/screens', '@/screens/*'],
+  message: 'Shared code must not depend on screens. Move the shared piece out of the screen folder.',
+};
+const restrict = (...patterns) => ({ 'no-restricted-imports': ['error', { patterns }] });
+const tests = ['src/**/__tests__/**', 'src/test-utils.tsx'];
 
 // in the defineConfig([...]) array:
-{
-  files: ['src/**/*.{ts,tsx}'],
-  ignores: ['src/features/*/api.ts', 'src/**/*.test.{ts,tsx}'],
-  rules: { 'no-restricted-imports': ['error', { patterns: [deepFeatureImport, mocksImport] }] },
-},
-{
-  files: ['src/components/**', 'src/theme/**', 'src/lib/**', 'src/utils/**'],
-  rules: {
-    'no-restricted-imports': ['error', {
-      patterns: [deepFeatureImport, mocksImport, { group: ['@/features', '@/features/*'], message: 'Shared code must not depend on features.' }],
-    }],
-  },
-},
+{ files: ['src/**/*.{ts,tsx}'], ignores: ['src/services/**', ...tests], rules: restrict(mocksImport) },
+{ files: ['src/**/*.tsx'], ignores: tests, rules: restrict(mocksImport, servicesImport) },
+{ files: ['src/{hooks,stores,lib,utils,types,constants}/**/*.ts'], ignores: tests, rules: restrict(mocksImport, screensImport) },
+{ files: ['src/{components,theme}/**', 'src/{hooks,stores,lib,utils}/**/*.tsx'], ignores: tests, rules: restrict(mocksImport, servicesImport, screensImport) },
+{ files: ['src/services/**'], ignores: tests, rules: restrict(screensImport) },
 ```
 
-Run `npx eslint src` after adding it; it must pass on the scaffold. (Verified: it flags deep feature imports, shared code importing features, and screens importing mocks, and allows `api.ts`/tests to import mocks.)
+Run `npx eslint src` after adding it; it must pass on the scaffold. (Verified on an Expo SDK app: it flags a screen importing a service or a mock, a hook importing a mock, and shared code importing a screen; it allows hooks to import services, services to import mocks, and tests to import anything.)
 
 ## Path alias `@/`
 
@@ -110,10 +101,10 @@ Run `npx eslint src` after adding it; it must pass on the scaffold. (Verified: i
 ## Moving template files
 
 - **Expo `default` template (SDK 58+)**: ships `src/app`, `src/components`, `src/hooks`, `src/constants` and the `@/` alias.
-  - Move the theme into `src/theme/`: `src/constants/theme.ts` → `src/theme/tokens.ts`, `src/hooks/use-theme.ts` → `src/theme/use-theme.ts`, `src/components/themed-text.tsx` / `themed-view.tsx` → `src/theme/`. Keep their export names and fix the imports (`grep -rl "@/constants/theme\|@/hooks/use-theme\|themed-" src`).
-  - Turn the demo home route into the first feature: `src/features/home/screens/home-screen.tsx` + `index.ts`, and make `src/app/index.tsx` a one-line re-export. Delete the `explore` demo route and its demo components only when replacing them (or when the dev wants a blank start; the template's `npm run reset-project` does this too).
+  - Move the theme into `src/theme/`: `src/constants/theme.ts` → `src/theme/tokens.ts`, `src/hooks/use-theme.ts` → `src/theme/use-theme.ts`, `src/components/themed-text.tsx` / `themed-view.tsx` → `src/theme/`. Keep their export names and fix the imports (`grep -rl "@/constants/theme\|@/hooks/use-theme\|themed-" src`). With NativeWind, Unistyles or a UI library, set the theme up as rn-design-import `theme.md` describes for it instead.
+  - Turn the demo home route into the first screen: `src/screens/home/index.tsx` exporting `HomeScreen`, and make `src/app/index.tsx` a one-line re-export. Delete the `explore` demo route and its demo components only when replacing them (or when the dev wants a blank start; the template's `npm run reset-project` does this too).
   - If an older template puts routes in `app/` at the root, move them under `src/` (expo-router detects `src/app` automatically).
-- **CLI template**: create `src/features/home/screens/home-screen.tsx` from `App.tsx`'s content, keep a small `src/app/App.tsx` that sets up providers and navigation, and point `index.js` at it.
+- **CLI template**: create `src/screens/home/index.tsx` from `App.tsx`'s content, keep a small `src/app/App.tsx` that sets up providers and navigation (`src/navigation/` for the navigators), and point `index.js` at it.
 
 After moving, run `npx tsc --noEmit`, `npx eslint src`, and start the app once to confirm nothing broke.
 

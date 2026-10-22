@@ -2,11 +2,12 @@
 
 Claude Code plugin `rn-starter` with two skills for React Native developers:
 
-- `skills/rn-starter/` — wizard: clean machine (macOS, Windows, Linux) → running RN app, with stack questions, toolchain installs, feature-first scaffold, quality tooling, and a run on every selected target.
+- `skills/rn-starter/` — wizard: clean machine (macOS, Windows, Linux) → running RN app, with stack questions, toolchain installs, layered scaffold, quality tooling and Claude Code files, and a run on every selected target.
 - `skills/rn-design-import/` — text / screenshots / Figma → themed, navigable screens in an RN/Expo project, via an approved `docs/design-spec.md`.
 
 Read before changing anything:
 - [spec.md](spec.md) — intent, scope, acceptance criteria, current test status.
+- [ROADMAP.md](ROADMAP.md) — open work on the current version and the next skills to build, in priority order. Start new sessions here.
 - [DESIGN.md](DESIGN.md) — architecture, contracts between the skills, script conventions, cross-platform strategy, and the **key decisions table**. Don't relitigate a decision listed there without new evidence; most came from real test failures.
 
 ## Rules for this repo
@@ -16,7 +17,7 @@ Read before changing anything:
 - Deterministic work belongs in a script with stable output and the exit-code convention (0 done · 1 error · 2 waiting on the developer · 3 done with a decision needed). Every script must be idempotent and non-interactive.
 - Every bash entry script that installs or checks tools has a PowerShell twin in `skills/rn-starter/scripts/windows/` (Windows PowerShell 5.1 syntax only) and calls `delegate_to_windows` right after sourcing `lib.sh`.
 - When options depend on an earlier answer, ask them in a later `AskUserQuestion` call.
-- Bump `version` in `.claude-plugin/plugin.json` on every push — testers' `claude plugin update` only sees version changes.
+- Keep `version` in `.claude-plugin/plugin.json` at `1.0.0`. Change it only when the owner asks. `claude plugin update` only sees version changes, so testers pick up new pushes by reinstalling the plugin.
 
 ## Validate before committing
 
@@ -39,7 +40,7 @@ PowerShell files: parse them with `pwsh` (`[System.Management.Automation.Languag
 
 - Repo: github.com/canhvo-agilityio/rn-starter-skills (public). `main` holds only an init commit; `dev` is the integration branch (1.0.0 is the first version). New work goes on a feature branch and into `dev` by pull request.
 - Testers: `claude plugin marketplace add canhvo-agilityio/rn-starter-skills#dev`, then `claude plugin install rn-starter@rn-starter-skills`; after a push, `claude plugin marketplace update rn-starter-skills`.
-- Versioning: semver from 1.0.0 — patch for fixes, minor for new options or skills, major for breaking changes to `.rn-starter.json` or the generated structure.
+- Versioning: stays at 1.0.0 until the owner asks for a bump; then semver — patch for fixes, minor for new options or skills, major for breaking changes to `.rn-starter.json` or the generated structure.
 - Evidence of runs (screenshots, recordings) goes in `docs/evidence/`.
 
 ## Traps already hit

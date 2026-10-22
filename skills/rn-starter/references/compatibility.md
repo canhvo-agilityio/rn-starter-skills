@@ -40,7 +40,7 @@ What needs an Apple ID or a password, and who does it:
 
 ## Expo Go × libraries
 
-Expo Go ships a fixed set of native modules. A library with its own native code that is **not** in Expo Go needs a development build (`npx expo run:android`, i.e. the emulator toolchain). Everything in `libraries.md` works in Expo Go except where noted there.
+Expo Go ships a fixed set of native modules. A library with its own native code that is **not** in Expo Go needs a development build (`npx expo run:android`, i.e. the emulator toolchain). Everything in `libraries.md` works in Expo Go except where noted there. With a development build the Expo project keeps its Expo tooling (config plugins, `npx expo install`), but runs as its own app: `npx expo run:ios` needs Xcode **and CocoaPods**, `npx expo run:android` needs the emulator toolchain, and Expo Go on a phone no longer opens it. Record it as `devBuild: true` in `.rn-starter.json`.
 
 ## Package manager notes
 
