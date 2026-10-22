@@ -19,7 +19,7 @@ It prints JSON: framework (Expo / CLI), navigation library, styling approach, UI
 
 - No `package.json` / not an RN project → this skill needs a project. Offer to create one with the **rn-starter** skill first (it hands back here).
 - An existing theme or components → **extend them**. Read them before generating anything. Duplicating a design system the project already has is the most common way this goes wrong.
-- `docs/design-spec.md` exists → this is a follow-up import. Read it; add to it rather than starting over.
+- `docs/design-spec.md` exists, or the app already has screens of its own → this is a feature added to an existing app. Read the spec, and follow `references/follow-up.md` through every phase: update the spec instead of starting over, reuse before creating, and re-verify the existing screens your changes reach.
 
 Record a type-check baseline now: `npx tsc --noEmit > /tmp/tsc-baseline.txt` (templates can ship with errors of their own; in Expo, CSS-module errors disappear after the first `expo start` generates `expo-env.d.ts`). Later checks only count new errors.
 
@@ -47,7 +47,7 @@ Read the reference file for each input type and extract:
 
 1. **Screens** — name, purpose, main sections, key components, states that matter (empty, loading, error) only if the design shows them.
 2. **Navigation** — which screens are tabs, which push on a stack, which are modals, what's behind auth. Infer from names and design (a bottom bar in a screenshot = tabs).
-3. **Tokens** — colors (with semantic names: `primary`, `background`, `surface`, `text`, `textMuted`, `border`, `danger`, …), typography scale, spacing scale, radii, shadows, light/dark.
+3. **Tokens** — colors (with semantic names: `primary`, `background`, `surface`, `text`, `textMuted`, `border`, `danger`, …), typography scale, spacing scale, radii, shadows, light/dark. When the project already has a theme, match every design color against its tokens first (`references/theme.md` → Colors from a later design).
 4. **Fonts** — families and weights used.
 5. **Shared components** — anything appearing on 2+ screens (buttons, inputs, cards, list rows, headers).
 6. **Assets** — logos, illustrations (images), and icons. Icons come from the design as SVG (Figma) and become components in `src/components/icons/` — standard glyphs too, so the screens show the design's icon set rather than an icon-font look-alike. Only when the design has no vector source (text input, screenshots) map icons to the project's icon library (`icons` in the detect output) and list each substitution under Open points.
@@ -56,7 +56,7 @@ Read the reference file for each input type and extract:
 Then ask what you cannot infer, in one `AskUserQuestion` round (max 4 questions), each with your best guess as the recommended option. Typical gaps:
 - navigation shape when names are ambiguous ("A, B, C" tells you nothing — ask what each screen is for in plain text);
 - the font when you only have a screenshot (offer your closest Google Fonts matches);
-- theme when there's no visual design (primary color, light/dark);
+- theme when there's no visual design and no existing theme (primary color, light/dark);
 - which Figma frames to build when the file has many.
 
 Special components get their own `AskUserQuestion` round (one question each, max 4): the recommended library with what it requires (API key, permission, dev build on Expo, native rebuild on CLI) / a static placeholder for now / Other.
@@ -98,6 +98,8 @@ Follow `references/verify.md` on **every run target the dev uses** — `runTarge
 2. **Each other simulator/emulator:** open every screen again and screenshot it. Not a full design comparison — look for what breaks per platform: custom fonts not applied, shadows/elevation, safe-area and status-bar overlap, text wrapping, native tab bar differences. Fix in shared code where possible.
    Special components get checked on every target: the map shows tiles (not a grey grid), the sheet drags, the video plays a frame. Grant permissions and fake locations from the command line (`references/special-components.md` → Verify).
 3. **Phone via Expo Go:** ask the dev to open the app and check the main screens (you can't see the phone). Record their answer.
+
+Existing screens that use a token, shared component, layout or service you changed are checked the same way (`references/follow-up.md` → Changes that reach existing screens).
 
 A target you didn't check is listed as not verified in the hand-off — never implied as done.
 

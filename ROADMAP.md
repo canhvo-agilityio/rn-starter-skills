@@ -16,6 +16,11 @@ The layered structure, Claude Code files, theme setups, UI library option and SV
   - `svg-icons.sh` on SVGs exported from a real Figma file, and the icons on a simulator.
   - Light-only design on a device in dark mode (the new step in `verify.md`).
   - `setup-claude.sh` and the format hook on Windows (Git Bash + node).
+- [ ] Adding a feature to an existing app (rn-design-import, `references/follow-up.md`): the high-priority fixes from the coffee-shop Favorites/Order History run are in. Still open from that run:
+  - `verify.md`: pick a free port when 8081 is taken (+ `adb reverse`), target `host.exp.exponent` when opening links on Android, cold-start deep links on iOS landing on the root, Expo Go's gear covering the element under test, text-only input (compare with the spec and existing screens), segment/tab state in the URL so it's deep-linkable, iOS states reachable only by tapping.
+  - Baselines in a per-project path (not `/tmp/tsc-baseline.txt`), plus lint and jest baselines; Phase 6 honoring the project's own `CLAUDE.md` rules (e.g. a reviewer before commit); a `renderWithProviders` example; `SKILL.md` points to icon placeholders in `conventions.md` that don't exist.
+  - Re-run the same feature on a fresh copy to confirm the fixes, and test on an app not made by rn-starter with one domain on a real API (follow-up.md's real-API row and the "no spec yet" path).
+  - The tester's `coffee-shop` still has the status-bar bug in the Bag tab (fixed only in the test copy).
 - [ ] Recheck the UI libraries left out of the wizard (gluestack-ui, Tamagui, React Native Reusables) — reasons in `skills/rn-starter/references/libraries.md`. Add one back only after it installs, type-checks and bundles on the current Expo SDK.
 
 ## 2. New skills, in priority order
