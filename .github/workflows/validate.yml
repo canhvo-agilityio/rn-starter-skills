@@ -1,0 +1,52 @@
+# The checks from CLAUDE.md → "Validate before committing", on every pull request and push to dev.
+name: validate
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Plugin manifest and skills
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude plugin validate .
+
+      - name: Bash syntax
+        run: |
+          fail=0
+          for f in skills/*/scripts/*.sh; do bash -n "$f" || { echo "::error file=$f::bash syntax error"; fail=1; }; done
+          exit $fail
+
+      - name: JavaScript syntax
+        run: |
+          fail=0
+          for f in skills/*/scripts/*.js; do node --check "$f" || { echo "::error file=$f::syntax error"; fail=1; }; done
+          exit $fail
+
+      - name: PowerShell syntax
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Recurse -Filter *.ps1 skills | ForEach-Object {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors) | Out-Null
+            foreach ($e in $errors) {
+              Write-Output "::error file=$($_.FullName),line=$($e.Extent.StartLineNumber)::$($e.Message)"
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }
