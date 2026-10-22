@@ -47,6 +47,18 @@ Fix the biggest differences first; prefer fixing tokens or shared components (fi
 
 Platform differences are fine and not bugs: status bar, safe-area insets, native tab bar style, system font metrics.
 
+**Device in the other scheme.** Phones run in dark mode as often as light, whatever the design shows. Switch the simulator/emulator to the scheme the design doesn't have, reopen one screen with a header or tab bar, and screenshot it:
+
+```bash
+xcrun simctl ui booted appearance dark        # iOS; back with: appearance light
+adb shell cmd uimode night yes                 # Android; back with: night no
+```
+
+- Design with only one scheme → the screen must look exactly as before: same background, readable status bar, design-colored header and tab bar. If not, the app isn't locked to the design's scheme (`theme.md` section 2).
+- Design with both schemes → compare the screen with the design's dark frame, like the other screens.
+
+Switch the device back afterwards.
+
 ## 4. Tap the main flow once
 
 E.g. Login → Home → open an item → back → switch tabs → Profile → log out. Navigation bugs (wrong stack, missing back button, tab state lost, "Unmatched Route" after logout) only show up this way.

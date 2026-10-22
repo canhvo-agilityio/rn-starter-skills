@@ -32,6 +32,15 @@ const navigation = has('expo-router') ? 'expo-router'
 const styling = has('nativewind') ? 'nativewind'
   : has('react-native-unistyles') ? 'unistyles'
   : has('tamagui') ? 'tamagui' : 'stylesheet';
+// A UI component library owns the theme when present (theme.md section 6).
+const uiLibraries = [
+  ['react-native-paper', 'react-native-paper'], ['tamagui', 'tamagui'],
+  ['@gluestack-ui/core', 'gluestack-ui'], ['@gluestack-ui/themed', 'gluestack-ui'],
+  ['@rneui/themed', 'react-native-elements'], ['@ui-kitten/components', 'ui-kitten'],
+  ['react-native-ui-lib', 'react-native-ui-lib'], ['heroui-native', 'heroui-native'],
+  ['@rn-primitives/slot', 'react-native-reusables'],
+];
+const uiLibrary = (uiLibraries.find(([pkg]) => has(pkg)) || [null, 'none'])[1];
 const state = has('zustand') ? 'zustand' : has('@reduxjs/toolkit') ? 'redux-toolkit' : has('jotai') ? 'jotai' : 'none';
 const pm = exists('pnpm-lock.yaml') ? 'pnpm' : exists('yarn.lock') ? 'yarn'
   : (exists('bun.lockb') || exists('bun.lock')) ? 'bun' : 'npm';
@@ -72,17 +81,21 @@ if (starter) {
   }
 }
 
-// Feature-first layout (rn-starter structure.md): src/features/<name>/index.ts as public API.
-const featureNames = listDir('src/features').filter((n) => fs.statSync(path.join(dir, 'src/features', n)).isDirectory());
+// Layered layout (rn-starter structure.md): src/screens/<name>/. Projects from rn-starter 1.x may
+// still use the feature-first layout (src/features/<name>/index.ts as public API).
+const isDir = (p) => exists(p) && fs.statSync(path.join(dir, p)).isDirectory();
+const featureNames = listDir('src/features').filter((n) => isDir(`src/features/${n}`));
 const features = featureNames.map((name) => ({
   name,
   hasIndex: ['index.ts', 'index.tsx'].some((f) => exists(`src/features/${name}/${f}`)),
   hasScreens: exists(`src/features/${name}/screens`),
 }));
-const structure = !featureNames.length ? 'flat'
+const structure = isDir('src/screens') ? 'layered'
+  : !featureNames.length ? 'flat'
   : features.every((f) => f.hasIndex) ? 'feature-first' : 'partial-features';
 const eslintConfig = ['eslint.config.js', 'eslint.config.mjs', 'eslint.config.cjs'].find(exists);
-const boundaryRules = !!eslintConfig && fs.readFileSync(path.join(dir, eslintConfig), 'utf8').includes('@/features/*/*');
+const eslintText = eslintConfig ? fs.readFileSync(path.join(dir, eslintConfig), 'utf8') : '';
+const boundaryRules = eslintText.includes("'@/mocks'") || eslintText.includes('@/features/*/*');
 
 let tsAlias = null;
 try {
@@ -102,6 +115,7 @@ console.log(JSON.stringify({
   packageManager: pm,
   navigation,
   styling,
+  uiLibrary,
   state,
   srcRoot,
   routesDir,

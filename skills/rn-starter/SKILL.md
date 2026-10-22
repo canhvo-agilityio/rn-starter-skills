@@ -101,13 +101,14 @@ One `AskUserQuestion` call, up to four questions:
 - **Navigation** — expo-router (Recommended for Expo) / React Navigation (Recommended for CLI) / none
 - **State** — Zustand (Recommended) / Redux Toolkit / Jotai / none
 - **Server data** — TanStack Query (Recommended) / none
-- **Styling** — StyleSheet only (Recommended for beginners) / NativeWind / Unistyles (RN CLI only — it needs a native build, so it doesn't run in Expo Go)
+- **Styling** — StyleSheet only (Recommended for beginners) / NativeWind / Unistyles. Offer Unistyles only when no run target is Expo Go: it has native code, so it runs in a native build — RN CLI, or an Expo development build (`npx expo run:ios|android`).
 
-Then a second, smaller call:
+Then a second call:
 
 - **Lint & format** — ESLint + Prettier (Recommended) / Biome / none
-- **Folder structure** — Feature-first team structure from `references/structure.md` (Recommended) / keep the template as is. Ask this even with a design input: the structure is set up here during scaffolding, and rn-design-import then builds the screens inside it.
-- **Code quality** (`multiSelect: true`) — Unit tests: Jest + React Native Testing Library (Recommended) / Git hooks: Husky + lint-staged (Recommended) / Commit message rules: Conventional Commits via commitlint (Recommended).
+- **Folder structure** — Layered team structure from `references/structure.md`: `screens/`, `components/`, `hooks/`, `services/` with ESLint-enforced rules (Recommended) / keep the template as is. Ask this even with a design input: the structure is set up here during scaffolding, and rn-design-import then builds the screens inside it.
+- **UI component library** — only when styling is StyleSheet (that's why it's in this second call): None — our own components on the theme (Recommended) / React Native Paper (Material 3). With NativeWind or Unistyles don't ask; no library is verified for them yet (`references/libraries.md` → "UI component library" says why).
+- **Code quality** (`multiSelect: true`) — Unit tests: Jest + React Native Testing Library (Recommended) / Git hooks: Husky + lint-staged (Recommended) / Commit message rules: Conventional Commits via commitlint (Recommended) / Claude Code setup: `CLAUDE.md`, a format-on-edit hook and a `code-reviewer` subagent (Recommended).
 
 If git hooks or commit rules were chosen, one more call (`references/quality.md` lists what each option runs):
 
@@ -149,7 +150,7 @@ Xcode is the only way to get the iOS Simulator. Three steps belong to the dev, b
 
    When the dev says they're done, rerun the same command. Repeat until it exits 0.
 3. Run the iOS Simulator runtime download in the background. If it is missing, the script downloads it (~8 GB).
-4. Verify with `bash "<skill-dir>/scripts/doctor.sh" --ios` (`--cocoapods` for CLI). Every iOS line must be `ok`.
+4. Verify with `bash "<skill-dir>/scripts/doctor.sh" --ios` (`--cocoapods` for CLI and for an Expo development build). Every iOS line must be `ok`.
 
 ## Phase 5 — Confirm the plan
 
@@ -162,6 +163,7 @@ Show the dev a summary of every choice and every command you are about to run, e
 | Template | default (expo-router, TypeScript) |
 | Libraries | zustand, @tanstack/react-query |
 | Styling | StyleSheet |
+| UI library | none |
 | Lint | ESLint + Prettier |
 | Run on | Phone via Expo Go |
 | Location | ./my-app |
@@ -175,7 +177,7 @@ Follow `references/frameworks.md` for the exact create command for the chosen fr
 1. Create the project (non-interactive flags only — prompts inside a Bash call will hang). Right after creating, record a baseline of any errors the template itself has (see "Verify" in `frameworks.md`), so later checks only flag problems you introduced.
 2. If pnpm: create `pnpm-workspace.yaml` containing `nodeLinker: hoisted` and `strictDepBuilds: false` (exact command and why in `references/frameworks.md`) **before** installing (React Native's Metro and autolinking expect a flat `node_modules`). Use this file rather than `.npmrc` — npm prints a warning on every `npx` call when it sees pnpm-only keys in `.npmrc`.
 3. Install chosen libraries using the commands in `references/libraries.md`. For Expo always use `npx expo install <pkg>` so versions match the SDK.
-4. Apply the folder structure from `references/structure.md` if chosen: move the template's theme into `src/theme/`, turn the demo home into the first feature with a one-line route file, and add the ESLint boundary rules. Move existing template files rather than duplicating them, update imports, and run `npx eslint src`.
+4. Apply the folder structure from `references/structure.md` if chosen: move the template's theme into `src/theme/`, turn the demo home into the first screen (`src/screens/home/`) with a one-line route file, and add the ESLint rules. Move existing template files rather than duplicating them, update imports, and run `npx eslint src`.
 5. Set up lint/format if chosen.
    - CLI with the iOS Simulator as a target: install the iOS native dependencies with `cd ios && pod install`. It was skipped at create time with `--install-pods false`. Run it after adding libraries, because new native modules need it too. The first run downloads React Native's prebuilt core and takes ~3–5 min, so run it in the background. The CLI's own output suggests `bundle install && bundle exec pod install`; ignore that and use plain `pod install` from Homebrew (macOS's Ruby is too old for the bundler path).
 6. Verify before running it — the exact commands are under "Verify" in `references/frameworks.md`:
@@ -189,13 +191,16 @@ Write `.rn-starter.json` at the project root with the recorded choices, so later
 ```json
 { "framework": "expo", "template": "default", "packageManager": "pnpm", "bundler": "metro",
   "navigation": "expo-router", "state": "zustand", "serverData": "tanstack-query",
-  "styling": "stylesheet", "lint": "eslint-prettier", "runTargets": ["ios-simulator"],
+  "styling": "stylesheet", "uiLibrary": "none", "lint": "eslint-prettier", "structure": "layered",
+  "devBuild": false, "runTargets": ["ios-simulator"],
   "quality": { "unitTests": "jest-rntl", "preCommit": ["lint", "format", "related-tests"],
-               "prePush": ["typecheck", "test"], "commitMsg": "conventional" },
-  "createdWith": "rn-starter 0.2.0" }
+               "prePush": ["typecheck", "test"], "commitMsg": "conventional", "claude": true },
+  "createdWith": "rn-starter 1.0.0" }
 ```
 
-Make sure the project is a git repo (Expo already ran `git init`; for CLI, created with `--skip-git-init`, run `git init` now). Then, if any code-quality option was chosen, set it up with `scripts/setup-quality.sh` and run the checks in "Verify" — both in `references/quality.md`. Apply any custom ("Other") rules on top of the generated files before verifying.
+`structure` is `layered` or `template` (kept as is). `uiLibrary` is `none` or `react-native-paper`. `devBuild` is `true` when an Expo project needs a development build instead of Expo Go (Unistyles, or another library with native code Expo Go lacks).
+
+Make sure the project is a git repo (Expo already ran `git init`; for CLI, created with `--skip-git-init`, run `git init` now). Then, if any code-quality option was chosen, set it up with `scripts/setup-quality.sh` and run the checks in "Verify" — both in `references/quality.md`. Apply any custom ("Other") rules on top of the generated files before verifying. If Claude Code setup was chosen, run `scripts/setup-claude.sh` **after** `.rn-starter.json` and the quality tooling exist (it reads both) and check it as in `references/quality.md` → "Claude Code files".
 
 Commit the scaffold as the first commit with the message `chore: scaffold app with rn-starter`. With hooks installed, this commit runs through them — it is the end-to-end check that they work.
 
@@ -216,6 +221,7 @@ Keep a small checklist of targets with their status (✓ running / ✗ failed + 
 | Android emulator (Expo) | `bash scripts/start-emulator.sh` then `npx expo start --android` | Watch the emulator open the app. |
 | Android emulator (CLI) | `bash scripts/start-emulator.sh`, then `npx react-native start` (background) and `npx react-native run-android --no-packager` | First build takes 5–15 min (Gradle, NDK and CMake download; ~7 min measured on a fast Mac). |
 | iOS Simulator (Expo) | `bash scripts/start-simulator.sh` then `npx expo start --ios` (background) | Nothing, usually. Expo installs Expo Go into the simulator (~100 MB download the first time) and opens the app. If iOS shows "Open in Expo Go?" (Expo pre-approves this, but it can fail; look for `Could not update simulator linking permissions` in the log), the dev clicks *Open* once. |
+| iOS Simulator / Android emulator (Expo development build, `devBuild: true`) | `bash scripts/start-simulator.sh` or `start-emulator.sh`, then `npx expo run:ios` / `npx expo run:android` (background) | First build takes 5–15 min, like a CLI build: it compiles the native code with the app's own modules and installs the app instead of Expo Go. `expo run:ios` runs `pod install`, so iOS needs CocoaPods (`setup-ios.sh --cocoapods`). Later JS changes reload without a rebuild; a new native library needs `expo run:*` again. |
 | iOS Simulator (CLI) | `bash scripts/start-simulator.sh`, then `npx react-native start` (background) and `npx react-native run-ios --udid <udid printed by start-simulator.sh> --no-packager` (background) | First build takes 5–10 min (Xcode compiles all native code). |
 
 Long-running servers (`expo start`, `react-native start`) go in the background. Don't set `CI=1` on them (it disables reloads). For CLI, always pass `--no-packager` to `run-ios`/`run-android`: without it the CLI opens a separate Terminal window to start its own Metro, which collides with the one you already started. Expo Go's QR code is printed in the dev server output — show the dev the URL (`exp://…`) too, since they can type it into Expo Go if scanning fails.
@@ -230,7 +236,7 @@ If the skill isn't available, tell the dev the screens weren't generated and fin
 
 ## Phase 8 — Hand-off
 
-1. Append a **"Getting started"** section to the project README with: the stack chosen, how to start the app next time, how to run tests, and how to open a new terminal so PATH changes apply (`source ~/.zshrc` or open a new terminal window). If hooks or commit rules were set up, add the **commit rules** section from `references/quality.md`, so the whole team knows what runs on commit and push.
+1. Append a **"Getting started"** section to the project README with: the stack chosen, how to start the app next time, how to run tests, and how to open a new terminal so PATH changes apply (`source ~/.zshrc` or open a new terminal window). If hooks or commit rules were set up, add the **commit rules** section from `references/quality.md`, so the whole team knows what runs on commit and push. If the Claude Code files were added, add their short section from the same file.
 2. Show the run-target checklist from Phase 7 (each target ✓ / ✗ / skipped).
 3. Tell the dev in 3–5 lines: what was installed, where the project is, the command to run it again on each target, and one suggested next step (e.g. "edit `src/app/index.tsx` and save — the app reloads").
 

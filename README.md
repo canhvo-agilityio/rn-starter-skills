@@ -17,7 +17,7 @@ More: [spec.md](spec.md) (intent, scope, acceptance criteria, test status) · [D
 
 1. Inspect the machine (git, Node, package manager, plus JDK/Android SDK and Xcode/iOS Simulator when needed)
 2. Install what's missing (Node via fnm, no Homebrew or sudo needed)
-3. Ask the developer: **Expo / RN CLI** → **Metro / Re.Pack** → template → libraries (navigation, state, data, styling, lint) → **code quality** (Jest + React Native Testing Library, Husky + lint-staged with pre-commit/pre-push rules, commitlint) → run on **a real iPhone/Android phone (Expo Go) / iOS Simulator / Android emulator / web** → is there a design
+3. Ask the developer: **Expo / RN CLI** → **Metro / Re.Pack** → template → libraries (navigation, state, data, styling, UI library, lint, structure) → **code quality** (Jest + React Native Testing Library, Husky + lint-staged with pre-commit/pre-push rules, commitlint, Claude Code files) → run on **a real iPhone/Android phone (Expo Go) / iOS Simulator / Android emulator / web** → is there a design
 4. Install the platform toolchain if needed:
    - Android: JDK 17, Android SDK, emulator, AVD. No Android Studio.
    - iOS Simulator (macOS only): Xcode, iOS runtime, simulator; CocoaPods for RN CLI.
@@ -36,11 +36,11 @@ Steps:
 1. Read the project (`.rn-starter.json` or `package.json`) so generated code follows its conventions: expo-router vs React Navigation, StyleSheet vs NativeWind.
 2. Analyze the design and ask only for what's missing (how screens connect, which font).
 3. Write `docs/design-spec.md` with screens, navigation tree, theme, fonts and components. **The developer approves it before any code is generated.**
-4. Generate in order: theme → Google Fonts → assets → shared components (with tests when Jest is set up) → feature data layer → special components → screens (mock data) → navigation.
+4. Generate in order: theme → Google Fonts → assets → shared components (with tests when Jest is set up) → data layer (types, mocks, services, hooks) → special components → screens (mock data) → navigation.
    Special components (maps, bottom sheets, charts, camera, video…) get a real library, suggested per framework (Expo vs RN CLI) after a live check of maintenance, New Architecture and Expo Go support (`scripts/lib-info.sh`), or a placeholder if the dev prefers.
 5. Run the app, open each screen by deep link, screenshot it and compare with the design; fix the differences.
 
-UI only. Code is feature-first: each feature owns its screens, components, `api.ts` (mocked for now), hooks and logic, and exposes a public `index.ts`; route files are one-line re-exports, and ESLint enforces the boundaries. Switching a feature to the real API is a change to its `api.ts`.
+UI only. Code is layered: route files are one-line re-exports of `src/screens/<name>/`, shared UI lives in `src/components/`, and screens get data through hooks in `src/hooks/` that call `src/services/` (mocked for now). ESLint stops UI files from importing services or mocks, so switching to the real API is a change to `src/services/`.
 
 Local development only: no code signing, no paid Apple Developer account. Supports macOS, Windows and Linux (the iOS Simulator is macOS-only; on Windows the scripts run through PowerShell twins in `scripts/windows/`, installing per user without admin rights).
 

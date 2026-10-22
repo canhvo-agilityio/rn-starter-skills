@@ -4,16 +4,16 @@ Build the tree from the spec. Every screen must be reachable by tapping, and by 
 
 ## expo-router (Expo default)
 
-Routes are files. Groups in parentheses don't appear in the URL. Route files stay thin: layouts hold navigators and providers; every other route file re-exports a screen from its feature (`conventions.md`).
+Routes are files. Groups in parentheses don't appear in the URL. Route files stay thin: layouts hold navigators and providers; every other route file re-exports a screen from `src/screens/` (`conventions.md`).
 
 ```
 src/app/
   _layout.tsx              root Stack + providers + font loading + auth guard
   (auth)/_layout.tsx       Stack, no header
-  (auth)/login.tsx         /login        export { LoginScreen as default } from '@/features/auth';
+  (auth)/login.tsx         /login        export { LoginScreen as default } from '@/screens/login';
   (auth)/register.tsx      /register
   (tabs)/_layout.tsx       Tabs
-  (tabs)/index.tsx         /             export { HomeScreen as default } from '@/features/home';
+  (tabs)/index.tsx         /             export { HomeScreen as default } from '@/screens/home';
   (tabs)/search.tsx        /search
   (tabs)/profile.tsx       /profile
   detail/[id].tsx          /detail/123   (pushed on top of tabs)
@@ -40,7 +40,7 @@ return (
 );
 ```
 
-Mock session: `src/features/auth/store.ts` (exported from `@/features/auth`) with Zustand if the project uses it (`signIn()` / `signOut()` flip a boolean), else a small React context. Mark both with `// TODO: real auth`.
+Mock session: `src/stores/session.ts` with Zustand if the project uses it (`signIn()` / `signOut()` flip a boolean), else a small React context. Mark both with `// TODO: real auth`.
 
 `Stack.Protected` hides routes; it does **not** redirect. A signed-out deep link to a protected route, or signing out while on a protected screen, shows "Unmatched Route". So navigate explicitly:
 
@@ -52,7 +52,7 @@ const onLogout = () => { signOut(); router.replace('/login'); };
 Let verification start signed in without tapping through Login — initialize the mock from an env flag:
 
 ```ts
-// src/features/auth/store.ts
+// src/stores/session.ts
 const initiallySignedIn = process.env.EXPO_PUBLIC_MOCK_SIGNED_IN === '1';
 ```
 

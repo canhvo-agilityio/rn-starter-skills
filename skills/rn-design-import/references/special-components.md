@@ -75,18 +75,18 @@ Expo permission strings go in `app.json` through the module's config plugin, e.g
 
 Write real, specific permission texts — App Store review rejects vague ones.
 
-## 5. Wrap the library in a feature component
+## 5. Wrap the library in a component
 
-Screens never import the library directly. A component in the owning feature adapts it to the app's data:
+Screens never import the library directly. A wrapper component adapts it to the app's data:
 
 ```
-features/delivery/
-  components/delivery-map.tsx   uses react-native-maps; props: route: LatLng[], courier: LatLng, destination: LatLng
-  api.ts / mocks.ts             mock coordinates (a real route in the design's city)
-  types.ts                      LatLng etc. — app types, not the library's
+src/components/delivery-map.tsx   uses react-native-maps; props: route: LatLng[], courier: LatLng, destination: LatLng
+src/types/delivery.ts             LatLng etc. — app types, not the library's
+src/services/delivery.ts          returns mock coordinates from src/mocks/delivery.ts (a real route in the design's city)
+src/hooks/use-delivery.ts         the screen gets the data here
 ```
 
-Switching to Mapbox later is then one file. Keep library-specific props (map style, provider) inside the wrapper. Feed it mock data through the feature's hooks like everything else — no coordinates hard-coded in the screen.
+If only one screen uses it, the wrapper can live in that screen's `components/` instead. Switching to Mapbox later is then one file. Keep library-specific props (map style, provider) inside the wrapper. Feed it mock data through a hook like everything else — no coordinates hard-coded in the screen.
 
 If the dev chose the placeholder, keep the same wrapper and props, render the static version inside, and mark it `// TODO: replace with <library>` — swapping later doesn't touch the screen.
 

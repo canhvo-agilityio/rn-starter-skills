@@ -94,3 +94,45 @@ Add a short section (in the dev's language), e.g.:
 - Commit messages follow Conventional Commits: `feat: …`, `fix: …`, `chore: …`.
 - Run tests: `pnpm test`
 ```
+
+## Claude Code files
+
+So the next person (or the next Claude session) working on the app gets the same rules, one script adds the project's Claude Code setup. Run it after `.rn-starter.json`, lint/format and `setup-quality.sh`, because it reads what they set up:
+
+```bash
+bash "<skill-dir>/scripts/setup-claude.sh" <project-dir>
+```
+
+| File | What it does |
+|---|---|
+| `CLAUDE.md` | Stack, commands for this package manager, the structure rules and code style (`references/structure.md`, rn-design-import `conventions.md`), and the working rules: fix what the hook reports, type check and run related tests before calling a change done, run `code-reviewer` before committing |
+| `.claude/hooks/format.mjs` + `.claude/settings.json` | `PostToolUse` hook on `Edit`/`MultiEdit`/`Write`: runs the project's Prettier then `eslint --fix` (or `biome check --write`) on the edited file. Errors that `--fix` can't solve go back to Claude (exit 2), so it fixes them in the same turn. Plain Node, so it works on Windows too |
+| `.claude/agents/code-reviewer.md` | Read-only subagent: reviews uncommitted changes (or a branch), runs ESLint, `tsc` and related tests, and reports bugs, broken structure rules and React Native pitfalls with `file:line` and a fix |
+
+Exit code 3 means the project already had a `CLAUDE.md` and it was kept. Show the dev what the generated one would add and offer to merge it in, or rerun with `--force` if they want it replaced.
+
+The structure section follows `structure` in `.rn-starter.json`: the layered rules, or "follow the layout already in `src/`" when the template was kept. When the dev changes a convention later, they edit `CLAUDE.md`. It's theirs from now on.
+
+Verify without creating commits:
+
+```bash
+printf 'export const   x =  1\n' > src/tmp-check.ts
+echo '{"tool_input":{"file_path":"'"$PWD"'/src/tmp-check.ts"}}' | CLAUDE_PROJECT_DIR="$PWD" node .claude/hooks/format.mjs; echo "exit $?"
+cat src/tmp-check.ts                     # must be formatted: export const x = 1;
+printf 'import { mockProducts } from "@/mocks/products";\nexport const A = () => mockProducts;\n' > src/tmp-check.tsx
+echo '{"tool_input":{"file_path":"'"$PWD"'/src/tmp-check.tsx"}}' | CLAUDE_PROJECT_DIR="$PWD" node .claude/hooks/format.mjs; echo "exit $?"
+                                         # layered structure: must print the mocks rule and exit 2
+rm -f src/tmp-check.ts src/tmp-check.tsx
+```
+
+Check that `.claude/agents/code-reviewer.md` exists and `CLAUDE.md` lists the right commands for the package manager. Commit all of it with the scaffold. Only `.claude/settings.local.json` stays out of git, and the script adds it to `.gitignore`.
+
+README section (in the dev's language), e.g.:
+
+```markdown
+## Working with Claude Code
+
+- `CLAUDE.md` holds the project rules Claude follows. Edit it when a convention changes.
+- Every file Claude edits is formatted and lint-fixed automatically (`.claude/hooks/format.mjs`).
+- Ask Claude to "review my changes" before committing: it runs the `code-reviewer` subagent.
+```

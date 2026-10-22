@@ -56,7 +56,20 @@ Asset URLs returned by Figma expire — download them right away:
 curl -fsSL "<url>" -o assets/images/<meaningful-name>.png
 ```
 
-Prefer SVG for icons only if the project already uses `react-native-svg`; otherwise PNG @3x, or map to an icon font glyph when the icon is standard (home, search, user, chevron…).
+**Images** (photos, illustrations, map backgrounds) → PNG/JPEG in `assets/images/`.
+
+**Icons → SVG, always — including standard glyphs** (home, heart, bag, search, chevron). The design's own icon set (Iconly, a custom set) is what the screens should show; an icon font only approximates it. Export every distinct icon once as SVG into `docs/design/icons/<name>.svg`, named after what it shows (`bag.svg`, `bean.svg`), not the layer id. Then generate components with `scripts/svg-icons.sh` (SKILL.md, Phase 4 step 3). Never put icons in `assets/` as PNG.
+
+- **Figma MCP:** download the icon assets `get_design_context` lists, to `docs/design/icons/<name>.svg` when the asset is SVG (check the first bytes: `<svg`). If an icon only comes back as a raster image, export it through the browser route below or ask the dev.
+- **Browser, file you can edit** (your own file, or the dev's duplicate of a Community file): Figma's Plugin API is available in the page as the global `figma`. Export each icon's top node (the instance or frame that is the whole icon, usually 16–32 px; not its inner vectors):
+  ```js
+  const node = await figma.getNodeByIdAsync('<node id>');
+  await node.exportAsync({ format: 'SVG_STRING' });
+  ```
+  Collect the ids first (`figma.currentPage.findAll((n) => n.type === 'INSTANCE' && n.width <= 48)` and their `name`s show the icon set, e.g. `Iconly/Bulk/Home`), export one icon per call, and write each returned string to its `.svg` file.
+- **View-only access, no plugin API:** ask the dev to select the icons in Figma and use *Export → SVG* (one click for many icons), then drop the files into `docs/design/icons/`.
+
+Each icon's color in the design becomes the component's default; single-color icons are tinted with a theme token (`<BagIcon color={colors.primary} />`).
 
 ## Fonts
 
