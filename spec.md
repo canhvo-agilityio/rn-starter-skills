@@ -15,6 +15,7 @@ Getting a React Native project from nothing to a running, well-structured app is
 | New mobile developer | Fresh laptop, little RN experience | Environment installed for them; plain-language questions with safe defaults; an app that runs |
 | Experienced developer | Starting a new project | Fast stack selection, the team's structure and quality tooling, no boilerplate typing |
 | Developer on an existing app | Designer sent new screens | Screens built from a description, screenshot or Figma, matching the project's own conventions |
+| Developer whose backend is ready | Screens run on mocks; the backend team shared a Swagger/OpenAPI link | Typed calls to the real API without touching the screens; mocks kept for offline work and tests |
 | Team lead | Onboarding several people | The same structure, tooling and conventions in every project |
 
 ## Goals
@@ -23,12 +24,15 @@ Getting a React Native project from nothing to a running, well-structured app is
 2. **Stack chosen by the developer, guided:** every question has a recommended answer; only combinations that work are offered.
 3. **Team-quality scaffold:** layered structure with enforced import rules, theme tokens, unit tests, git hooks, commit rules, and Claude Code files (`CLAUDE.md`, format-on-edit hook, review subagent).
 4. **Design → screens:** from text, screenshots or Figma to themed, navigable screens with mock data behind a clean data seam, approved by the developer as a spec before code is written.
-5. **Verified, not assumed:** the app is run and looked at (screenshots) on every selected target before anything is reported as done.
+5. **Mocks → real API:** services switched to the backend one domain at a time from its OpenAPI spec, with types generated from it, so a backend change shows up as a type error, not a crash on a user's phone.
+6. **Verified, not assumed:** the app is run and looked at (screenshots) on every selected target before anything is reported as done.
 
 ## Non-goals
 
 - Store releases, code signing, provisioning profiles, paid Apple accounts.
-- Business logic or real backend integration (screens use mocks behind `src/services/`; connecting APIs is a planned separate skill, see ROADMAP.md).
+- Sign-in, token storage and refresh (`rn-auth`, planned), forms and validation (`rn-forms`, planned). `rn-api-connect` only leaves a seam for the auth header.
+- Real-time (websockets), offline sync, file uploads beyond a plain multipart call, GraphQL.
+- Per-build environments (dev / staging / prod builds): one `EXPO_PUBLIC_API_URL` in `.env`; build profiles belong to `rn-release`.
 - Pixel-perfect reproduction at any cost — close to the design, on tokens, with approximations written down.
 - Restructuring an existing codebase without the developer asking.
 
@@ -57,6 +61,18 @@ Getting a React Native project from nothing to a running, well-structured app is
 | Special components | Maps, sheets, charts, camera, video, pickers…: library suggested per framework, checked live for maintenance, New Architecture and Expo Go support. |
 | Verification | Deep link to every screen, screenshot, compare with the design on the main target; platform check on every other target; tap through the main flow. |
 
+### Skill 3 — `rn-api-connect`
+
+| Area | Requirement |
+|---|---|
+| Inputs | **OpenAPI 3.x or Swagger 2.0** — a Swagger UI link, a spec URL or a file (main path, tested for real). Postman collection or a plain description of endpoints: basic support, types written by hand. |
+| Understanding the project | Read `.rn-starter.json` and the layout; list every domain (`services/<domain>.ts`) with its hook, mock and whether it already calls an API. Works on projects not made by rn-starter if they have a service seam; otherwise offer to add one first. |
+| Spec handling | Find the spec behind a Swagger UI page, convert 2.0 to 3.x, save it in the project (`docs/api/openapi.json`), report quality problems (missing response schemas, missing `operationId`, everything optional) instead of generating wrong types silently. URL behind VPN or login → ask the dev for the file. |
+| Plan | `docs/api-plan.md`: per domain the endpoints, the DTO → app-type mapping, pagination, mutations and cache invalidation, what stays mocked and why. Approved before code changes. |
+| Generation | Infrastructure once (`env.ts`, `.env.example`, generated `types/api.gen.ts` + `api:types` script, HTTP client, `ApiError`, mock flag); then per domain: mappers with tests → service → hook (pagination, mutations) → loading / error / empty states on the screens that show it. |
+| Mocks | Kept behind `EXPO_PUBLIC_USE_MOCKS`; still used by tests; imported nowhere else. |
+| Verification | App against the real API (or a local server) on the main target: every affected screen opened and screenshotted with real data; error state with the server unreachable; one mutation round-trip; then the platform pass on the other targets. |
+
 ## Acceptance criteria
 
 A run is successful when:
@@ -67,6 +83,7 @@ A run is successful when:
 - [ ] Route files are one-line re-exports; UI files import data only through hooks; no mock imports outside `services/` and tests.
 - [ ] With the Claude Code option: the format hook fixes an edited file and returns an import-rule violation to Claude; `code-reviewer` is listed as a subagent.
 - [ ] With a design input, `docs/design-spec.md` exists and was approved, every screen opens by deep link, and each screen's verification status lists the targets it was checked on.
+- [ ] With `rn-api-connect`: no screen file changes except loading / error / empty states and load-more on paginated lists; `tsc` passes against the generated API types; every switched domain is verified against the API on the main target; with `EXPO_PUBLIC_USE_MOCKS=1` the app still runs fully offline; regenerating types after a backend change reports the affected mappers as type errors.
 - [ ] Anything not done or approximated is stated in the hand-off — never implied as done.
 
 ## Status
@@ -80,6 +97,7 @@ A run is successful when:
 | Design import from Figma | ✓ (browser panel reading) | ✓ clean machine, end to end | — |
 | Design import from text | ✓ (subagent run, 14 findings fixed) | pending | — |
 | Figma via browser panel reading | ✓ manual | — | — |
+| API connect (`rn-api-connect`) | ✓ two subagent runs on coffee-shop against a local OpenAPI test API (iOS Simulator + Android emulator: API data, favorites mutation, 404, unreachable API, empty list, mock mode; `.env` left unopened); scripts also checked on Petstore (Swagger UI, 2.0, YAML). Not run: a phone, iOS taps, Postman/description inputs | pending | — |
 | Not yet exercised anywhere | Re.Pack, Ignite, NativeWind, Unistyles, Figma MCP end to end, screenshot input end to end, special-components flow, a truly clean Mac | | |
 
 Evidence (screenshots, recordings) goes in [`docs/evidence/`](docs/evidence/).

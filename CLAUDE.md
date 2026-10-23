@@ -1,9 +1,10 @@
 # rn-starter-skills
 
-Claude Code plugin `rn-starter` with two skills for React Native developers:
+Claude Code plugin `rn-starter` with three skills for React Native developers:
 
 - `skills/rn-starter/` — wizard: clean machine (macOS, Windows, Linux) → running RN app, with stack questions, toolchain installs, layered scaffold, quality tooling and Claude Code files, and a run on every selected target.
 - `skills/rn-design-import/` — text / screenshots / Figma → themed, navigable screens in an RN/Expo project, via an approved `docs/design-spec.md`.
+- `skills/rn-api-connect/` — mocks → real backend from a Swagger/OpenAPI spec: generated types, typed client, services switched one domain at a time, via an approved `docs/api-plan.md`.
 
 Read before changing anything:
 - [spec.md](spec.md) — intent, scope, acceptance criteria, current test status.

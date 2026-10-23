@@ -1,11 +1,12 @@
 # rn-starter
 
-A Claude Code plugin for React Native developers, with two skills:
+A Claude Code plugin for React Native developers, with three skills:
 
 | Skill | Use when | Result |
 |---|---|---|
 | **`rn-starter`** | There's no project yet, often on a brand-new machine | Environment installed, project running on a simulator, emulator or phone |
 | **`rn-design-import`** | A project exists (or `rn-starter` just created one) | Theme, fonts, components, screens and navigation built from a design |
+| **`rn-api-connect`** | Screens run on mocks and the backend has a Swagger / OpenAPI spec | Types generated from the spec, a typed client, services switched to the API one domain at a time, loading / error / empty states — screens otherwise unchanged |
 
 Developers just describe what they want. For example, *"Create a new RN app with 5 screens: Login, Home, Search, Detail, Profile"*: `rn-starter` scaffolds the project, runs the empty app, then hands over to `rn-design-import` to build the screens.
 
@@ -51,6 +52,20 @@ Local development only: no code signing, no paid Apple Developer account. Suppor
 - Windows: turn on *Windows Hypervisor Platform* for the Android emulator (admin PowerShell command + reboot, once).
 - Accept the Android SDK license.
 
+## rn-api-connect: mocks → real API
+
+Give it the backend's Swagger link (or an OpenAPI/Swagger file; a Postman collection or a description of the endpoints also works, with types written by hand).
+
+1. List the app's data domains (`src/services/*`), their hooks, the screens using them, and whether each is still on mocks (`scripts/api-inventory.sh`).
+2. Find the spec behind the Swagger page, convert YAML / Swagger 2.0, save it as `docs/api/openapi.json`, and summarize it: endpoints, pagination, auth, error format, and quality problems to raise with the backend team (`scripts/fetch-openapi.sh`).
+3. Match each service function to its endpoint, list the differences between the API's data and the app's types, and ask only what can't be inferred (base URL, missing endpoints, auth).
+4. Write `docs/api-plan.md`. **The developer approves it before any code changes.**
+5. Add the infrastructure once: types generated with openapi-typescript (`<pm> run api:types`), an openapi-fetch client with timeout and an auth seam, one `ApiError`, `src/lib/env.ts` with `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_USE_MOCKS`.
+6. Connect one domain at a time: tested mappers (API shape → app type) in the service, the mock kept behind the flag, pagination and mutations in the hooks, loading / error / empty states on the screens.
+7. Verify on every target against the API: real data on each screen, mutations, the error state with the API off, 404, empty lists, load-more, mock mode; boundary check (`scripts/check-mocks.sh`).
+
+When the backend changes: refresh the spec, `<pm> run api:types`, and `tsc` points at the mappers to fix.
+
 ## Step 0 on a clean machine: install Claude Code
 
 The native installer doesn't need Node:
@@ -89,7 +104,7 @@ claude plugin update rn-starter@rn-starter-skills
 
 ## Usage
 
-In Claude Code, type `/rn-starter` or just ask, e.g. *"create a new React Native app"*, *"new laptop, set it up for RN"*, *"build these screens from this Figma link"*.
+In Claude Code, type `/rn-starter` or just ask, e.g. *"create a new React Native app"*, *"new laptop, set it up for RN"*, *"build these screens from this Figma link"*, *"connect the app to the API, here's the Swagger link"*.
 
 ## Layout
 
@@ -137,6 +152,22 @@ skills/rn-design-import/
     verify.md            # screenshot each screen and compare with the design
     conventions.md       # defaults when the project has none
     special-components.md # maps, sheets, media, charts…: libraries per framework, native setup, verification
+    follow-up.md         # adding a feature to an app that already has screens
+skills/rn-api-connect/
+  SKILL.md               # mocks → API flow (phases 0 → 7)
+  scripts/
+    api-inventory.sh     # domains, hooks, screens, mock/API status → JSON
+    fetch-openapi.sh     # Swagger UI / URL / file → docs/api/openapi.json + summary; exit 2 = needs the developer
+    check-mocks.sh       # boundary check: mock and DTO imports, env reads, unflagged mocks
+  references/
+    openapi.md           # getting the spec, reading the summary, warnings, generating types
+    client.md            # env.ts, ApiError, openapi-fetch client, query retry, ESLint rule
+    mapping.md           # matching functions to endpoints, DTO → app-type mappers, tests
+    data-hooks.md        # pagination, mutations, invalidation, hooks without TanStack Query
+    screen-states.md     # loading / error / empty, load-more, mutation errors
+    verify.md            # checking against the API on each target, error/empty/mock modes
+    plan-template.md     # docs/api-plan.md template
+    other-inputs.md      # Postman collections and plain descriptions
 ```
 
 **Figma:** Figma's Starter/free plans allow very few MCP calls per month. The skill makes the minimum: one call for the frame list, one for variables, one per screen. When the MCP is out of calls or not connected, it **opens Figma in a browser** (Claude in Chrome or the built-in browser; the developer signs in). It selects frames and layers and reads exact values (hex colors, fonts, sizes, dimensions, corner radii) from the properties panel with `scripts/figma-panel.js`. This costs no API calls.
