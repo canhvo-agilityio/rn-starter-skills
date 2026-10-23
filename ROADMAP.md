@@ -29,11 +29,13 @@ Each new skill reads `.rn-starter.json` and the layered layout (DESIGN.md → Ex
 
 ### 2.1 `rn-api-connect` — mocks → real API (next)
 
+**Built** (2026-10-23): `skills/rn-api-connect/`, tested in two subagent runs on coffee-shop against a local OpenAPI test API (json-server + Swagger UI with deliberate spec quirks) and with a decoy `.env` that must stay unopened. Open: a run on an app not made by rn-starter, Postman/description inputs, auth-protected endpoints once rn-auth exists.
+
 The layered structure was built for this: screens get data through `src/hooks/`, hooks call `src/services/`, services return `src/mocks/`. Connecting a backend should only touch `services/` (and hooks when a shape changes).
 
 - Input: an OpenAPI/Swagger file or URL, a Postman collection, or a plain description of endpoints.
 - Output: a typed HTTP client in `src/lib/` (base URL from `src/lib/env.ts`, auth header, error mapping), `src/types/` generated or written from the schema, `services/*` switched from mocks to calls one domain at a time, TanStack Query keys and invalidation for mutations, loading/error/empty states the screens already expect.
-- Decide: generator vs hand-written client (orval / openapi-typescript + fetch); where tokens live (`expo-secure-store`); keep mocks available behind an env flag for offline/dev?
+- Decided: openapi-typescript + openapi-fetch, DTO → app-type mappers, `expo-secure-store` left to rn-auth, mocks kept behind `EXPO_PUBLIC_USE_MOCKS` (DESIGN.md key decisions).
 - Test: a public API or a local json-server; screens still render; mocks no longer imported anywhere but tests.
 
 ### 2.2 `rn-auth` — real sign-in
