@@ -2,7 +2,7 @@
 
 The Credentials page shows, under the package: **Android upload keystore** (build), **Google service account key for EAS Submit** (submit), **FCM V1 service account key** (push).
 
-Menu labels below are as of eas-cli 25 and may be worded differently in other versions — pick the matching entry. Commands the dev runs in their own terminal (interactive menus); or the matching button on the expo.dev Credentials page. Which profile to pick: one whose bundle id / package matches the files and whose `distribution` is `store` — usually `production`; profiles sharing that id (a `staging` with the same bundle id) reuse the same credentials, so upload once per bundle id / package, not per profile. Give them the exact command, that profile, and what to choose.
+The uploads below are done with `scripts/eas-credentials.sh` (`credentials.md` → Uploading); the menu paths are what it drives, and what the dev follows by hand when it exits 2. Menu labels are eas-cli 25.3's. By hand, the dev runs commands in their own terminal (interactive menus); or the matching button on the expo.dev Credentials page. Which profile to pick: one whose bundle id / package matches the files and whose `distribution` is `store` — usually `production`; profiles sharing that id (a `staging` with the same bundle id) reuse the same credentials, so upload once per bundle id / package, not per profile. Give them the exact command, that profile, and what to choose.
 
 ## Build: upload keystore — the decision that can't be undone
 

@@ -38,7 +38,8 @@ skills/
                          verify, plan-template, other-inputs
   rn-release-setup/
     SKILL.md             EAS + identity + profiles + build/submit/push credentials: phases 0–8
-    scripts/             release-inventory, eas-status, scan-credentials
+    scripts/             release-inventory, eas-status, scan-credentials,
+                         eas-credentials (+ .exp menu driver)
     references/          eas, identity, credentials, credentials-ios,
                          credentials-android, push, client-request,
                          verify, plan-template
@@ -175,7 +176,7 @@ Goal: the project's **Credentials page on expo.dev is complete** — build, subm
 | 7 Push credentials (if used) | who sends pushes; APNs key, FCM V1 key, `google-services.json`, app push config | `scan-credentials.sh` | files; uploads by the dev |
 | 8 Check + hand-off | Credentials page checklist with the dev; outside-EAS list; optional test build + submit; plan updated | — | test build yes/no; commit approval |
 
-Each credential round: list what it needs → the dev's folder → scan → missing items get instructions and a client message → the dev uploads (EAS's credential menus are interactive and secrets mustn't pass through Claude) → the dev confirms on the Credentials page.
+Each credential round: list what it needs → the dev's folder → scan → missing items get instructions and a client message → `eas-credentials.sh` uploads (it drives EAS's interactive menus with `expect`; passwords sit in a `credentials.json` the developer fills and Claude never reads) → the dev confirms on the Credentials page.
 
 - **EAS only.** One path for Expo and RN CLI (EAS builds bare projects). Fastlane setups are left in place.
 - **Secrets never pass through the conversation.** Files are referenced by path and identified by name, extension and header; passwords are typed by the developer; public files (`.mobileprovision`, `google-services.json`) and fingerprints may be read.
@@ -260,6 +261,7 @@ flowchart LR
 | Release work split by time: `rn-release-setup` (once) and `rn-release` (every release), not build vs submit | the hard part — identity, credentials, profiles, release features — is shared by build and submit; a device build already needs the same Apple credentials as submit | one `rn-release`; `rn-build` + `rn-submit` |
 | rn-release-setup is done when the Credentials page is complete, not when a build succeeds; a test build is offered | the owner's goal: the developer opens expo.dev and finds every credential as wanted; builds cost quota or ~15 GB of disk (a local build filled the test machine) | a mandatory store build as the proof |
 | rn-release-setup covers build, submit and push credentials only; Google Sign-In, Maps, links, Sentry are listed for later | those live in Google Cloud, Firebase or a domain, not on EAS; push keys do live on EAS | a release-features round for all of them |
+| Uploads are scripted: `eas-credentials.sh` drives `eas credentials` with `expect`, pinned to eas-cli 25.3.0; the developer only fills passwords in a local `credentials.json` | the owner wanted the skill to upload, not the developer clicking 4–5 menus per item; eas-cli has no non-interactive upload; menu texts were taken from eas-cli's source and checked on Android | the developer runs each `eas credentials` menu (first version) |
 | `rn-release-setup` is EAS-only, and sets EAS up before anything else | credentials, profiles and environment variables all live on the EAS project; EAS builds both Expo and bare RN | Fastlane path; local Gradle/xcodebuild path |
 | Credentials come from a folder the developer points to; the skill asks only for what's missing | developers often get files from a client; asking "whose account is it" decides nothing | asking who owns the accounts; one question per file |
 | Testers get builds from TestFlight and Google Play internal testing (owner's team flow) | testers install like users, no UDID registration | ad-hoc / APK links as the default |

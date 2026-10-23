@@ -76,7 +76,7 @@ Run once per app, before the first release. Done when the project's **Credential
 3. Identity (bundle id / package — permanent once released), staging or not, already on a store or not, API URLs per environment (asked, never read from `.env`).
 4. `docs/release-plan.md` — **the developer approves it before any change.**
 5. `eas.json` profiles, remote build numbers with auto-increment, EAS environment variables, `expo-updates` with a fingerprint runtime version, the export-compliance flag.
-6. Credentials in three rounds — **build** (certificate + profile, upload keystore), **submit** (App Store Connect API key, Google service account), **push** if the app uses it (APNs key, FCM V1 key). Each round: the skill lists what it needs, the developer drops the files in a folder, `scripts/scan-credentials.sh` identifies them without reading secrets, missing items get instructions and a message for the client, the developer uploads. A new Android keystore is never generated for an app already on Google Play.
+6. Credentials in three rounds — **build** (certificate + profile, upload keystore), **submit** (App Store Connect API key, Google service account), **push** if the app uses it (APNs key, FCM V1 key). Each round: the skill lists what it needs, the developer drops the files in a folder, `scripts/scan-credentials.sh` identifies them without reading secrets, missing items get instructions and a message for the client; `scripts/eas-credentials.sh` uploads them (the developer only types passwords into a local `credentials.json`). A new Android keystore is never generated for an app already on Google Play.
 7. Check the Credentials page with the developer, list what blocks the first submit outside EAS (app records, the first manual Play upload, Play permissions), and offer a test build + submit.
 
 ## Step 0 on a clean machine: install Claude Code
@@ -187,6 +187,8 @@ skills/rn-release-setup/
     release-inventory.sh # identity, versions, eas.json, release features, credential files and git → JSON
     eas-status.sh        # eas-cli, Expo login, accounts, project link; exit 2 = the developer logs in
     scan-credentials.sh  # identifies .p8/.p12/.mobileprovision/keystores/Google keys without reading secrets
+    eas-credentials.sh   # uploads them to EAS by driving `eas credentials` menus (expect); stops at any password prompt
+    eas-credentials.exp  # the menu driver used by eas-credentials.sh
   references/
     eas.md               # login, owner, eas init, eas.json profiles, environment variables, updates, builds
     identity.md          # bundle id / package, name, version, export compliance, icon
