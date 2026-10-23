@@ -1,5 +1,7 @@
 # Theme
 
+**Contents:** Pick the setup from the project · 1. Tokens (every setup) · 2. Light, dark and the user's choice (every setup) · 3. StyleSheet only (no UI library) — the default · 4. Unistyles 3 · 5. NativeWind · 6. With a UI library · Default scales when the design doesn't define them
+
 One source of truth for colors, typography, spacing, radii and shadows. Screens and components read from it; nothing else hard-codes a visual value.
 
 ## Pick the setup from the project

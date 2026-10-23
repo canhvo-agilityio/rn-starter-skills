@@ -1,5 +1,7 @@
 # Loading, error and empty states
 
+**Contents:** Shared components · In screens · Mutations · Checking them
+
 With mocks these states never showed: data arrived instantly and always existed. With the API every screen that uses a connected hook (`usedBy` in the inventory) needs all three. This is the only change screens get from this skill — besides load-more on paginated lists.
 
 ## Shared components

@@ -1,5 +1,7 @@
 # Navigation
 
+**Contents:** expo-router (Expo default) · React Navigation (CLI default, or Expo without router) · Deep links for verification
+
 Build the tree from the spec. Every screen must be reachable by tapping, and by URL so Phase 5 can open it directly.
 
 ## expo-router (Expo default)

@@ -1,6 +1,6 @@
 ---
 name: rn-starter
-description: Step-by-step wizard that takes a developer's machine — macOS, Windows or Linux, even a brand-new one with nothing installed — to a running React Native app. Checks Node/package manager/Android/Xcode tooling, installs what is missing, asks the dev which framework (Expo or React Native CLI), bundler (Metro or Re.Pack), template, libraries and run target they want, scaffolds the project with a clean folder structure (and, when the dev describes screens or shares a screenshot/Figma design, builds those screens via the rn-design-import skill), and runs it on a phone (Expo Go on iPhone or Android), iOS Simulator, Android emulator or web. Use this whenever someone wants to start, create, init, bootstrap or scaffold a React Native / Expo app, set up a machine for React Native development, onboard a new mobile dev, or asks "how do I get a RN app running" — even if they don't say "wizard" or name a specific tool.
+description: Step-by-step wizard from a machine with nothing installed (macOS, Windows or Linux) to a running React Native app: installs missing tooling, asks which framework, bundler, template, libraries and run targets, scaffolds a layered project with quality tooling, and runs it on the chosen targets. Use when someone wants to start, create, bootstrap or scaffold a React Native / Expo app, set up a machine for React Native, onboard a new mobile developer, or asks how to get an RN app running. Not for adding screens to an existing app (rn-design-import).
 ---
 
 # React Native starter wizard

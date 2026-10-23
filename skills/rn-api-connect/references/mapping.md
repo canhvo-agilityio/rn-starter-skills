@@ -1,5 +1,7 @@
 # Matching and mapping
 
+**Contents:** Matching functions to endpoints · DTO types · Mapper rules · Service · Tests
+
 The screens were built against `types/<domain>.ts`, shaped for the UI. The API has its own shapes. The service is where the two meet: it calls the endpoint, maps each DTO to the app type, and the rest of the app never sees the DTO.
 
 ## Matching functions to endpoints

@@ -1,5 +1,7 @@
 # Input: Figma
 
+**Contents:** Files you can't open: Community files and other people's files · Be frugal with calls · URL → ids · Translating the reference code · Assets · Fonts · Fallback: Figma in a browser
+
 Preferred: the **Figma MCP server** connected in the dev's Claude Code (tools like `get_metadata`, `get_variable_defs`, `get_design_context`, `get_screenshot`). If it isn't connected, or it hits its rate limit (Starter / free plans allow only a handful of calls per month), use **Fallback: Figma in a browser** at the end of this file. Last resort: exported PNGs (`input-image.md`).
 
 If a Figma design-to-code skill is available (e.g. `figma-design-to-code`, `figma-implement-design`, or the MCP resource `skill://figma/figma-design-to-code/SKILL.md`), load it before calling `get_design_context` — the Figma server expects it.

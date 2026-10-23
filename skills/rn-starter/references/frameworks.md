@@ -1,5 +1,7 @@
 # Frameworks, templates and create commands
 
+**Contents:** Expo (templates to offer, create, Ignite, verify) · React Native CLI (templates to offer, create, Re.Pack, verify)
+
 All commands must be non-interactive: a prompt inside a Bash call hangs until timeout. Always pass the template and a target directory explicitly. If a flag fails, run the tool's `--help` and adapt — flags change between releases.
 
 Prefix commands with `source <skill-dir>/scripts/env.sh &&` when Node was installed during this session.

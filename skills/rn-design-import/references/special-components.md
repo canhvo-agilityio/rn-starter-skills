@@ -1,5 +1,7 @@
 # Special components (maps, sheets, media, charts…)
 
+**Contents:** 1. Detect (Phase 2) · 2. Check candidates live (don't trust this file's versions) · 3. Ask the dev (one `AskUserQuestion`, one question per special component, max 4) · 4. Catalog · 5. Wrap the library in a component · 6. Verify
+
 Some parts of a design aren't layout + text + images: a map with a route, a draggable bottom sheet, a camera view, a chart. Drawing them with static images and absolute-positioned SVG looks right in a screenshot and is useless in the app. Detect them, pick a real library with the dev, wrap it, and verify it renders.
 
 ## 1. Detect (Phase 2)

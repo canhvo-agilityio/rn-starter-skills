@@ -1,5 +1,7 @@
 # EAS: account, project, profiles, environments, updates
 
+**Contents:** Login and owner · Link the project · eas.json · Environment variables · Updates (OTA) · Builds
+
 Commands below run as `npx --yes eas-cli@<version>` with the version `eas-status.sh` used (`cli` in its output), or the project's own `eas` if it has one. In this file they're written `eas …`.
 
 ## Login and owner
