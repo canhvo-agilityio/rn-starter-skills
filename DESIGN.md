@@ -36,6 +36,12 @@ skills/
     scripts/             api-inventory, fetch-openapi, check-mocks
     references/          openapi, client, mapping, data-hooks, screen-states,
                          verify, plan-template, other-inputs
+  rn-release-setup/
+    SKILL.md             EAS + identity + profiles + credentials: phases 0–7
+    scripts/             release-inventory, eas-status, scan-credentials
+    references/          eas, identity, credentials, credentials-ios,
+                         credentials-android, client-request, release-features,
+                         verify, plan-template
 ```
 
 Each `SKILL.md` stays short (~200 lines) and points to references for detail, so only what the current phase needs is loaded into context.
@@ -64,6 +70,7 @@ The skills are independent: `rn-starter` can finish with an empty app, `rn-desig
 |---|---|---|---|
 | `.rn-starter.json` | rn-starter (Phase 6) | rn-design-import, future skills | framework, template, package manager, bundler, navigation, state, server data, styling, lint, run targets, quality rules, design input |
 | `docs/design-spec.md` | rn-design-import (Phase 3) | the developer (approval), later imports | screens + routes + status, navigation tree, tokens, fonts, special components, shared components, assets, open points |
+| `docs/release-plan.md` | rn-release-setup (Phase 3, updated in Phase 7) | the developer (approval), rn-release | EAS owner and project, build location, identity, profiles and their environments and channels, where each credential lives (EAS / local path / missing), release features set up, open items |
 | `docs/api-plan.md` + `docs/api/openapi.json` | rn-api-connect (Phase 3) | the developer (approval), later runs, rn-auth / rn-forms | per domain: endpoints, DTO → app-type mapping, pagination, mutations + invalidation, status (`mock` / `planned` / `connected` / `verified`); the saved spec the types are generated from |
 
 `detect-project.sh` merges `.rn-starter.json` with what `package.json` and the file tree actually say, and reports mismatches, so a project not created by `rn-starter` (or edited since) is still understood.
@@ -152,6 +159,26 @@ src/hooks/use-<domain>.ts     + useInfiniteQuery for paginated lists, mutations 
 - **No TanStack Query** in the project → recommend installing it (cache, retry, invalidation); plain hooks if the dev declines.
 - **RN CLI**: no env loading built in → `env.ts` holds constants switched on `__DEV__`; mention `react-native-config` for more environments.
 
+## rn-release-setup flow
+
+Goal: an app that can be built for the stores and shipped to testers, set up once — every later release (`rn-release`) only builds, submits and updates.
+
+| Phase | Does | Scripts | Stops for the dev when |
+|---|---|---|---|
+| 0 Inventory | framework, eas.json, app.json identity + `extra.eas.projectId` + owner, version, expo-updates, Fastlane, ios/ android/, release features used, credential files tracked by git | `release-inventory.sh` | — |
+| 1 EAS | say it's EAS-only; eas-cli + login (the dev logs in); owner; `eas init --account`; `eas.json`; cloud or local | `eas-status.sh` | not logged in (exit 2); owner, build location |
+| 2 Identity | bundle id / package, display name; existing store app → reuse | — | identity (can't change after release) |
+| 3 Plan | `docs/release-plan.md` | — | approval |
+| 4 Profiles | `production` (+ `staging`), `appVersionSource: remote` + `autoIncrement`, EAS env vars per environment, expo-updates channels + fingerprint runtime version, encryption flag, icon/splash | — | API URL per environment |
+| 5 Credentials | list what's needed → folder → scan → missing items: how to get them + message for the client → upload to EAS | `scan-credentials.sh` | missing files (exit 2); passwords typed by the dev |
+| 6 Release features | only the ones the app uses; keystore SHA-1/SHA-256 printed for Google Sign-In, Maps, App Links | — | values for the services (OAuth ids, domains) |
+| 7 Verify + hand-off | simulator/emulator build of production config, opened and screenshotted; store-signed build per platform; `eas credentials` summary; release-plan updated | — | commit approval |
+
+- **EAS only.** One path for Expo and RN CLI (EAS builds bare projects). Fastlane setups are left in place; replacing them is out of scope.
+- **Secrets never pass through the conversation.** Credential files are referenced by path and identified by name, extension and header (`-----BEGIN PRIVATE KEY-----` for `.p8`, PKCS#12 magic for `.p12`, JKS/PKCS#12 for keystores, `"type": "service_account"` field name for Google keys is checked without printing values). Passwords are typed by the developer in their own terminal (`eas credentials`). Public files (`.mobileprovision`) are parsed for bundle id, team and expiry.
+- **Keystore safety.** No keystore in the folder → ask whether the app is already on Google Play before letting EAS generate one; a new keystore for a published app means it can never be updated.
+- **Verification without an Apple account.** iOS store signing can't run here; the simulator build of the same profile is checked, and the store build is marked not run until a tester with an Apple Developer account runs it.
+
 ## Generated project architecture
 
 Defined in `skills/rn-starter/references/structure.md` and followed by every skill:
@@ -227,6 +254,10 @@ flowchart LR
 | Mocks kept behind `EXPO_PUBLIC_USE_MOCKS` | offline work, demos, tests; domains without an endpoint keep working | delete mocks once connected |
 | One `EXPO_PUBLIC_API_URL`; build environments left to rn-release | day-to-day work needs one server; per-build URLs are a release concern | env switching in rn-api-connect |
 | Skills never open `.env` (values or names); only `.env.example` / `.sample` / `.template`, code and git; missing values are asked; runs pass `EXPO_PUBLIC_*` on the command line | the owner's rule: `.env` holds other services' secrets; Expo's loader doesn't overwrite variables already in the environment, so verification needs no `.env` | read `.env` names only; write `.env` for the dev |
+| Release work split by time: `rn-release-setup` (once) and `rn-release` (every release), not build vs submit | the hard part — identity, credentials, profiles, release features — is shared by build and submit; a device build already needs the same Apple credentials as submit | one `rn-release`; `rn-build` + `rn-submit` |
+| `rn-release-setup` is EAS-only, and sets EAS up before anything else | credentials, profiles and environment variables all live on the EAS project; EAS builds both Expo and bare RN | Fastlane path; local Gradle/xcodebuild path |
+| Credentials come from a folder the developer points to; the skill asks only for what's missing | developers often get files from a client; asking "whose account is it" decides nothing | asking who owns the accounts; one question per file |
+| Testers get builds from TestFlight and Google Play internal testing (owner's team flow) | testers install like users, no UDID registration | ad-hoc / APK links as the default |
 
 ## Verification
 

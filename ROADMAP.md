@@ -2,7 +2,7 @@
 
 What to build next, in order, and what's still open from the last round. Start here in a new session, together with [spec.md](spec.md) and [DESIGN.md](DESIGN.md).
 
-Last updated: 2026-10-22.
+Last updated: 2026-10-23.
 
 ## 1. Open work on the current release (do first)
 
@@ -21,6 +21,10 @@ The layered structure, Claude Code files, theme setups, UI library option and SV
   - Baselines in a per-project path (not `/tmp/tsc-baseline.txt`), plus lint and jest baselines; Phase 6 honoring the project's own `CLAUDE.md` rules (e.g. a reviewer before commit); a `renderWithProviders` example; `SKILL.md` points to icon placeholders in `conventions.md` that don't exist.
   - Re-run the same feature on a fresh copy to confirm the fixes, and test on an app not made by rn-starter with one domain on a real API (follow-up.md's real-API row and the "no spec yet" path).
   - The tester's `coffee-shop` still has the status-bar bug in the Bag tab (fixed only in the test copy).
+- [ ] rn-design-import, from the second Favorites/Order History run (2026-10-23) — fix on its own branch:
+  - `theme.md` → Colors from a later design: "within 3 per channel" must also require the **same role** (`#FDEDED` for a Cancelled badge was merged into `badgeSoft`, the ingredient badges' fill).
+  - `follow-up.md`: point to the focused status bar in `theme.md` §2 and check it after switching from a tab with the opposite style; open the filtered/tabbed states (chips) of existing screens that get new data (a lone card stretched full width — give 2-column grid items a `maxWidth`); grep `src/components` too.
+  - `verify.md`: `?__expo_disable_fab=1`, cold-start deep links, the Expo Go dev-menu sheet on Android's first launch; baseline lint and jest; Phase 6 follows the project's CLAUDE.md pre-commit steps (its code-reviewer found three real bugs); `renderHook` + QueryClient needs `gcTime: Infinity` and `clear()`; the spec template's Screens table has no frame column.
 - [ ] Recheck the UI libraries left out of the wizard (gluestack-ui, Tamagui, React Native Reusables) — reasons in `skills/rn-starter/references/libraries.md`. Add one back only after it installs, type-checks and bundles on the current Expo SDK.
 
 ## 2. New skills, in priority order
@@ -38,39 +42,33 @@ The layered structure was built for this: screens get data through `src/hooks/`,
 - Decided: openapi-typescript + openapi-fetch, DTO → app-type mappers, `expo-secure-store` left to rn-auth, mocks kept behind `EXPO_PUBLIC_USE_MOCKS` (DESIGN.md key decisions).
 - Test: a public API or a local json-server; screens still render; mocks no longer imported anywhere but tests.
 
-### 2.2 `rn-auth` — real sign-in
+### 2.2 `rn-release-setup` — EAS build and store credentials (in progress)
 
-Replaces the mock session (`src/stores/session.ts`) from rn-design-import.
+Owner's decision (2026-10-23): release work comes before auth, forms and e2e, split by time — this skill sets an app up once; `rn-release` (2.3) ships it many times. Scope in spec.md → Skill 4, flow and decisions in DESIGN.md → rn-release-setup flow.
 
-- Providers to offer: email/password against the app's own API, Supabase, Firebase, social sign-in (Google/Apple; Apple needs a dev build and signing, so mind the scope).
-- Covers: secure token storage, refresh, protected routes (remember: `Stack.Protected` doesn't redirect — navigate explicitly), sign-out clearing the query cache.
-- Depends on 2.1 for the HTTP client.
+- EAS only (Expo and React Native CLI), set up first: login, owner (client's organization recommended), `eas init`, `eas.json`, cloud or local builds.
+- Identity, profiles (`production`, optional `staging`), remote versions with auto-increment, environment variables per profile (asked, never read from `.env`), `expo-updates` channels baked into the builds.
+- Credentials from a folder the developer points to: the skill lists what it needs, `scan-credentials.sh` identifies the files without reading secrets, guidance and a message to the client only for what's missing.
+- Release features the app uses: push, Sign in with Apple, Google Sign-In, domain deep links, Maps, Firebase, Sentry, permission strings.
+- Done when a store-signed build succeeds for each platform, plus a simulator/emulator build of the same configuration that was opened and checked.
+- Test: personal Expo account only; Android end to end on this machine; iOS signing and submit need an Apple Developer account — written from Expo's docs and marked not run until a tester runs it.
 
-### 2.3 `rn-forms` — forms and validation
+### 2.3 `rn-release` — test releases, approval gate, production
 
-Every design import produces forms with stub handlers.
+Reads `docs/release-plan.md` from 2.2. TestFlight internal + Google Play internal for testers (draft releases while a Play app is unpublished), OTA on the test channel for JS-only fixes (fingerprint check), `docs/release-log.md` (build number, OTA updates, commit) so production promotes exactly the build testers approved, an explicit approval gate the skill never passes on its own, App Review / Play production rollout.
 
-- react-hook-form + zod schemas in `src/types/` or next to the screen, shared field components in `src/components/` (text field, select, date) on the theme, error display, keyboard handling and the unsaved-input rule already in `conventions.md`.
-- Server errors mapped onto fields (works with 2.1).
+### Postponed by the owner (2026-10-23)
 
-### 2.4 `rn-e2e` — end-to-end flows
-
-- Maestro flows for the main flow the design import already taps through (login → home → detail → back), runnable on the simulator/emulator the wizard set up.
-- Optional CI job. Evidence screenshots into `docs/evidence/` of the app.
-
-### 2.5 `rn-release` — builds and store delivery (currently a non-goal)
-
-Needs a scope change in spec.md first: signing, paid Apple account and Play Console are explicitly out of scope today.
-
-- EAS Build profiles (development / preview / production), app icon and splash from the design, versioning, env per profile, EAS Submit, OTA updates with EAS Update.
-- RN CLI path: Fastlane, or recommend moving to Expo prebuild.
+- **`rn-auth`** — real sign-in replacing the mock session: own API email/password first (fits rn-api-connect's client seam), Supabase later; secure storage, single-flight refresh on 401, splash until the session is restored, explicit redirects (`Stack.Protected` doesn't redirect), sign-out clears the query cache.
+- **`rn-forms`** — react-hook-form + zod, shared themed fields, server errors onto fields (`ApiError.fieldErrors`).
+- **`rn-e2e`** — Maestro flows for the main flow, optional CI job.
 
 ### 2.6 Smaller candidates (pick when asked)
 
 - **`rn-i18n`** — extract strings from generated screens, `expo-localization` + i18next, the developer's languages.
 - **`rn-upgrade`** — Expo SDK / React Native upgrade: `expo install --fix`, breaking-change notes per version, re-run the quality checks and the design screenshots.
 - **`rn-observability`** — Sentry (crashes, performance) and analytics events.
-- **`rn-ci`** — GitHub Actions / GitLab CI running the same checks as the git hooks (lint, tsc, tests), plus EAS builds once 2.5 exists.
+- **`rn-ci`** — GitHub Actions / GitLab CI running the same checks as the git hooks (lint, tsc, tests), plus EAS builds once 2.2 exists.
 
 ## 3. Improvements to the existing skills
 

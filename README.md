@@ -1,12 +1,13 @@
 # rn-starter
 
-A Claude Code plugin for React Native developers, with three skills:
+A Claude Code plugin for React Native developers, with four skills:
 
 | Skill | Use when | Result |
 |---|---|---|
 | **`rn-starter`** | There's no project yet, often on a brand-new machine | Environment installed, project running on a simulator, emulator or phone |
 | **`rn-design-import`** | A project exists (or `rn-starter` just created one) | Theme, fonts, components, screens and navigation built from a design |
 | **`rn-api-connect`** | Screens run on mocks and the backend has a Swagger / OpenAPI spec | Types generated from the spec, a typed client, services switched to the API one domain at a time, loading / error / empty states — screens otherwise unchanged |
+| **`rn-release-setup`** | The app runs and is about to go to testers on TestFlight / Google Play internal testing | EAS project, identity, build profiles and environments, signing credentials from the files the developer or client provides, a store-signed build for each platform |
 
 Developers just describe what they want. For example, *"Create a new RN app with 5 screens: Login, Home, Search, Detail, Profile"*: `rn-starter` scaffolds the project, runs the empty app, then hands over to `rn-design-import` to build the screens.
 
@@ -66,6 +67,18 @@ Give it the backend's Swagger link (or an OpenAPI/Swagger file; a Postman collec
 
 When the backend changes: refresh the spec, `<pm> run api:types`, and `tsc` points at the mappers to fix.
 
+## rn-release-setup: ready for TestFlight and Google Play
+
+Run once per app, before the first release.
+
+1. Read the project: identity, versions, EAS config, release features in use (push, Google Sign-In, maps…), credential files git might pick up (`scripts/release-inventory.sh`).
+2. EAS first: the developer logs in to Expo themselves; choose the owner (the client's organization is recommended); `eas init`; build in the EAS cloud or locally (`scripts/eas-status.sh`).
+3. Identity (bundle id / package — permanent once released), test builds on the production or a staging API, API URLs per environment (asked, never read from `.env`).
+4. `docs/release-plan.md` — **the developer approves it before any change.**
+5. `eas.json` profiles (`production`, optional `staging`, `production-simulator` for checks), remote build numbers with auto-increment, EAS environment variables, `expo-updates` with a fingerprint runtime version, the export-compliance flag.
+6. Credentials: the skill lists what it needs, the developer drops the files in a folder, `scripts/scan-credentials.sh` identifies them without reading secrets; only what's missing gets instructions and a message for the client. Passwords are typed by the developer. A new Android keystore is never generated for an app already on Google Play.
+7. Release features the app uses, then proof: the production configuration opened on a simulator/emulator, and a store-signed build for each platform.
+
 ## Step 0 on a clean machine: install Claude Code
 
 The native installer doesn't need Node:
@@ -104,7 +117,7 @@ claude plugin update rn-starter@rn-starter-skills
 
 ## Usage
 
-In Claude Code, type `/rn-starter` or just ask, e.g. *"create a new React Native app"*, *"new laptop, set it up for RN"*, *"build these screens from this Figma link"*, *"connect the app to the API, here's the Swagger link"*.
+In Claude Code, type `/rn-starter` or just ask, e.g. *"create a new React Native app"*, *"new laptop, set it up for RN"*, *"build these screens from this Figma link"*, *"connect the app to the API, here's the Swagger link"*, *"set up EAS so we can ship to TestFlight"*.
 
 ## Layout
 
@@ -168,6 +181,22 @@ skills/rn-api-connect/
     verify.md            # checking against the API on each target, error/empty/mock modes
     plan-template.md     # docs/api-plan.md template
     other-inputs.md      # Postman collections and plain descriptions
+skills/rn-release-setup/
+  SKILL.md               # EAS + identity + profiles + credentials (phases 0 → 7)
+  scripts/
+    release-inventory.sh # identity, versions, eas.json, release features, credential files and git → JSON
+    eas-status.sh        # eas-cli, Expo login, accounts, project link; exit 2 = the developer logs in
+    scan-credentials.sh  # identifies .p8/.p12/.mobileprovision/keystores/Google keys without reading secrets
+  references/
+    eas.md               # login, owner, eas init, eas.json profiles, environment variables, updates, builds
+    identity.md          # bundle id / package, name, version, export compliance, icon
+    credentials.md       # rules, what to ask for, the folder, git
+    credentials-ios.md   # API key, certificate + profile, Apple ID, APNs, app record
+    credentials-android.md # keystore decision, fingerprints, Play app, first upload, service account
+    client-request.md    # how each item is made, message for the client
+    release-features.md  # push, Sign in with Apple, Google Sign-In, links, maps, Firebase, Sentry, permissions
+    verify.md            # simulator/emulator check, store-signed builds, what EAS holds
+    plan-template.md     # docs/release-plan.md template
 ```
 
 **Figma:** Figma's Starter/free plans allow very few MCP calls per month. The skill makes the minimum: one call for the frame list, one for variables, one per screen. When the MCP is out of calls or not connected, it **opens Figma in a browser** (Claude in Chrome or the built-in browser; the developer signs in). It selects frames and layers and reads exact values (hex colors, fonts, sizes, dimensions, corner radii) from the properties panel with `scripts/figma-panel.js`. This costs no API calls.
