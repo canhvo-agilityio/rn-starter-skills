@@ -57,6 +57,31 @@ service-account*.json
 
 A credential file already tracked by git: `git rm --cached <file>`, commit, and if it was ever pushed, tell the dev it must be treated as leaked — the owner revokes it and issues a new one (App Store Connect key, certificate; a leaked Android upload key needs an upload-key reset in Play Console).
 
+## Uploading
+
+`scripts/eas-credentials.sh` puts files on EAS by driving `eas credentials` (pinned to eas-cli 25.3.0, whose menus it knows; checked on Android: new keystore, existing keystore left alone, Play service account, FCM V1 key). It never reads a credential file and stops at any password or Apple ID prompt.
+
+| Round | Android | iOS |
+|---|---|---|
+| Build | `build-from-json` (keystore from `credentials.json`) | `build-from-json` (`.p12` + profile from `credentials.json`) |
+| Submit | `submit-key --key <service-account.json>` | `submit-key --key <AuthKey.p8> --key-id <id> --issuer-id <id> --team-id <id>` |
+| Push | `push-key --key <fcm-service-account.json>` | `push-key --key <AuthKey.p8> --key-id <id> --team-id <id>` |
+
+**`credentials.json` for `build-from-json`** — you write it in the project root with paths and the alias (the dev gave it in the chat), and the passwords as `TYPE-IT-HERE`:
+
+```json
+{
+  "android": { "keystore": { "keystorePath": "<folder>/upload.jks", "keystorePassword": "TYPE-IT-HERE", "keyAlias": "<alias>", "keyPassword": "TYPE-IT-HERE" } },
+  "ios": { "provisioningProfilePath": "<folder>/<profile>.mobileprovision", "distributionCertificate": { "path": "<folder>/<cert>.p12", "password": "TYPE-IT-HERE" } }
+}
+```
+
+Only the platforms being uploaded. Check git ignores it (`git check-ignore -q credentials.json`), then ask the dev to replace each `TYPE-IT-HERE` and say "done". Run `build-from-json` per platform; then `rm credentials.json` — never open it once the dev has filled it.
+
+Credentials are stored per bundle id / package: upload once per id, with a `store` profile that builds it (usually `production`).
+
+On Windows (Git Bash has no `expect`) or when the script exits 2, give the dev the printed `npx eas-cli@25.3.0 credentials -p …` command and the menu path from the platform reference.
+
 ## Missing items
 
 For each missing item: one line on where it comes from, and the steps from `client-request.md`. If the dev can't create it themselves (no access to the client's accounts), draft the message to the client from the same file, in the language the dev uses with the client (ask if unsure). Then stop and let the dev come back with the files.

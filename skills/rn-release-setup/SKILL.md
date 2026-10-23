@@ -7,7 +7,7 @@ description: Sets up a React Native / Expo app's EAS project and every credentia
 
 Goal: when the developer opens the project's **Credentials** page on expo.dev, everything the app needs is there — build, submit and (if the app uses push) push credentials, for iOS and Android — and they know exactly what's left outside EAS. Nothing is built here unless the developer asks for a test build at the end; releasing is the `rn-release` skill's job.
 
-Talk to the dev in their language. Say early how this works: **you prepare and check; the developer provides the files and does the uploads that involve secrets** (EAS's credential menus are interactive, and secrets must not pass through you).
+Talk to the dev in their language. Say early how this works: **the developer provides the files (and types passwords into one local file); you do the rest** — scanning, uploading to EAS (`scripts/eas-credentials.sh` drives EAS's interactive credential menus without reading or typing any secret) and checking.
 
 **Secrets never pass through the conversation.** Never open, print or copy the contents of credential files (`.p8`, `.p12`, `.jks`/`.keystore`, service-account `.json`, `credentials.json`) or of `.env` files. Refer to files by path; `scripts/scan-credentials.sh` identifies them without reading their secrets. Passwords are typed by the developer in their own terminal, never in the chat.
 
@@ -40,8 +40,9 @@ Then `eas init --account <owner> --non-interactive` and `eas.json` from `referen
 ## Phase 2 — Identity and environments
 
 Read `references/identity.md`. One `AskUserQuestion` round (max 4):
-- iOS bundle id and Android package (`com.<company>.<app>`), stating that **they can't change once the app is on a store**; an app already on a store keeps its ids.
-- Whether test builds use the production API or a staging one (a `staging` profile, `references/eas.md` → Profiles).
+- **Files already in hand?** *Yes — give the folder (Recommended when a client sent them)* / *Not yet*. With a folder, run the scan (Phase 5 step 3) now: a `.mobileprovision` and `google-services.json` name the bundle id / package the files were made for, so propose **those** ids instead of inventing new ones.
+- iOS bundle id and Android package (`com.<company>.<app>`, or the ids from the files), stating that **they can't change once the app is on a store**; an app already on a store keeps its ids.
+- Whether test builds use the production API or a staging one (a `staging` profile, `references/eas.md` → Profiles) — skip it when the app reads no API URL (`grep -rn "process.env.EXPO_PUBLIC_" src` finds none): one `production` profile.
 - The API URL per environment, if the app reads one (names from `.env.example`, values from the dev).
 
 ## Phase 3 — Plan → dev approval
@@ -57,10 +58,10 @@ From `references/eas.md`: `eas.json` (`appVersionSource: "remote"`, `production`
 Read `references/credentials.md` once, then for each round:
 
 1. **List what this round needs**, in the dev's language, one line per item on what it's for.
-2. The dev puts the files in **one folder** (outside the project is best) and gives you its path; non-secret ids (key id, issuer id, team id, keystore alias) can be typed in the chat.
+2. The dev puts the files in **one folder** (outside the project is best) and gives you its path; ask for the non-secret ids in the chat now — key ids, issuer id, team id, **keystore alias** — so they never have to be typed into a file.
 3. **Scan**: `bash "<skill-dir>/scripts/scan-credentials.sh" <folder> <project-dir> --bundle-id <id> --package <name>` — classifies every file and reports problems. Two `.p8` keys can't be told apart by content: ask which key id is which.
 4. **Missing items**: where they come from and a message for the client (`references/client-request.md`). Stop until the dev has them.
-5. **Upload**: give the dev the exact command (or the expo.dev Credentials page button) and what to choose; they run it. Then they confirm on the Credentials page, and you tick the item in the plan.
+5. **Upload** with `bash "<skill-dir>/scripts/eas-credentials.sh" <project-dir> <ios|android> <profile> <task> [--key … --key-id … --issuer-id … --team-id …]` (tasks and the `credentials.json` step in `credentials.md` → Uploading). It drives EAS's menus and prints each choice. Exit 0 → tick the item in the plan; exit 3 → it stopped on purpose (something already set up, a key Apple rejects, a menu it doesn't know) — read its message and decide with the dev; exit 2 → a password or Apple login prompt, or no `expect` on this machine: give the dev the printed command to run themselves.
 
 | Round | iOS | Android | Reference |
 |---|---|---|---|

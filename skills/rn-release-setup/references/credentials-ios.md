@@ -4,7 +4,7 @@
 
 EAS stores iOS credentials per project and bundle id. The Credentials page shows them under the bundle id: **Distribution certificate**, **Provisioning profile** (build), **App Store Connect API key** (submit), **Push key** (push).
 
-Menu labels below are as of eas-cli 25 and may be worded differently in other versions — pick the matching entry. Commands the dev runs in their own terminal (interactive menus; they may ask for an Apple login or a password). Which profile to pick: one whose bundle id / package matches the files and whose `distribution` is `store` — usually `production`; profiles sharing that id (a `staging` with the same bundle id) reuse the same credentials, so upload once per bundle id / package, not per profile. Give them the exact command, that profile, and what to choose.
+The uploads below are done with `scripts/eas-credentials.sh` (`credentials.md` → Uploading); the menu paths are what it drives, and what the dev follows by hand when it exits 2. Menu labels are eas-cli 25.3's. By hand, the dev runs commands in their own terminal (interactive menus; they may ask for an Apple login or a password). Which profile to pick: one whose bundle id / package matches the files and whose `distribution` is `store` — usually `production`; profiles sharing that id (a `staging` with the same bundle id) reuse the same credentials, so upload once per bundle id / package, not per profile. Give them the exact command, that profile, and what to choose.
 
 ## Build: distribution certificate + App Store provisioning profile
 
