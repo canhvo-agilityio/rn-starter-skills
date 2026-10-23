@@ -1,15 +1,15 @@
 ---
 name: rn-release-setup
-description: Sets up a React Native / Expo app, once, so it can be built for the App Store and Google Play with EAS and shipped to testers through TestFlight and Google Play internal testing — Expo account and EAS project, bundle id / package, build profiles and versioning, API URLs per environment, iOS and Android signing credentials (App Store Connect API key, distribution certificate and provisioning profile, upload keystore, Google service account), push / Sign in with Apple / Google Sign-In / Maps / Firebase / Sentry setup for store builds, and OTA update channels. Works from the files the developer or their client provides, without secrets passing through the conversation, and ends with a store-signed build that succeeds. Use this whenever someone wants to set up EAS Build, prepare an app for TestFlight or the Play Store, configure signing, certificates, provisioning profiles or a keystore, use credentials a client sent (.p8, .p12, .jks, service account JSON), or "get the app ready to release" — before the first release.
+description: Sets up a React Native / Expo app's EAS project and every credential it needs for the stores, so that the project's Credentials page on expo.dev is complete — Expo account and EAS project, bundle id / package, build profiles and versioning, API URLs per environment, iOS and Android build credentials (distribution certificate and provisioning profile, upload keystore), submit credentials (App Store Connect API key, Google service account for Google Play), and push credentials when the app uses push (APNs key, FCM V1 key). Works from the files the developer or their client provides, without secrets passing through the conversation, and lists what still has to happen outside EAS. Use this whenever someone wants to set up EAS, prepare an app for TestFlight or the Play Store, configure signing, certificates, provisioning profiles, a keystore or push keys, use credentials a client sent (.p8, .p12, .jks, service account JSON), or "get the app ready to release" — before the first release.
 ---
 
 # Release setup (EAS)
 
-Goal: an app that can be built for the stores and shipped to testers, **set up once**. Every later release only builds, submits and updates (the `rn-release` skill); this one leaves it a `docs/release-plan.md` and a store-signed build that succeeded.
+Goal: when the developer opens the project's **Credentials** page on expo.dev, everything the app needs is there — build, submit and (if the app uses push) push credentials, for iOS and Android — and they know exactly what's left outside EAS. Nothing is built here unless the developer asks for a test build at the end; releasing is the `rn-release` skill's job.
 
-Talk to the dev in their language. Keep them in the loop at the decisions that are theirs: the EAS owner, the app's identity (permanent once released), the plan, and anything that needs their accounts or passwords.
+Talk to the dev in their language. Say early how this works: **you prepare and check; the developer provides the files and does the uploads that involve secrets** (EAS's credential menus are interactive, and secrets must not pass through you).
 
-**Secrets never pass through the conversation.** Never open, print or copy the contents of credential files (`.p8`, `.p12`, `.jks`/`.keystore`, service-account `.json`, `credentials.json`) or of `.env` files. Refer to files by path; `scripts/scan-credentials.sh` identifies them without reading their secrets. Passwords are typed by the developer in their own terminal, never in the chat. Values go to EAS (environment variables, credentials), not into the repo.
+**Secrets never pass through the conversation.** Never open, print or copy the contents of credential files (`.p8`, `.p12`, `.jks`/`.keystore`, service-account `.json`, `credentials.json`) or of `.env` files. Refer to files by path; `scripts/scan-credentials.sh` identifies them without reading their secrets. Passwords are typed by the developer in their own terminal, never in the chat.
 
 ## Phase 0 — Understand the project
 
@@ -17,77 +17,73 @@ Talk to the dev in their language. Keep them in the loop at the decisions that a
 source <rn-starter-skill-dir>/scripts/env.sh 2>/dev/null; bash "<skill-dir>/scripts/release-inventory.sh" <project-dir>
 ```
 
-JSON: Expo or React Native CLI, the resolved app config (name, slug, owner, version, bundle id, package, build numbers, EAS project id, updates, encryption flag, icon/splash, plugins), native ids from `ios/` `android/`, `eas.json`, Fastlane, the **release features** the app uses (push, Sign in with Apple, Google Sign-In, domain links, maps, Firebase, Sentry, permission-using modules), credential files in the project and whether git tracks or ignores them, and `docs/release-plan.md`.
+JSON: Expo or React Native CLI, the resolved app config (name, slug, owner, version, bundle id, package, EAS project id, updates, encryption flag, icon/splash, plugins), native ids from `ios/` `android/`, `eas.json`, Fastlane, **whether the app uses push** (`features.push`) and other features, credential files in the project and whether git tracks or ignores them, and `docs/release-plan.md`.
 
-- **Exit 3 — credential files tracked by git or not ignored**: stop and tell the dev first. Not ignored → add the rules to `.gitignore` (list in `references/credentials.md` → Git). Tracked → `git rm --cached` them, and if they were ever pushed, tell the dev to treat them as leaked and ask the owner to revoke and reissue them.
-- `ignoreRulesMissing` lists patterns `.gitignore` doesn't cover yet: add them now, before any file arrives.
-- **`docs/release-plan.md` exists** → a follow-up run (new credentials, a new feature, a profile change). Read it, confirm what changed with the dev, and do only that part.
-- **Fastlane or another release setup exists** → say this skill adds EAS next to it and removes nothing; replacing it is out of scope.
+- **Exit 3 — credential files tracked by git or not ignored**: stop and tell the dev first (`references/credentials.md` → Git).
+- `ignoreRulesMissing`: add those patterns to `.gitignore` now, before any file arrives.
+- **`docs/release-plan.md` exists** → a follow-up run (new credentials, push added, a profile change): read it, confirm what changed, do only that part.
+- **Fastlane or another release setup exists** → this skill adds EAS next to it and removes nothing.
 
 ## Phase 1 — EAS
 
-Read `references/eas.md`. Tell the dev plainly, in their language: this skill builds and submits with **EAS** (Expo Application Services) — for Expo and React Native CLI alike; it needs a free Expo account; cloud builds on the free plan are limited per month, local builds aren't. A dev who doesn't want EAS: say it's out of scope and stop.
+Read `references/eas.md`. Tell the dev: this skill uses **EAS** (Expo Application Services), for Expo and React Native CLI alike, with a free Expo account. A dev who doesn't want EAS: out of scope — say so and stop.
 
 ```bash
 bash "<skill-dir>/scripts/eas-status.sh" <project-dir>
 ```
 
-- **Exit 2, not logged in**: relay its ACTION REQUIRED lines — the dev logs in themselves (`! npx eas-cli login`), then rerun.
-- **Owner** — one `AskUserQuestion`, options from `accounts` in the output: *the client's or company's organization (Recommended)* / *my personal account* / Other. If the project is already linked (`project.linked`), only confirm its owner; never relink without the dev's explicit yes.
-- **Where to build** — same call: *EAS cloud (Recommended)* / *this computer (`--local`)*. Local needs macOS + Xcode + fastlane + CocoaPods for iOS, the Android SDK + JDK 17 (rn-starter `doctor.sh --android --ios`), and **~15 GB free disk** (`df -h ~`); Windows and Linux build iOS in the cloud only. Use the dev's choice for every build in this skill, including your checks.
+- **Exit 2, not logged in**: relay its ACTION REQUIRED lines; the dev logs in themselves, then rerun.
+- One `AskUserQuestion`: the **owner** (options from `accounts`: *the client's or company's organization (Recommended)* / *my personal account*); already linked → only confirm, never relink without an explicit yes. And **where builds will run** later: *EAS cloud (Recommended)* / *this computer* — recorded in the plan, used by `rn-release` and the optional test build.
 
-Then link and configure: `eas init --account <owner> --non-interactive`, and `eas.json` from `references/eas.md`.
+Then `eas init --account <owner> --non-interactive` and `eas.json` from `references/eas.md`.
 
-## Phase 2 — Identity
+## Phase 2 — Identity and environments
 
-Read `references/identity.md`. Propose the iOS bundle id and Android package (`com.<company>.<app>`, from the dev's domain and the app name), the display name, and the marketing version. Say clearly that **the bundle id and package can't change once the app is on a store**. If the app is already on a store (the dev says so, or the client's files show it), use the existing ids — never new ones. RN CLI: keep the ids in `ios/` and `android/`; changing them there is a separate step the dev approves.
-
-Ask only what you can't infer, in one `AskUserQuestion` (max 4): identity; whether test builds use the production API or a staging one (decides a `staging` profile, `references/eas.md` → Profiles); the API URL per environment if the app reads one (names from `.env.example`, values from the dev).
+Read `references/identity.md`. One `AskUserQuestion` round (max 4):
+- iOS bundle id and Android package (`com.<company>.<app>`), stating that **they can't change once the app is on a store**; an app already on a store keeps its ids.
+- Whether test builds use the production API or a staging one (a `staging` profile, `references/eas.md` → Profiles).
+- **Is the app already on the App Store / Google Play** (even in TestFlight or internal testing)? It decides whether credentials are created or must be the existing ones.
+- The API URL per environment, if the app reads one (names from `.env.example`, values from the dev).
 
 ## Phase 3 — Plan → dev approval
 
-Write `docs/release-plan.md` from `references/plan-template.md`: owner and project, build location, identity, profiles with their environments and update channels, release features to set up, the credentials needed per platform with their status (`needed` / `provided` / `on EAS`), and open items.
+Write `docs/release-plan.md` from `references/plan-template.md`: owner, build location, identity, profiles and environments, and the credential checklist — **build**, **submit**, **push** (if used), per platform — with what each item needs from the dev and its status, plus what's needed outside EAS. Ask: "Set up EAS and the credentials from this plan?" → *Yes (Recommended)* / *Change something*. Nothing changes before a yes.
 
-Show a short summary and ask: "Set up the release from this plan?" → *Yes (Recommended)* / *Change something*. Don't change the project before a yes.
+## Phase 4 — Profiles and environments
 
-## Phase 4 — Profiles, environments, updates
+From `references/eas.md`: `eas.json` (`appVersionSource: "remote"`, `production` + optional `staging`, `production-simulator`, submit profiles), EAS environment variables per environment (`eas env:set`; never read `.env`), `expo-updates` with a `fingerprint` runtime version, identity and `ITSAppUsesNonExemptEncryption` in the app config. Run `npx expo-doctor` (Expo) and `npx tsc --noEmit`; fix what you introduced.
 
-From `references/eas.md`:
-1. `eas.json`: `cli.appVersionSource: "remote"`, profiles `production` (+ `staging`) with `distribution: "store"`, `autoIncrement`, `channel`, `environment`; `production-simulator` for verification; submit profiles.
-2. API URLs and other `EXPO_PUBLIC_*` values as EAS environment variables (`eas env:create`), per environment. Never read or write `.env`.
-3. `expo-updates` with a `fingerprint` runtime version, so an OTA update only reaches builds with the same native code.
-4. `app.json`: identity, `ITSAppUsesNonExemptEncryption` (`references/identity.md`), icon and splash present.
+## Phases 5–7 — Credentials, in three rounds
 
-Run `npx expo-doctor` (Expo) and `npx tsc --noEmit`; fix what you introduced.
+Read `references/credentials.md` once, then for each round:
 
-## Phase 5 — Credentials
+1. **List what this round needs**, in the dev's language, one line per item on what it's for.
+2. The dev puts the files in **one folder** (outside the project is best) and gives you its path; non-secret ids (key id, issuer id, team id, keystore alias) can be typed in the chat.
+3. **Scan**: `bash "<skill-dir>/scripts/scan-credentials.sh" <folder> <project-dir> --bundle-id <id> --package <name>` — classifies every file and reports problems. Two `.p8` keys can't be told apart by content: ask which key id is which.
+4. **Missing items**: where they come from and a message for the client (`references/client-request.md`). Stop until the dev has them.
+5. **Upload**: give the dev the exact command (or the expo.dev Credentials page button) and what to choose; they run it. Then they confirm on the Credentials page, and you tick the item in the plan.
 
-Read `references/credentials.md` and, per platform, `credentials-ios.md` / `credentials-android.md`.
+| Round | iOS | Android | Reference |
+|---|---|---|---|
+| **5 — Build** | distribution certificate + App Store provisioning profile (created by EAS from an App Store Connect API key or Apple ID, or uploaded from `.p12` + `.mobileprovision`) | upload keystore: generated by EAS for a new app, the existing one for an app already on Google Play | `credentials-ios.md`, `credentials-android.md` → Build |
+| **6 — Submit** | App Store Connect API key on EAS | Google service account key on EAS | same files → Submit |
+| **7 — Push** (only if `features.push`) | APNs key on EAS | FCM V1 service account key on EAS, plus `google-services.json` and the app's push config | `push.md` |
 
-1. **List what's needed** for this app, in the dev's language, with each item's purpose — iOS, Android, and per release feature found in Phase 0 (APNs key, `google-services.json`, …). Ask the dev to put the files in **one folder** (outside the project is best) and give you its path; non-secret values (key ids, issuer id, team id, keystore alias) can be typed in the chat.
-2. **Scan it**: `bash "<skill-dir>/scripts/scan-credentials.sh" <folder> <project-dir> --bundle-id <id> --package <name>`. It classifies every file and reports problems (wrong type, expired or wrong profile, not ignored by git, Firebase files for another app). Two `.p8` keys can't be told apart by content — ask which key id is the App Store Connect API key and which is the APNs key.
-3. **Only for what's missing**, explain where it comes from (`references/client-request.md`) and draft the message the dev can send to the client. Then stop: exit 2 territory — the dev comes back with the files and you rerun the scan.
-4. **Put them on EAS** the way each platform's reference says. Steps that need a password or an Apple login are run by the dev in their own terminal; give them the exact command and what to choose.
+**Never let EAS generate an Android keystore for an app that's already on Google Play** — `credentials-android.md` → Build.
 
-**Never let EAS generate a new Android keystore for an app that's already on Google Play** — ask first whenever no keystore was provided (`credentials-android.md`).
-
-## Phase 6 — Release features
-
-For each feature Phase 0 found, follow `references/release-features.md`: what it needs in a store build, where each value comes from, and how to check it. Several need the signing certificates' fingerprints (Google Sign-In, Maps, Android App Links) — take them from `eas credentials` / Play Console, which show public fingerprints only. Features the app doesn't use: skip.
-
-## Phase 7 — Verify and hand off
+## Phase 8 — Check and hand off
 
 Follow `references/verify.md`:
-1. **Same configuration on a simulator/emulator**: build `production-simulator`, install, open, screenshot. Check the app's name and icon, the version, that it talks to the API of that environment (a value only the API has), and that it isn't on mocks.
-2. **Store-signed builds**: `production` for each platform the dev has credentials for. Android: the `.aab` is signed with the expected key (fingerprint matches the one on EAS / Play). iOS: the build finishes signing. A platform without credentials yet is listed as not done — never implied.
-3. **Credentials summary**: what `eas credentials` holds per platform.
+1. **The Credentials page**: go through the checklist with the dev (they look at expo.dev → the project → Credentials, or run `npx eas-cli credentials -p ios|android` in their terminal) — every item present, for the right bundle id / package, not expiring soon.
+2. **Outside EAS**: the list of what isn't on the Credentials page but blocks the first submit (App Store Connect app record, Play Console app and its first manual upload, the service account's Play Console permissions, the API key's role). Mark each as done / for the dev / for the client.
+3. **Optional test build** — ask: *Run a test build and submit now to prove the credentials work (Recommended)* / *Leave it for the first release*. A present credential can still be wrong (a service account without Play permissions, a keystore that isn't the published app's). If skipped, the hand-off says "set up, not proven by a build".
 
-Then update `docs/release-plan.md` (statuses, where each credential lives, what's missing, the next step: `rn-release` for the first TestFlight / internal testing release), tell the dev briefly what's set up and what's left, and offer to commit (`chore(release): set up EAS builds and store credentials`; body wrapped at 72 columns; follow the project's own pre-commit rules, e.g. its code-reviewer). Don't commit without a yes.
+Update `docs/release-plan.md`, tell the dev briefly what's on EAS, what's left outside, and that `rn-release` does the first TestFlight / internal testing release. Offer to commit (`chore(release): set up EAS and store credentials`; body wrapped at 72 columns; follow the project's own pre-commit rules). Don't commit without a yes.
 
 ## Principles
 
-- **EAS only, set up first.** Everything else lives on the EAS project.
-- **Ask for files, not account details.** What matters is what the dev can provide; guidance only for what's missing.
-- **Secrets stay out of the chat and the repo.** Paths, not contents; passwords typed by the dev; values on EAS.
+- **The Credentials page is the finish line**, with what's outside EAS listed next to it.
+- **Ask for files, not account details.** Guidance only for what's missing.
+- **Secrets stay out of the chat and the repo.** Paths, not contents; the developer uploads and types passwords.
 - **Identity and keystores are permanent.** Confirm before creating; reuse what a published app already has.
-- **A store-signed build that succeeds is the proof.** A platform not built is not set up.
+- **Present isn't proven.** Offer the test build; say plainly when it wasn't run.

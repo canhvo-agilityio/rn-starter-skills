@@ -1,57 +1,46 @@
-# Verify the setup
+# Check and hand off
 
-Three proofs, in this order. Each platform is "set up" only when its store-signed build succeeded.
+## 1. The Credentials page
 
-## 1. The production configuration, on a simulator / emulator
+EAS's CLI can't print the credential state without a terminal (`eas credentials` stops at "Input is required, but stdin is not readable"), so the dev checks: expo.dev → the project → **Credentials** (or `npx eas-cli credentials -p ios|android` in their terminal, which prints the state before its menu). Go through the plan's checklist together and ask them to read back or screenshot each section:
 
-Build the `production-simulator` profile — same environment variables, channel and app config as `production`, but runnable here:
+| Section | Expected |
+|---|---|
+| iOS — bundle id `<id>` | Distribution certificate (expiry > 30 days) · Provisioning profile, App Store, same bundle id · App Store Connect API key (key id) · Push key (if push) |
+| Android — package `<name>` | Upload keystore (SHA-1 = Play Console's upload key for an app already on Play) · Google service account key for EAS Submit · FCM V1 service account key (if push) |
 
-Where the dev chose to build (Phase 1):
+Mark each item `on EAS` in the plan, or what's still missing and who provides it. A platform with missing items is **not set up** — say what's missing, never imply it's done.
 
-```bash
-# EAS cloud: build, then download and install the result on the running emulator / simulator
-eas build -p android --profile production-simulator --non-interactive && eas build:run -p android --latest
-eas build -p ios --profile production-simulator --non-interactive && eas build:run -p ios --latest
+`eas env:list production` (and `preview`) — you can run it — for the environment variables.
 
-# this computer (check `df -h ~` first — eas.md → Builds)
-source <rn-starter-skill-dir>/scripts/env.sh
-eas build -p android --profile production-simulator --local --output build/check.apk
-eas build -p ios --profile production-simulator --local --output build/check.tar.gz   # macOS + Xcode + fastlane
-```
+## 2. Outside EAS
 
-Install and open:
+Not on the Credentials page, but each one blocks the first submit. List them with an owner:
 
-```bash
-adb install -r build/check.apk && adb shell monkey -p <package> -c android.intent.category.LAUNCHER 1
-tar -xzf build/check.tar.gz -C build/ && xcrun simctl install booted build/*.app && xcrun simctl launch booted <bundle id>
-```
+- App Store Connect **app record** for the bundle id; its Apple ID in `eas.json` → `submit.production.ios.ascAppId`.
+- The App Store Connect API key's **role** (App Manager or Admin).
+- Google Play Console **app** created; **first `.aab` uploaded by hand** to internal testing.
+- The service account **invited in Play Console** with *Release to testing tracks* for this app.
+- Push sent by a backend or another provider: the keys handed to them.
 
-Screenshot and look:
-- **Home screen**: the app's name and icon (not Expo's template icon). `adb exec-out screencap -p > shot.png`, `xcrun simctl io booted screenshot shot.png`.
-- **The first screens**: data from the environment's API — a value only that API has — not mocks, no red error screen, no dev menu (it's a release build).
-- **Version**: Android `adb shell dumpsys package <package> | grep -E "versionName|versionCode"`; iOS `plutil -p build/*.app/Info.plist | grep -E "CFBundleShortVersionString|CFBundleVersion|ITSAppUsesNonExemptEncryption"`.
-- **Permission strings** (iOS) from the same `plutil` output, when the app uses any (`release-features.md`).
+## 3. Optional test build and submit
 
-A release build has no Metro: if it opens to a blank or red screen, read the device log (`adb logcat -d | grep -iE "ReactNativeJS|FATAL"`, `xcrun simctl spawn booted log show --last 2m --predicate 'process == "<App>"'`).
+Ask the dev (Phase 8): a test proves what the Credentials page can't — that the keystore is the published app's, the service account has its permissions, the profile matches. It uses their build quota (cloud) or ~15 GB of disk (local — check `df -h ~` first; a local Android build with ~5 GB free failed and filled the disk).
 
-## 2. Store-signed builds
+If yes, where they chose to build:
 
 ```bash
-eas build -p android --profile production --non-interactive      # cloud; add --local --output build/app.aab for this computer
-eas build -p ios --profile production --non-interactive          # needs the iOS credentials
+eas build -p android --profile production --non-interactive --auto-submit
+eas build -p ios --profile production --non-interactive --auto-submit
 ```
 
-Cloud builds: download the artifact from the build page (or the URL in `eas build:view <id> --json`) into `build/` to inspect it.
+- Android, app never uploaded: the submit fails until the first manual upload — download the `.aab` from the build page, the dev uploads it in Play Console, then `eas submit -p android --latest`.
+- The build page shows the signing step; for Android, `keytool -printcert -jarfile app.aab` prints the signer's SHA-1/SHA-256 (public) to compare with the plan — on a prototype the cloud `.aab` was signed with the EAS keystore, matching the Credentials page.
+- Failed attempts consume build numbers too (`autoIncrement`; a run whose first three tries failed produced versionCode 4); stores only need them to grow.
+- Network errors while Gradle downloads dependencies (`bad_record_mac`, Maven timeouts) are transient: retry before suspecting the configuration.
 
-- Android: `keytool -printcert -jarfile build/app.aab` prints the signer's SHA-1/SHA-256 — it must match the upload key on EAS (`eas credentials -p android`), and for an app already on Play, the upload key Play Console shows. No password involved: these are public.
-- iOS: the build passes its signing step and writes the `.ipa`.
-- These consume build numbers (`autoIncrement`) — failed attempts too (a run whose first three tries failed produced versionCode 4). That's expected; Play and TestFlight only need numbers to grow.
-- Network errors while Gradle downloads dependencies (`bad_record_mac`, timeouts from Maven) are transient: run the build again before looking for a configuration problem.
+If no: the hand-off says "credentials set up, not proven by a build" — the first `rn-release` run is the proof.
 
-A platform whose credentials aren't there yet is reported as **not set up**, with what's missing — never as done.
+## 4. Hand-off
 
-## 3. What EAS holds
-
-`eas credentials -p android` and `-p ios` (interactive menus print the current state first; when it needs a TTY, ask the dev to run it and tell you what it shows): keystore, service account key, FCM key; certificate, profile (expiry), API key, push key. `eas env:list production` (and `preview`) for the variables.
-
-Record all three in `docs/release-plan.md`.
+Update `docs/release-plan.md` (statuses, fingerprints, profile expiry, outside-EAS list with owners, test build result or "not run"), then tell the dev in a few lines: what's on EAS per platform, what's left and who does it, and that `rn-release` does the first TestFlight / internal testing release.

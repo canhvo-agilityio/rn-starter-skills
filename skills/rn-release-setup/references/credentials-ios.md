@@ -1,30 +1,30 @@
 # iOS credentials
 
-Needed for a store build: a **distribution certificate** and an **App Store provisioning profile** for the bundle id, in the client's Apple Developer team. Needed for TestFlight: an **app record** on App Store Connect and a way for EAS to submit (API key or Apple ID). EAS stores the certificate and profile per project and bundle id.
+> Not run on this machine (no Apple Developer account here): this file follows Expo's documentation. Mark iOS items "set up, not run" in the hand-off until a run with real credentials confirms them.
 
-> Not run on this machine (no Apple Developer account here): this file follows Expo's documentation. Mark iOS steps "not run" in the hand-off until a run with real credentials confirms them.
+EAS stores iOS credentials per project and bundle id. The Credentials page shows them under the bundle id: **Distribution certificate**, **Provisioning profile** (build), **App Store Connect API key** (submit), **Push key** (push).
 
-## With an App Store Connect API key (recommended)
+Menu labels below are as of eas-cli 25 and may be worded differently in other versions — pick the matching entry. Commands the dev runs in their own terminal (interactive menus; they may ask for an Apple login or a password). Give them the exact command, which profile to pick (`production`), and what to choose.
 
-The dev has `AuthKey_<KEYID>.p8`, the Key ID, the Issuer ID and the Team ID; the key's role is Admin or App Manager.
+## Build: distribution certificate + App Store provisioning profile
 
-1. **Register the key on EAS** so cloud builds and submits can use it — the dev runs, in their own terminal:
-   ```
-   npx eas-cli credentials -p ios
-   ```
-   → choose the `production` build profile → *App Store Connect: Manage your API Key* → *Set up an App Store Connect API Key* → *use an existing key* → give the `.p8` path, Key ID, Issuer ID. Give the dev the exact path and ids to type; they're not secret.
-2. **Create the certificate and profile** with the first build. Interactive builds ask how to log in to Apple; pass the key instead of an Apple ID:
-   ```bash
-   EXPO_ASC_API_KEY_PATH=<path>/AuthKey_<KEYID>.p8 EXPO_ASC_KEY_ID=<KEYID> EXPO_ASC_ISSUER_ID=<issuer> \
-   EXPO_APPLE_TEAM_ID=<TEAMID> EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION \
-   eas build -p ios --profile production
-   ```
-   `EXPO_APPLE_TEAM_TYPE` is `INDIVIDUAL` for a personal developer account. EAS registers the bundle id, creates (or reuses) a distribution certificate and an App Store profile, and stores them. If the team already has the maximum number of distribution certificates, EAS asks to reuse or revoke one: **never revoke without the client's yes** — another app or CI may be signing with it; ask for that certificate's `.p12` instead.
-3. **App record**: App Store Connect's API can't create apps. Someone with access creates it once: *App Store Connect → Apps → + → New App*, platform iOS, the bundle id from step 2, a name, the primary language and an SKU. Then copy its **Apple ID** (App Information page) into `submit.production.ios.ascAppId` in `eas.json`, with `appleTeamId`.
+### From an App Store Connect API key (recommended)
 
-## With a certificate and a profile
+The dev has `AuthKey_<KEYID>.p8`, its Key ID, the Issuer ID and the Team ID; the key's role is Admin or App Manager.
 
-The dev has a distribution `.p12` (and knows its password) and an **App Store** `.mobileprovision` for the bundle id (the scan shows `type: app-store`, the bundle id and the expiry).
+```bash
+EXPO_ASC_API_KEY_PATH=<folder>/AuthKey_<KEYID>.p8 EXPO_ASC_KEY_ID=<KEYID> EXPO_ASC_ISSUER_ID=<issuer> \
+EXPO_APPLE_TEAM_ID=<TEAMID> EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION \
+npx eas-cli credentials:configure-build -p ios -e production
+```
+
+The variables let EAS talk to Apple with the key instead of an Apple ID login (`EXPO_APPLE_TEAM_TYPE=INDIVIDUAL` for a personal developer account). EAS registers the bundle id, creates or reuses a distribution certificate, and creates an App Store provisioning profile — no build needed. If the team already has the maximum number of distribution certificates, EAS asks to reuse or revoke one: **never revoke without the client's yes** (another app or a CI may sign with it); ask for that certificate's `.p12` instead.
+
+Repeat with `-e staging` when there's a staging profile with the same bundle id: it reuses the same certificate and profile.
+
+### From a certificate and a profile
+
+The dev has a distribution `.p12` (and its password) and an **App Store** `.mobileprovision` for the bundle id — the scan shows `type: app-store`, the bundle id and the expiry.
 
 1. Write `credentials.json` in the project root (gitignored) with paths only:
    ```json
@@ -35,19 +35,31 @@ The dev has a distribution `.p12` (and knows its password) and an **App Store** 
      }
    }
    ```
-2. The dev replaces `TYPE-IT-HERE` with the password themselves, then runs `npx eas-cli credentials -p ios` → *credentials.json: Upload/Download credentials between EAS servers and your local json* → *Upload credentials from credentials.json to EAS*.
-3. The dev deletes `credentials.json` afterwards (or you `rm` it — without reading it).
-4. Submitting still needs the API key (above, step 1 only) or an Apple ID login. Profiles expire after a year and aren't renewed by EAS in this mode: note the expiry date in the plan.
+2. The dev replaces `TYPE-IT-HERE`, then runs `npx eas-cli credentials -p ios` → `production` → *credentials.json: Upload/Download credentials between EAS servers and your local json* → *Upload credentials from credentials.json to EAS*.
+3. The dev deletes `credentials.json` (or you `rm` it — without reading it).
 
-## With an Apple ID only
+EAS doesn't renew an uploaded profile: write its expiry date in the plan.
 
-The dev is a member of the client's team (Admin or App Manager) but has no key. They run the first `eas build -p ios --profile production` in their own terminal and log in when asked (Apple ID, password, 2-factor code) — EAS creates the certificate and profile. Recommend asking the client for an API key anyway: every new machine and CI needs this login again.
+### From an Apple ID only
 
-## Push (APNs)
+The dev belongs to the client's team (Admin or App Manager) but has no key: `npx eas-cli credentials:configure-build -p ios -e production`, log in when asked (Apple ID, password, 2-factor code). Works; recommend asking for an API key anyway — each new machine and CI needs the login again, and submit is simpler with the key.
 
-When the app uses push (`release-features.md`): the APNs key `.p8` + its Key ID, added in `eas credentials -p ios` → *Push Notifications: Manage your Apple Push Notifications Key* (dev runs it). If a backend sends the pushes itself, the key goes to the backend team instead — tell the dev; don't send it anywhere yourself. A team can have at most two APNs keys: reuse the existing one rather than creating a third.
+## Submit: App Store Connect API key on EAS
+
+The same `.p8` as above (or a separate key with App Manager access). The dev runs:
+
+```
+npx eas-cli credentials -p ios
+```
+
+→ `production` → *App Store Connect: Manage your API Key* → *Set up an App Store Connect API Key* → use an existing key → the `.p8` path, Key ID, Issuer ID (give them these; they aren't secret). It's then used by `eas submit` from any machine, so `eas.json` needs no key path.
+
+Also needed for the first submit, outside EAS: the **app record** on App Store Connect (*Apps → + → New App*, with the bundle id) — App Store Connect's API can't create apps. Its **Apple ID** (a number on the App Information page) goes into `eas.json` → `submit.production.ios.ascAppId`, with `appleTeamId`.
+
+## Push: APNs key
+
+See `push.md`.
 
 ## Checking
 
-- `npx eas-cli credentials -p ios` (dev, or you with `--non-interactive` where it prints): certificate serial and expiry, profile id and expiry, push key, API key.
-- The store build finishes its signing step; the `.ipa` is produced.
+On the Credentials page, under the bundle id: a distribution certificate (serial, expiry), a provisioning profile (App Store, expiry, matching the certificate), the App Store Connect API key (key id), and the push key if the app uses push. Or the dev runs `npx eas-cli credentials -p ios` and reads the summary it prints before the menu.

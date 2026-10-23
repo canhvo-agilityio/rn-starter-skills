@@ -15,7 +15,7 @@ Getting a React Native project from nothing to a running, well-structured app is
 | New mobile developer | Fresh laptop, little RN experience | Environment installed for them; plain-language questions with safe defaults; an app that runs |
 | Experienced developer | Starting a new project | Fast stack selection, the team's structure and quality tooling, no boilerplate typing |
 | Developer on an existing app | Designer sent new screens | Screens built from a description, screenshot or Figma, matching the project's own conventions |
-| Developer shipping to testers | The app runs; testers install builds from TestFlight and Google Play internal testing; the store accounts often belong to the client | EAS set up once, credentials from the files the client provides, a store-signed build for each platform |
+| Developer shipping to testers | The app runs; testers install builds from TestFlight and Google Play internal testing; the store accounts often belong to the client | EAS set up once, every credential on EAS from the files the client provides, a clear list of what's left |
 | Developer whose backend is ready | Screens run on mocks; the backend team shared a Swagger/OpenAPI link | Typed calls to the real API without touching the screens; mocks kept for offline work and tests |
 | Team lead | Onboarding several people | The same structure, tooling and conventions in every project |
 
@@ -26,7 +26,7 @@ Getting a React Native project from nothing to a running, well-structured app is
 3. **Team-quality scaffold:** layered structure with enforced import rules, theme tokens, unit tests, git hooks, commit rules, and Claude Code files (`CLAUDE.md`, format-on-edit hook, review subagent).
 4. **Design → screens:** from text, screenshots or Figma to themed, navigable screens with mock data behind a clean data seam, approved by the developer as a spec before code is written.
 5. **Mocks → real API:** services switched to the backend one domain at a time from its OpenAPI spec, with types generated from it, so a backend change shows up as a type error, not a crash on a user's phone.
-6. **Store-ready builds:** EAS, identity, profiles and credentials set up once, from whatever the developer or the client provides, without secrets passing through the conversation.
+6. **Store-ready credentials:** EAS, identity, profiles, and build / submit / push credentials set up once from whatever the developer or the client provides — the Credentials page complete — without secrets passing through the conversation.
 7. **Verified, not assumed:** the app is run and looked at (screenshots) on every selected target before anything is reported as done.
 
 ## Non-goals
@@ -83,9 +83,9 @@ Getting a React Native project from nothing to a running, well-structured app is
 | Identity | Bundle id / package proposed from the app name and the developer's domain, with the warning that it can't change after a store release; an app already on a store keeps its bundle id and keystore. |
 | Profiles and environments | `production`, plus `staging` when test builds use another API; `appVersionSource: remote` + `autoIncrement`; API URLs asked and stored as EAS environment variables (`.env` never opened); `expo-updates` with a channel per profile and a fingerprint runtime version; `ITSAppUsesNonExemptEncryption`. |
 | Credentials | The skill lists what it needs (iOS: App Store Connect API key `.p8` + key id + issuer id + team id, or `.p12` + App Store `.mobileprovision`; Android: the upload keystore when the app is already on Play, a service account key; per feature: APNs key, `google-services.json`…). The developer puts the files in a folder; `scan-credentials.sh` identifies them by name, extension and header without printing contents, checks git ignores them, reads only public data (`.mobileprovision` bundle id and expiry). Missing items → how to get them, and a message for the client. Passwords are typed by the developer into EAS, never into the chat. |
-| Release features | Detected in the app and set up only if used: push, Sign in with Apple, Google Sign-In, domain deep links, Maps, Firebase, Sentry, permission strings. |
-| Verification | A simulator/emulator build of the production configuration opened and screenshotted (right API, icon, name, version, no mocks); a store-signed build that succeeds for each platform; `eas credentials` shows what the builds need. |
-| Hand-off | `docs/release-plan.md` for `rn-release`: owner, profiles, environments, where each credential lives, what's still missing. |
+| Credential rounds | Build (certificate + profile / upload keystore), then submit (App Store Connect API key / Google service account), then push only if the app uses it (APNs key / FCM V1 key + `google-services.json` + the app's push config). The developer uploads anything secret; the skill prepares the command and checks. |
+| Done when | The project's Credentials page on expo.dev has every item of the plan for each platform (checked with the developer), and what blocks the first submit outside EAS (app records, the first manual Play upload, the service account's Play permissions) is listed with an owner. A test build + submit is offered, not required; skipped → "set up, not proven by a build". Other features needing store setup (Google Sign-In, Maps, links, Sentry) are listed, not set up. |
+| Hand-off | `docs/release-plan.md` for `rn-release`: owner, profiles, environments, credentials per round with status, outside-EAS items with owners, fingerprints, test build result. |
 
 ## Acceptance criteria
 
@@ -98,7 +98,7 @@ A run is successful when:
 - [ ] With the Claude Code option: the format hook fixes an edited file and returns an import-rule violation to Claude; `code-reviewer` is listed as a subagent.
 - [ ] With a design input, `docs/design-spec.md` exists and was approved, every screen opens by deep link, and each screen's verification status lists the targets it was checked on.
 - [ ] With `rn-api-connect`: no screen file changes except loading / error / empty states and load-more on paginated lists; `tsc` passes against the generated API types; every switched domain is verified against the API on the main target; with `EXPO_PUBLIC_USE_MOCKS=1` the app still runs fully offline; regenerating types after a backend change reports the affected mappers as type errors.
-- [ ] With `rn-release-setup`: no credential file is opened or printed and none is committed; a store-signed build succeeds for each platform the developer has credentials for; a new keystore is never generated for an app that is already on Google Play.
+- [ ] With `rn-release-setup`: no credential file is opened or printed and none is committed; the Credentials page holds every planned item for the platforms the developer has files for; a new keystore is never generated for an app that is already on Google Play.
 - [ ] Anything not done or approximated is stated in the hand-off — never implied as done.
 
 ## Status
@@ -113,7 +113,7 @@ A run is successful when:
 | Design import from text | ✓ (subagent run, 14 findings fixed) | pending | — |
 | Figma via browser panel reading | ✓ manual | — | — |
 | API connect (`rn-api-connect`) | ✓ two subagent runs on coffee-shop against a local OpenAPI test API (iOS Simulator + Android emulator: API data, favorites mutation, 404, unreachable API, empty list, mock mode; `.env` left unopened); scripts also checked on Petstore (Swagger UI, 2.0, YAML). Not run: a phone, iOS taps, Postman/description inputs | pending | — |
-| Release setup (`rn-release-setup`) | Android ✓ on a prototype copy of coffee-shop (personal Expo account): `eas init`, profiles, EAS env var, expo-updates, EAS-generated keystore, cloud store build → `.aab` signed with that key, package and versionCode checked. Scripts checked on the app and on fake credential files. Not run: iOS signing/submit (no Apple Developer account), a subagent run of the whole SKILL.md, client-provided keystore upload | pending | — |
+| Release setup (`rn-release-setup`) | Android **build** credentials ✓ on a prototype (personal Expo account): `eas init`, profiles, EAS env var, expo-updates, EAS-generated upload keystore, cloud store build → `.aab` signed with it. **Not run**: the Google service account for EAS Submit (needs a Play Console app), the FCM V1 key and push (the test app doesn't use push), iOS (needs an Apple Developer account), a client-provided keystore, a subagent run of the whole SKILL.md | pending | — |
 | Not yet exercised anywhere | Re.Pack, Ignite, NativeWind, Unistyles, Figma MCP end to end, screenshot input end to end, special-components flow, a truly clean Mac | | |
 
 Evidence (screenshots, recordings) goes in [`docs/evidence/`](docs/evidence/).
