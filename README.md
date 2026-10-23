@@ -13,8 +13,6 @@ Developers just describe what they want. For example, *"Create a new RN app with
 
 The wizard talks to the developer in the language they write in.
 
-More: [spec.md](spec.md) (intent, scope, acceptance criteria, test status) · [DESIGN.md](DESIGN.md) (architecture and design decisions) · [docs/evidence/](docs/evidence/) (screenshots and recordings of real runs).
-
 ## rn-starter: clean machine → running app
 
 1. Inspect the machine (git, Node, package manager, plus JDK/Android SDK and Xcode/iOS Simulator when needed)

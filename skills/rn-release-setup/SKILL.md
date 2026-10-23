@@ -5,7 +5,7 @@ description: Sets up a React Native / Expo app's EAS project and every credentia
 
 # Release setup (EAS)
 
-Goal: when the developer opens the project's **Credentials** page on expo.dev, everything the app needs is there — build, submit and (if the app uses push) push credentials, for iOS and Android — and they know exactly what's left outside EAS. Nothing is built here unless the developer asks for a test build at the end; releasing is the `rn-release` skill's job.
+Goal: when the developer opens the project's **Credentials** page on expo.dev, everything the app needs is there — build, submit and (if the app uses push) push credentials, for iOS and Android — and they know exactly what's left outside EAS. Nothing is built here unless the developer asks for a test build at the end; releasing comes after.
 
 Talk to the dev in their language. Say early how this works: **the developer provides the files (and types passwords into one local file); you do the rest** — scanning, uploading to EAS (`scripts/eas-credentials.sh` drives EAS's interactive credential menus without reading or typing any secret) and checking.
 
@@ -33,7 +33,7 @@ bash "<skill-dir>/scripts/eas-status.sh" <project-dir>
 ```
 
 - **Exit 2, not logged in**: relay its ACTION REQUIRED lines; the dev logs in themselves, then rerun.
-- One `AskUserQuestion`: the **owner** (options from `accounts`: *the client's or company's organization (Recommended)* / *my personal account*); already linked → only confirm, never relink without an explicit yes. And **where builds will run** later: *EAS cloud (Recommended)* / *this computer* — recorded in the plan, used by `rn-release` and the optional test build.
+- One `AskUserQuestion`: the **owner** (options from `accounts`: *the client's or company's organization (Recommended)* / *my personal account*); already linked → only confirm, never relink without an explicit yes. And **where builds will run** later: *EAS cloud (Recommended)* / *this computer* — recorded in the plan, used for releases and the optional test build.
 
 Then `eas init --account <owner> --non-interactive` and `eas.json` from `references/eas.md`.
 
@@ -78,7 +78,7 @@ Follow `references/verify.md`:
 2. **Outside EAS**: the list of what isn't on the Credentials page but blocks the first submit (App Store Connect app record, Play Console app and its first manual upload, the service account's Play Console permissions, the API key's role). Mark each as done / for the dev / for the client.
 3. **Optional test build** — ask: *Run a test build and submit now to prove the credentials work (Recommended)* / *Leave it for the first release*. A present credential can still be wrong (a service account without Play permissions, a keystore that isn't the published app's). If skipped, the hand-off says "set up, not proven by a build".
 
-Update `docs/release-plan.md`, tell the dev briefly what's on EAS, what's left outside, and that `rn-release` does the first TestFlight / internal testing release. Offer to commit (`chore(release): set up EAS and store credentials`; body wrapped at 72 columns; follow the project's own pre-commit rules). Don't commit without a yes.
+Update `docs/release-plan.md`, tell the dev briefly what's on EAS, what's left outside, and the next step: the first TestFlight / internal testing release (`eas build --profile production` then `eas submit`). Offer to commit (`chore(release): set up EAS and store credentials`; body wrapped at 72 columns; follow the project's own pre-commit rules). Don't commit without a yes.
 
 ## Principles
 

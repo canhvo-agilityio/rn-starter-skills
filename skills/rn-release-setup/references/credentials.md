@@ -59,7 +59,7 @@ A credential file already tracked by git: `git rm --cached <file>`, commit, and 
 
 ## Uploading
 
-`scripts/eas-credentials.sh` puts files on EAS by driving `eas credentials` (pinned to eas-cli 25.3.0, whose menus it knows; checked on Android: new keystore, existing keystore left alone, Play service account, FCM V1 key). It never reads a credential file and stops at any password or Apple ID prompt.
+`scripts/eas-credentials.sh` puts files on EAS by driving `eas credentials` (pinned to eas-cli 25.3.0, whose menus it knows). It never reads a credential file and stops at any password or Apple ID prompt.
 
 | Round | Android | iOS |
 |---|---|---|

@@ -7,7 +7,7 @@
 | iOS bundle identifier | `expo.ios.bundleIdentifier` | `PRODUCT_BUNDLE_IDENTIFIER` in the Xcode project | not once the app record exists on App Store Connect |
 | Android package | `expo.android.package` | `applicationId` in `android/app/build.gradle` | never, once uploaded to Google Play |
 
-Propose `com.<company-or-dev-domain-reversed>.<app>` — lowercase, letters and digits, no dashes in the Android package (`com.agilityio.coffeeshop`). Same value on both platforms unless the dev wants otherwise. Ask for the domain if you don't know it; never invent a company name.
+Propose `com.<company-or-dev-domain-reversed>.<app>` — lowercase, letters and digits, no dashes in the Android package (`com.example.coffeeshop`). Same value on both platforms unless the dev wants otherwise. Ask for the domain if you don't know it; never invent a company name.
 
 Existing app on a store (the dev says so; a `.mobileprovision` or `google-services.json` shows ids; `native` in the inventory has them): use exactly those ids. An app id that differs from the store's is a different app to Apple and Google.
 

@@ -25,7 +25,7 @@ Not on the Credentials page, but each one blocks the first submit. List them wit
 
 ## 3. Optional test build and submit
 
-Ask the dev (Phase 8): a test proves what the Credentials page can't — that the keystore is the published app's, the service account has its permissions, the profile matches. It uses their build quota (cloud) or ~15 GB of disk (local — check `df -h ~` first; a local Android build with ~5 GB free failed and filled the disk).
+Ask the dev (Phase 8): a test proves what the Credentials page can't — that the keystore is the published app's, the service account has its permissions, the profile matches. It uses their build quota (cloud) or ~15 GB of disk (local — check `df -h ~` first, `eas.md` → Builds).
 
 If yes, where they chose to build:
 
@@ -35,12 +35,12 @@ eas build -p ios --profile production --non-interactive --auto-submit
 ```
 
 - Android, app never uploaded: the submit fails until the first manual upload — download the `.aab` from the build page, the dev uploads it in Play Console, then `eas submit -p android --latest`.
-- The build page shows the signing step; for Android, `keytool -printcert -jarfile app.aab` prints the signer's SHA-1/SHA-256 (public) to compare with the plan — on a prototype the cloud `.aab` was signed with the EAS keystore, matching the Credentials page.
-- Failed attempts consume build numbers too (`autoIncrement`; a run whose first three tries failed produced versionCode 4); stores only need them to grow.
+- The build page shows the signing step; for Android, `keytool -printcert -jarfile app.aab` prints the signer's SHA-1/SHA-256 (public) to compare with the plan.
+- Failed attempts consume build numbers too (`autoIncrement`); stores only need them to grow.
 - Network errors while Gradle downloads dependencies (`bad_record_mac`, Maven timeouts) are transient: retry before suspecting the configuration.
 
-If no: the hand-off says "credentials set up, not proven by a build" — the first `rn-release` run is the proof.
+If no: the hand-off says "credentials set up, not proven by a build" — the first release is the proof.
 
 ## 4. Hand-off
 
-Update `docs/release-plan.md` (statuses, fingerprints, profile expiry, outside-EAS list with owners, test build result or "not run"), then tell the dev in a few lines: what's on EAS per platform, what's left and who does it, and that `rn-release` does the first TestFlight / internal testing release.
+Update `docs/release-plan.md` (statuses, fingerprints, profile expiry, outside-EAS list with owners, test build result or "not run"), then tell the dev in a few lines: what's on EAS per platform, what's left and who does it, and that the next step is the first TestFlight / internal testing release.
