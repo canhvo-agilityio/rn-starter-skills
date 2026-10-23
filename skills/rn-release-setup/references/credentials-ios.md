@@ -8,7 +8,9 @@ Menu labels below are as of eas-cli 25 and may be worded differently in other ve
 
 ## Build: distribution certificate + App Store provisioning profile
 
-### From an App Store Connect API key (recommended)
+**Use what the dev provided.** A distribution `.p12` + an App Store `.mobileprovision` in the folder → upload them (*From a certificate and a profile*, below), even when an API key is there too; the key is then for submit only. Don't run `credentials:configure-build` with the key in that case: EAS could create a new certificate and profile in the client's team instead of using the ones they gave. Only when no certificate + profile was provided does EAS create them from the key or an Apple ID.
+
+### From an App Store Connect API key (no certificate + profile provided)
 
 The dev has `AuthKey_<KEYID>.p8`, its Key ID, the Issuer ID and the Team ID; the key's role is Admin or App Manager.
 
@@ -22,7 +24,7 @@ The variables let EAS talk to Apple with the key instead of an Apple ID login (`
 
 Repeat with `-e staging` when there's a staging profile with the same bundle id: it reuses the same certificate and profile.
 
-### From a certificate and a profile
+### From a certificate and a profile (provided by the dev)
 
 The dev has a distribution `.p12` (and its password) and an **App Store** `.mobileprovision` for the bundle id — the scan shows `type: app-store`, the bundle id and the expiry.
 
