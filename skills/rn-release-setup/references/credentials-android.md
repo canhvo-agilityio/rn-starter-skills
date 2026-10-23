@@ -2,17 +2,19 @@
 
 The Credentials page shows, under the package: **Android upload keystore** (build), **Google service account key for EAS Submit** (submit), **FCM V1 service account key** (push).
 
-Menu labels below are as of eas-cli 25 and may be worded differently in other versions — pick the matching entry. Commands the dev runs in their own terminal (interactive menus); or the matching button on the expo.dev Credentials page. Give them the exact command, the profile (`production`) and what to choose.
+Menu labels below are as of eas-cli 25 and may be worded differently in other versions — pick the matching entry. Commands the dev runs in their own terminal (interactive menus); or the matching button on the expo.dev Credentials page. Which profile to pick: one whose bundle id / package matches the files and whose `distribution` is `store` — usually `production`; profiles sharing that id (a `staging` with the same bundle id) reuse the same credentials, so upload once per bundle id / package, not per profile. Give them the exact command, that profile, and what to choose.
 
 ## Build: upload keystore — the decision that can't be undone
 
 With Play App Signing (the default for apps created since 2021), Google signs the app with its own *app signing key*; the keystore you upload with is the *upload key*, registered with that app. An `.aab` signed with another key is rejected. Replacing a lost upload key takes a reset request in Play Console and days of waiting; for an old app without Play App Signing, a lost key means the app can never be updated.
 
-| Situation (Phase 2 answer + the dev's folder) | Do |
+Decide from the dev's folder and the inventory's `releaseSigns`; ask only in the last case:
+
+| Situation | Do |
 |---|---|
-| The app has **never been uploaded** to Google Play | EAS generates the keystore: the dev runs `npx eas-cli credentials:configure-build -p android -e production` and accepts *Generate a new Android Keystore*. (A `--non-interactive` build also generates one without asking — seen on eas-cli 25.3 — which is why this table comes first.) |
-| The app **is on Google Play** and the keystore is in the folder | upload it (below) |
-| The app **is on Google Play** (or the dev isn't sure) and there's no keystore | stop. Ask the client for the upload keystore + alias, or for an upload-key reset in Play Console (`client-request.md`). Never generate one |
+| A keystore is in the folder | upload it (below) — no question |
+| No keystore, `releaseSigns` empty (a new project) | EAS generates it: the dev runs `npx eas-cli credentials:configure-build -p android -e <profile>` and accepts *Generate a new Android Keystore*. (A `--non-interactive` build also generates one without asking — seen on eas-cli 25.3.) |
+| No keystore, `releaseSigns` not empty | ask "Is this app already on Google Play — even in internal testing?" Yes or unsure → stop: ask the client for the upload keystore + alias, or an upload-key reset in Play Console (`client-request.md`); never generate one. No → as a new project |
 
 ### Uploading an existing keystore
 

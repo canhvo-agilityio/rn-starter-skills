@@ -8,7 +8,8 @@
 # package, build numbers, EAS project id, updates/runtime version, encryption flag, icon/splash;
 # for RN CLI the native ids from android/ and ios/; eas.json profiles; Fastlane; the release
 # features the app uses (from its dependencies and config plugins); credential files that git
-# tracks or doesn't ignore; and whether docs/release-plan.md exists.
+# tracks or doesn't ignore; signs that the app was already released (releaseSigns — empty for a new
+# project); and whether docs/release-plan.md exists.
 #
 # Never opens .env files or credential files.
 #
@@ -132,6 +133,22 @@ const notIgnored = candidates.filter((f) => ignoreStatus(f) === 1);
 const ignoreRulesMissing = ['x.p8', 'x.p12', 'x.jks', 'x.keystore', 'x.mobileprovision', 'credentials.json']
   .filter((f) => ignoreStatus('--no-index', f) === 1);
 
+// Signs that the app was already released somewhere: a reason to ask before letting EAS generate
+// an Android keystore. A new project shows none of them.
+const easJsonRaw = exists('eas.json') ? read('eas.json') : '';
+const releaseSigns = [];
+if (/"ascAppId"\s*:/.test(easJsonRaw)) releaseSigns.push('eas.json has an App Store Connect app id (ascAppId)');
+if (/"serviceAccountKeyPath"|"track"\s*:/.test(easJsonRaw)) releaseSigns.push('eas.json has Google Play submit settings');
+const ver = config?.version ?? native.android?.versionName ?? null;
+// 0.x and 1 / 1.0 / 1.0.0 are what a project starts with.
+if (ver && !/^(0(\.\d+)*|1(\.0)*)$/.test(String(ver))) releaseSigns.push(`version is ${ver}, not a first release`);
+const vc = Number(config?.android?.versionCode ?? native.android?.versionCode ?? 0);
+if (vc > 1) releaseSigns.push(`Android versionCode is ${vc}`);
+const bn = Number(config?.ios?.buildNumber ?? native.ios?.buildNumber ?? 0);
+if (bn > 1) releaseSigns.push(`iOS build number is ${bn}`);
+if (config?.extra?.eas?.projectId) releaseSigns.push('already linked to an EAS project');
+if (exists('fastlane') || exists('android/fastlane') || exists('ios/fastlane')) releaseSigns.push('has a Fastlane setup');
+
 const c = config ?? {};
 const result = {
   dir,
@@ -160,6 +177,7 @@ const result = {
   },
   features,
   credentialFiles: { found: candidates, trackedByGit: tracked, notIgnored, ignoreRulesMissing },
+  releaseSigns,
   releasePlan: exists('docs/release-plan.md') ? 'docs/release-plan.md' : null,
 };
 console.log(JSON.stringify(result, null, 2));
