@@ -14,7 +14,7 @@ List only what the current round needs (SKILL.md Phases 5–7), with one line on
 
 **iOS** (one of):
 - **App Store Connect API key** (recommended): `AuthKey_<KEYID>.p8` + Key ID + Issuer ID, plus the **Team ID**. EAS uses it to create and renew the distribution certificate and provisioning profile, and to submit to TestFlight.
-- **Distribution certificate + App Store provisioning profile**: `.p12` (+ its password, typed by the dev) and `.mobileprovision`, plus the Team ID. Signs builds; submitting still needs the API key or an Apple ID login.
+- **Distribution certificate + App Store provisioning profile**: `.p12` (+ its password, typed by the dev) and `.mobileprovision`, plus the Team ID. Signs builds; submitting still needs the API key or an Apple ID login. When the dev gives both these and an API key, these are used for building and the key for submitting — EAS creates nothing in the client's team.
 - **Apple ID with access to the team** (Admin or App Manager): EAS logs in interactively with 2-factor codes; works, but every new machine and CI needs the login again.
 
 **Android**:
