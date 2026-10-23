@@ -42,16 +42,13 @@ The layered structure was built for this: screens get data through `src/hooks/`,
 - Decided: openapi-typescript + openapi-fetch, DTO → app-type mappers, `expo-secure-store` left to rn-auth, mocks kept behind `EXPO_PUBLIC_USE_MOCKS` (DESIGN.md key decisions).
 - Test: a public API or a local json-server; screens still render; mocks no longer imported anywhere but tests.
 
-### 2.2 `rn-release-setup` — EAS build and store credentials (in progress)
+### 2.2 `rn-release-setup` — EAS and store credentials (built, first version)
 
-Owner's decision (2026-10-23): release work comes before auth, forms and e2e, split by time — this skill sets an app up once; `rn-release` (2.3) ships it many times. Scope in spec.md → Skill 4, flow and decisions in DESIGN.md → rn-release-setup flow.
+Owner's decision (2026-10-23): release work comes before auth, forms and e2e, split by time — this skill sets an app up once; `rn-release` (2.3) ships it many times. Done when the project's **Credentials page on expo.dev is complete** (build, submit, push if used), with what's outside EAS listed; a test build is offered, not required.
 
-- EAS only (Expo and React Native CLI), set up first: login, owner (client's organization recommended), `eas init`, `eas.json`, cloud or local builds.
-- Identity, profiles (`production`, optional `staging`), remote versions with auto-increment, environment variables per profile (asked, never read from `.env`), `expo-updates` channels baked into the builds.
-- Credentials from a folder the developer points to: the skill lists what it needs, `scan-credentials.sh` identifies the files without reading secrets, guidance and a message to the client only for what's missing.
-- Release features the app uses: push, Sign in with Apple, Google Sign-In, domain deep links, Maps, Firebase, Sentry, permission strings.
-- Done when a store-signed build succeeds for each platform, plus a simulator/emulator build of the same configuration that was opened and checked.
-- Test: personal Expo account only; Android end to end on this machine; iOS signing and submit need an Apple Developer account — written from Expo's docs and marked not run until a tester runs it.
+- Built: `skills/rn-release-setup/` (SKILL.md, 3 scripts, 8 references). Checked for real: scripts on coffee-shop and fake credential files; on a prototype, `eas init`, profiles, env var, expo-updates, an EAS-generated keystore and a cloud store build signed with it.
+- Not run yet: a subagent run of the whole SKILL.md; the Google service account (needs a Play Console app); push with a Firebase project (free — doable on an emulator with Google APIs); iOS (needs an Apple Developer account); uploading a client keystore.
+- Not in this skill (listed in its hand-off): Google Sign-In, Maps, App Links, Sentry setup.
 
 ### 2.3 `rn-release` — test releases, approval gate, production
 

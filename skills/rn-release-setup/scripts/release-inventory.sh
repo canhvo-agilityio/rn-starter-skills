@@ -92,7 +92,8 @@ if (exists('eas.json')) {
   } catch (err) { eas = { error: `eas.json is not valid JSON: ${err.message}` }; }
 }
 
-// Release features: what the app uses that needs setup for store builds (release-features.md).
+// Features with store-time setup. Push is set up by this skill (push.md); the others are listed in
+// the hand-off as work outside it (they need the keystore fingerprints).
 const plugins = (config?.plugins ?? []).map((p) => (Array.isArray(p) ? p[0] : p));
 const usesPlugin = (n) => plugins.includes(n);
 const any = (...names) => names.some(has);

@@ -7,7 +7,7 @@ A Claude Code plugin for React Native developers, with four skills:
 | **`rn-starter`** | There's no project yet, often on a brand-new machine | Environment installed, project running on a simulator, emulator or phone |
 | **`rn-design-import`** | A project exists (or `rn-starter` just created one) | Theme, fonts, components, screens and navigation built from a design |
 | **`rn-api-connect`** | Screens run on mocks and the backend has a Swagger / OpenAPI spec | Types generated from the spec, a typed client, services switched to the API one domain at a time, loading / error / empty states — screens otherwise unchanged |
-| **`rn-release-setup`** | The app runs and is about to go to testers on TestFlight / Google Play internal testing | EAS project, identity, build profiles and environments, signing credentials from the files the developer or client provides, a store-signed build for each platform |
+| **`rn-release-setup`** | The app runs and is about to go to testers on TestFlight / Google Play internal testing | EAS project, identity, build profiles and environments, build / submit / push credentials on EAS from the files the developer or client provides, a list of what's left outside EAS |
 
 Developers just describe what they want. For example, *"Create a new RN app with 5 screens: Login, Home, Search, Detail, Profile"*: `rn-starter` scaffolds the project, runs the empty app, then hands over to `rn-design-import` to build the screens.
 
@@ -69,15 +69,15 @@ When the backend changes: refresh the spec, `<pm> run api:types`, and `tsc` poin
 
 ## rn-release-setup: ready for TestFlight and Google Play
 
-Run once per app, before the first release.
+Run once per app, before the first release. Done when the project's **Credentials page on expo.dev** has everything the app needs.
 
-1. Read the project: identity, versions, EAS config, release features in use (push, Google Sign-In, maps…), credential files git might pick up (`scripts/release-inventory.sh`).
-2. EAS first: the developer logs in to Expo themselves; choose the owner (the client's organization is recommended); `eas init`; build in the EAS cloud or locally (`scripts/eas-status.sh`).
-3. Identity (bundle id / package — permanent once released), test builds on the production or a staging API, API URLs per environment (asked, never read from `.env`).
+1. Read the project: identity, versions, EAS config, whether the app uses push, credential files git might pick up (`scripts/release-inventory.sh`).
+2. EAS first: the developer logs in to Expo themselves; choose the owner (the client's organization is recommended); `eas init` (`scripts/eas-status.sh`).
+3. Identity (bundle id / package — permanent once released), staging or not, already on a store or not, API URLs per environment (asked, never read from `.env`).
 4. `docs/release-plan.md` — **the developer approves it before any change.**
-5. `eas.json` profiles (`production`, optional `staging`, `production-simulator` for checks), remote build numbers with auto-increment, EAS environment variables, `expo-updates` with a fingerprint runtime version, the export-compliance flag.
-6. Credentials: the skill lists what it needs, the developer drops the files in a folder, `scripts/scan-credentials.sh` identifies them without reading secrets; only what's missing gets instructions and a message for the client. Passwords are typed by the developer. A new Android keystore is never generated for an app already on Google Play.
-7. Release features the app uses, then proof: the production configuration opened on a simulator/emulator, and a store-signed build for each platform.
+5. `eas.json` profiles, remote build numbers with auto-increment, EAS environment variables, `expo-updates` with a fingerprint runtime version, the export-compliance flag.
+6. Credentials in three rounds — **build** (certificate + profile, upload keystore), **submit** (App Store Connect API key, Google service account), **push** if the app uses it (APNs key, FCM V1 key). Each round: the skill lists what it needs, the developer drops the files in a folder, `scripts/scan-credentials.sh` identifies them without reading secrets, missing items get instructions and a message for the client, the developer uploads. A new Android keystore is never generated for an app already on Google Play.
+7. Check the Credentials page with the developer, list what blocks the first submit outside EAS (app records, the first manual Play upload, Play permissions), and offer a test build + submit.
 
 ## Step 0 on a clean machine: install Claude Code
 
@@ -182,7 +182,7 @@ skills/rn-api-connect/
     plan-template.md     # docs/api-plan.md template
     other-inputs.md      # Postman collections and plain descriptions
 skills/rn-release-setup/
-  SKILL.md               # EAS + identity + profiles + credentials (phases 0 → 7)
+  SKILL.md               # EAS + identity + profiles + build/submit/push credentials (phases 0 → 8)
   scripts/
     release-inventory.sh # identity, versions, eas.json, release features, credential files and git → JSON
     eas-status.sh        # eas-cli, Expo login, accounts, project link; exit 2 = the developer logs in
@@ -191,11 +191,11 @@ skills/rn-release-setup/
     eas.md               # login, owner, eas init, eas.json profiles, environment variables, updates, builds
     identity.md          # bundle id / package, name, version, export compliance, icon
     credentials.md       # rules, what to ask for, the folder, git
-    credentials-ios.md   # API key, certificate + profile, Apple ID, APNs, app record
-    credentials-android.md # keystore decision, fingerprints, Play app, first upload, service account
+    credentials-ios.md   # build (API key / .p12 + profile / Apple ID), submit (API key), app record
+    credentials-android.md # build (keystore decision), submit (service account), first upload
     client-request.md    # how each item is made, message for the client
-    release-features.md  # push, Sign in with Apple, Google Sign-In, links, maps, Firebase, Sentry, permissions
-    verify.md            # simulator/emulator check, store-signed builds, what EAS holds
+    push.md              # who sends pushes, APNs key, FCM V1 key, google-services.json
+    verify.md            # Credentials page checklist, outside-EAS list, optional test build
     plan-template.md     # docs/release-plan.md template
 ```
 

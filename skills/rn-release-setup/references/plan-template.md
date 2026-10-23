@@ -21,28 +21,30 @@ Runtime version: fingerprint. Testers: TestFlight internal + Google Play interna
 
 ## Credentials
 
-| Item | For | Where it lives | Status |
-|---|---|---|---|
-| App Store Connect API key (Key ID ABC123DEF4) | iOS certificates, profiles, submit | EAS | on EAS |
-| Distribution certificate + App Store profile | iOS signing | EAS (managed by EAS) | on EAS — profile expires 2027-10-20 |
-| Upload keystore (alias upload, SHA-1 AB:CD:…) | Android signing | EAS (generated) — backup in the team vault | on EAS |
-| Google service account | eas submit (Play) | EAS | needed — asked the client on <date> |
-| APNs key | push (Expo push service) | EAS | provided |
+| Round | Item | Platform | Where it lives | Status |
+|---|---|---|---|---|
+| Build | Distribution certificate + App Store profile (created from the API key) | iOS | EAS | on EAS — profile expires 2027-10-20 |
+| Build | Upload keystore (generated, SHA-1 87:1E:…:AF:B3) | Android | EAS — backup in the team vault | on EAS |
+| Submit | App Store Connect API key (Key ID ABC123DEF4, App Manager) | iOS | EAS | on EAS |
+| Submit | Google service account key | Android | EAS | needed — asked the client on <date> |
+| Push | APNs key (Key ID XYZ987) | iOS | EAS | provided |
+| Push | FCM V1 key + google-services.json | Android | EAS / repo | needed |
 
-## Store records
+Push sent by: <Expo push service / the backend (keys handed to <team>) / Firebase / —>
 
-- App Store Connect app: <created, Apple ID 1234567890 / needed>
-- Google Play app: <created / needed>; first upload by hand: <done on <date> / needed>; release status for submits: draft until the first rollout
+## Outside EAS
 
-## Release features
+| Item | Owner | Status |
+|---|---|---|
+| App Store Connect app record (Apple ID 1234567890 in eas.json) | client | done |
+| Play Console app + first .aab uploaded by hand to internal testing | dev | needed |
+| Service account invited in Play Console (Release to testing tracks) | client | needed |
 
-- Push: APNs key on EAS; FCM V1 key on EAS; device check: <done / not verified>
-- Google Sign-In: Android OAuth clients with SHA-1 of the upload key and the Play app signing key; iOS client …
+## Checked
 
-## Verified
-
-- production-simulator: Android ✓ (screenshots), iOS ✓
-- production store build: Android ✓ (.aab signed with SHA-1 AB:CD:…), iOS — not run (no credentials yet)
+- Credentials page reviewed with the dev on <date>: iOS <complete / missing …>, Android <complete / missing …>
+- Test build and submit: <Android ✓ build 4, .aab signed with SHA-1 87:1E:…, submitted as draft / not run — "set up, not proven by a build">
+- Other features found (set up outside this skill): <Google Sign-In, Maps — need the fingerprints above>
 
 ## Open items
 
@@ -50,4 +52,4 @@ Runtime version: fingerprint. Testers: TestFlight internal + Google Play interna
 - Play: the first upload by hand, then rn-release for the first internal testing release.
 ```
 
-Status values for credentials: `needed` → `provided` (in the dev's folder, scanned) → `on EAS`. Never write a secret, a password or a file's contents into this file — only what the item is, its public id or fingerprint, and where it lives.
+Status values for credentials: `needed` → `provided` (in the dev's folder, scanned) → `on EAS` (the dev confirmed it on the Credentials page). Never write a secret, a password or a file's contents into this file — only what the item is, its public id or fingerprint, and where it lives.
