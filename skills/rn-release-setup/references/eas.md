@@ -21,6 +21,8 @@ Creates `@<owner>/<slug>` (or links it if it exists) and writes `extra.eas.proje
 
 React Native CLI projects have no `app.json` expo block of their own: `eas init` adds what EAS needs; EAS builds the native projects in `ios/` and `android/` as they are (bare workflow).
 
+**Same slug, existing project.** `eas init` links to `@<owner>/<slug>` if a project with that slug already exists in the account — silently, with `--non-interactive`. Its output says `✔ Created @owner/slug` for a new project; without that line it linked an existing one. Then stop and tell the dev: an unrelated project (an old test, another app with the same slug) would mix credentials. Ask whether it's this app's project; if not, remove `extra.eas.projectId` and `owner`, change `slug` in the app config, and run `eas init` again. (Seen in a test: two copies of one app both named `coffee-shop` ended up sharing one EAS project.)
+
 Already linked to another owner (`project.owner` differs from the choice): stop and ask. Relinking moves future builds and credentials to another project; the old project's credentials don't follow.
 
 ## eas.json
