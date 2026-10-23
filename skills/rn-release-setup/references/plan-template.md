@@ -1,6 +1,6 @@
 # docs/release-plan.md template
 
-Written in Phase 3, approved by the dev, updated at the end. `rn-release` reads it for every release; later runs of this skill update it in place.
+Written in Phase 3, approved by the dev, updated at the end. Every release reads it; later runs of this skill update it in place.
 
 ```markdown
 # Release plan — <App name>
@@ -49,7 +49,7 @@ Push sent by: <Expo push service / the backend (keys handed to <team>) / Firebas
 ## Open items
 
 - Service account key from the client.
-- Play: the first upload by hand, then rn-release for the first internal testing release.
+- Play: the first upload by hand, then the first internal testing release.
 ```
 
 Status values for credentials: `needed` → `provided` (in the dev's folder, scanned) → `on EAS` (the dev confirmed it on the Credentials page). Never write a secret, a password or a file's contents into this file — only what the item is, its public id or fingerprint, and where it lives.

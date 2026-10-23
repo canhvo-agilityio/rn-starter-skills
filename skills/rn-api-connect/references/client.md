@@ -99,7 +99,7 @@ export const toApiError = (status: number, body: unknown): ApiError => {
 };
 ```
 
-When the summary's `errorSchema` names a schema, read its fields in the spec and adjust `toApiError` to them first (e.g. `{ error: { code, message } }` nests one level). Record the format in the plan. `fieldErrors` is what a form layer (rn-forms) will put under each field.
+When the summary's `errorSchema` names a schema, read its fields in the spec and adjust `toApiError` to them first (e.g. `{ error: { code, message } }` nests one level). Record the format in the plan. `fieldErrors` is what a form layer will put under each field.
 
 ## Client
 
@@ -115,7 +115,7 @@ import { env } from './env';
 type TokenGetter = () => string | null | undefined | Promise<string | null | undefined>;
 let getToken: TokenGetter | null = null;
 
-// Sign-in code (rn-auth) registers how to read the current access token.
+// Sign-in code registers how to read the current access token.
 export const setAuthTokenGetter = (getter: TokenGetter | null) => {
   getToken = getter;
 };

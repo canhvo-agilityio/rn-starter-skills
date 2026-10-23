@@ -1,3 +1,10 @@
 .DS_Store
 *-workspace/
 __pycache__/
+
+# Internal working docs: kept locally, not shared
+CLAUDE.md
+ROADMAP.md
+spec.md
+DESIGN.md
+docs/

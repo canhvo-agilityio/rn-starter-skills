@@ -1,6 +1,6 @@
 # docs/api-plan.md template
 
-The contract for this skill's changes, approved by the dev before any code changes, and the record later runs (and rn-auth, rn-forms) read. Keep it short; update it in place on later runs.
+The contract for this skill's changes, approved by the dev before any code changes, and the record later runs (and later sign-in or forms work) read. Keep it short; update it in place on later runs.
 
 ```markdown
 # API plan — <App name>
