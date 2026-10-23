@@ -1,5 +1,7 @@
 # Team folder structure
 
+**Contents:** The rules · Enforce the rules with ESLint · Path alias `@/` · Moving template files · Env vars
+
 Layered: code is grouped by what it is — routes, screens, shared components, hooks, services, state — the way Expo's own guidance, Ignite and most team RN codebases do it. A new dev can guess where any file lives from its kind alone. Three things keep it from turning into a tangle: routes are thin, UI never touches data access directly, and shared code never depends on a screen.
 
 ```

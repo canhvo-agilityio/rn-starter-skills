@@ -1,5 +1,7 @@
 # Quality tooling: unit tests, git hooks, commit rules
 
+**Contents:** Options and what they do · Custom answers ("Other") · Verify (don't skip — a hook that silently passes everything is worse than none) · README section · Claude Code files
+
 Set up with one script after the project exists, `git init` has run, and lint/format is in place (Phase 6):
 
 ```bash

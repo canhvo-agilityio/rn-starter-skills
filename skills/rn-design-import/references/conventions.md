@@ -1,5 +1,7 @@
 # Default conventions (only when the project has none)
 
+**Contents:** Layout: layered · Naming and code style · Component checklist · Data seams · Tests (when Jest + RNTL are installed) · Projects on the older feature-first layout · Placeholder images · Self-check before hand-off
+
 Existing code always wins: match its file naming, folder layout, export style and styling approach. Use these for anything the project hasn't decided — and for new projects, which use this layout from the start.
 
 ## Layout: layered
@@ -194,7 +196,7 @@ What to test: every shared component (renders, main interaction), every logic fi
 
 ## Projects on the older feature-first layout
 
-Projects made with rn-starter 1.x may use `src/features/<domain>/` (`structure: "feature-first"` in `.rn-starter.json`, `src/features/*/index.ts` present). Keep that layout there: screens in `features/<domain>/screens/<name>-screen.tsx` exported from the feature's `index.ts`, data in the feature's `api.ts` → `hooks.ts` with `mocks.ts`, logic in the feature; other code imports a feature only through `@/features/<name>`. Don't migrate it unasked.
+Projects created before the layered layout may use `src/features/<domain>/` (`structure: "feature-first"` in `.rn-starter.json`, `src/features/*/index.ts` present). Keep that layout there: screens in `features/<domain>/screens/<name>-screen.tsx` exported from the feature's `index.ts`, data in the feature's `api.ts` → `hooks.ts` with `mocks.ts`, logic in the feature; other code imports a feature only through `@/features/<name>`. Don't migrate it unasked.
 
 ## Placeholder images
 

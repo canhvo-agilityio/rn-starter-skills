@@ -1,5 +1,7 @@
 # HTTP client, env and errors
 
+**Contents:** Env · Errors · Client · Query client · Boundary rule
+
 Four small files in `src/lib/`, written once. If the project already has a client (axios instance, a `fetch` wrapper), keep it and add only what's missing from this list: base URL from env, timeout, auth seam, one error type.
 
 ## Env

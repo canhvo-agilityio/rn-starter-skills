@@ -1,5 +1,7 @@
 # Hooks: queries, pagination, mutations
 
+**Contents:** Paginated lists · Queries that wait for another · Mutations · Prefetch and detail from list · Without TanStack Query
+
 Most hooks don't change: `useQuery({ queryKey, queryFn: getX })` works the same whether `getX` returns mocks or calls the API. Change a hook only for the three cases below. Keep the project's existing query keys — screens and other hooks may already invalidate them.
 
 ## Paginated lists

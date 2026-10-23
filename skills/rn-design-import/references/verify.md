@@ -25,13 +25,13 @@ Then for each screen in the spec:
 # open it (URLs: navigation.md → Deep links for verification)
 xcrun simctl openurl booted "exp://127.0.0.1:8081/--/search"
 sleep 2
-xcrun simctl io booted screenshot /tmp/verify-search.png
+xcrun simctl io booted screenshot <shots>/verify-search.png
 # Android
 adb shell am start -a android.intent.action.VIEW -d "exp://127.0.0.1:8081/--/search"
-adb exec-out screencap -p > /tmp/verify-search.png
+adb exec-out screencap -p > <shots>/verify-search.png
 ```
 
-Read each screenshot. If it shows a red error screen, fix the error first.
+`<shots>` is your scratchpad directory, or a folder you made once with `mktemp -d` — not a fixed `/tmp` path. Read each screenshot. If it shows a red error screen, fix the error first.
 
 ## 3. Compare with the design
 

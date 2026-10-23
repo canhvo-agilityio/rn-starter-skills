@@ -1,6 +1,6 @@
 ---
 name: rn-release-setup
-description: Sets up a React Native / Expo app's EAS project and every credential it needs for the stores, so that the project's Credentials page on expo.dev is complete — Expo account and EAS project, bundle id / package, build profiles and versioning, API URLs per environment, iOS and Android build credentials (distribution certificate and provisioning profile, upload keystore), submit credentials (App Store Connect API key, Google service account for Google Play), and push credentials when the app uses push (APNs key, FCM V1 key). Works from the files the developer or their client provides, without secrets passing through the conversation, and lists what still has to happen outside EAS. Use this whenever someone wants to set up EAS, prepare an app for TestFlight or the Play Store, configure signing, certificates, provisioning profiles, a keystore or push keys, use credentials a client sent (.p8, .p12, .jks, service account JSON), or "get the app ready to release" — before the first release.
+description: Sets up an app once for TestFlight and Google Play with EAS: Expo project, bundle id / package, build profiles, and every credential on EAS — build (certificate, profile, keystore), submit (App Store Connect API key, Google service account) and push (APNs, FCM) — from files the developer or client provides, without secrets in the chat. Use when someone wants to set up EAS, prepare an app for TestFlight or the Play Store, configure signing or push keys, or use credentials a client sent (.p8, .p12, .jks, service account JSON).
 ---
 
 # Release setup (EAS)
@@ -14,7 +14,7 @@ Talk to the dev in their language. Say early how this works: **the developer pro
 ## Phase 0 — Understand the project
 
 ```bash
-source <rn-starter-skill-dir>/scripts/env.sh 2>/dev/null; bash "<skill-dir>/scripts/release-inventory.sh" <project-dir>
+source "<skill-dir>/../rn-starter/scripts/env.sh"; bash "<skill-dir>/scripts/release-inventory.sh" <project-dir>
 ```
 
 JSON: Expo or React Native CLI, the resolved app config (name, slug, owner, version, bundle id, package, EAS project id, updates, encryption flag, icon/splash, plugins), native ids from `ios/` `android/`, `eas.json`, Fastlane, **whether the app uses push** (`features.push`) and other features, credential files in the project and whether git tracks or ignores them, and `docs/release-plan.md`.

@@ -1,6 +1,6 @@
 ---
 name: rn-design-import
-description: Turns a design into a working React Native / Expo UI inside an existing project — screens, navigation, theme (colors, typography, spacing), Google Fonts, icons/images and shared components. Accepts any mix of a plain-language list of screens ("the app has Login, Home, Cart, Profile"), screenshots / mockup images, or Figma links. Analyzes the input, writes a design spec for the dev to approve, generates the code following the project's own conventions, then runs the app and compares each screen against the design. Use this whenever someone wants to build screens from a description, a screenshot, an image, or Figma; scaffold app screens and navigation; "make it look like this"; set up a theme, design tokens or fonts from a design; or add new screens to an existing RN/Expo app — also when rn-starter hands off a new project together with a screen list or a design.
+description: Builds working, themed, navigable screens in an existing React Native / Expo project from a list of screens, screenshots or Figma links, through a design spec the developer approves, then checks each screen on the simulators. Use when someone wants to build or add screens from a description, an image or Figma, "make it look like this", or set up a theme, fonts or icons from a design. Not for creating a new project (rn-starter) or connecting a backend (rn-api-connect).
 ---
 
 # Design → React Native UI
@@ -12,7 +12,7 @@ Talk to the dev in their language. Keep them in the loop at the two points that 
 ## Phase 0 — Understand the project
 
 ```bash
-source <rn-starter-skill-dir>/scripts/env.sh 2>/dev/null; bash "<skill-dir>/scripts/detect-project.sh" <project-dir>
+source "<skill-dir>/../rn-starter/scripts/env.sh"; bash "<skill-dir>/scripts/detect-project.sh" <project-dir>
 ```
 
 It prints JSON: framework (Expo / CLI), navigation library, styling approach, UI component library, package manager, where routes and theme files live, existing fonts, and whether `docs/design-spec.md` already exists.
@@ -21,11 +21,11 @@ It prints JSON: framework (Expo / CLI), navigation library, styling approach, UI
 - An existing theme or components → **extend them**. Read them before generating anything. Duplicating a design system the project already has is the most common way this goes wrong.
 - `docs/design-spec.md` exists, or the app already has screens of its own → this is a feature added to an existing app. Read the spec, and follow `references/follow-up.md` through every phase: update the spec instead of starting over, reuse before creating, and re-verify the existing screens your changes reach.
 
-Record a type-check baseline now: `npx tsc --noEmit > /tmp/tsc-baseline.txt` (templates can ship with errors of their own; in Expo, CSS-module errors disappear after the first `expo start` generates `expo-env.d.ts`). Later checks only count new errors.
+Record a type-check baseline now: `npx tsc --noEmit` — save its output in your scratchpad directory or a folder from `mktemp -d`, never a fixed `/tmp` path another project can overwrite (templates can ship with errors of their own; in Expo, CSS-module errors disappear after the first `expo start` generates `expo-env.d.ts`). Later checks only count new errors.
 
 If `mismatches` is non-empty, the project doesn't have something rn-starter recorded as chosen (e.g. Zustand). Install it if it's needed for the screens, otherwise follow what's installed — and mention it.
 
-**Folder structure:** if the project follows the layered layout (`structure: "layered"` in the JSON — `src/screens/` exists), or is a fresh scaffold, generate into that layout as described in `references/conventions.md`: thin route files, one folder per screen, shared UI in `components/`, data through `services/` → `hooks/` with `mocks/`, logic in `utils/`. `structure: "feature-first"` or `"partial-features"` (projects from rn-starter 1.x) → keep that layout (end of `conventions.md`). If the project has its own different structure, follow it instead — don't restructure an existing codebase unasked. `structure: "flat"` (screens written inside route files, no `src/screens/`) → tell the dev, and offer to move to the layered layout first (screens out of route files, ESLint rules from rn-starter `structure.md`) as a separate step they approve.
+**Folder structure:** if the project follows the layered layout (`structure: "layered"` in the JSON — `src/screens/` exists), or is a fresh scaffold, generate into that layout as described in `references/conventions.md`: thin route files, one folder per screen, shared UI in `components/`, data through `services/` → `hooks/` with `mocks/`, logic in `utils/`. `structure: "feature-first"` or `"partial-features"` (projects created before the layered layout) → keep that layout (end of `conventions.md`). If the project has its own different structure, follow it instead — don't restructure an existing codebase unasked. `structure: "flat"` (screens written inside route files, no `src/screens/`) → tell the dev, and offer to move to the layered layout first (screens out of route files, ESLint rules from rn-starter `structure.md`) as a separate step they approve.
 
 Everything you generate must follow what this JSON says: expo-router vs React Navigation, StyleSheet vs NativeWind, the `@/` alias, `src/` layout. When the project has no opinion yet, use `references/conventions.md`.
 

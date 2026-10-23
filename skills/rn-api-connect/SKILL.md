@@ -1,6 +1,6 @@
 ---
 name: rn-api-connect
-description: Connects a React Native / Expo app that runs on mock data to its real backend API — typed HTTP client, types generated from the backend's Swagger / OpenAPI spec, services switched from mocks to API calls one domain at a time, pagination, mutations with cache invalidation, and loading / error / empty states on the screens — while the screens keep their own types and the mocks stay available behind an env flag. Accepts a Swagger UI link, an OpenAPI/Swagger URL or file (YAML or JSON, 2.0 or 3.x), and, with basic support, a Postman collection or a plain description of endpoints. Use this whenever someone wants to connect an app to an API or backend, replace mock data with real data, "hook up the API", generate API types or a client from Swagger/OpenAPI, call endpoints from the app, or set up the base URL / HTTP client — also after rn-design-import, when the screens exist and the backend is ready.
+description: Switches a React Native / Expo app from mock data to its real backend, from the backend's Swagger / OpenAPI spec (a Postman collection or a description also works): generated types, a typed client, services switched one domain at a time, pagination, mutations, loading / error / empty states, mocks kept behind a flag. Use when someone wants to connect the app to an API or backend, replace mocks with real data, "hook up the API", or generate an API client or types from Swagger/OpenAPI.
 ---
 
 # Mock data → real API
@@ -16,7 +16,7 @@ Out of scope: sign-in, token storage and refresh (leave the seam — `client.md`
 ## Phase 0 — Understand the project
 
 ```bash
-source <rn-starter-skill-dir>/scripts/env.sh 2>/dev/null; bash "<skill-dir>/scripts/api-inventory.sh" <project-dir>
+source "<skill-dir>/../rn-starter/scripts/env.sh"; bash "<skill-dir>/scripts/api-inventory.sh" <project-dir>
 ```
 
 It prints JSON: framework, package manager, layout, query library, env setup (the template file and its variables, the variables the code reads, whether git ignores `.env` — never `.env` itself), an existing API client, and every **domain** (service file) with its functions, hooks, the screens using them, its mocks, and its `source` (`mock` / `connected` / `api` / `mixed`).
