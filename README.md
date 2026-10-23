@@ -87,13 +87,20 @@ curl -fsSL https://claude.ai/install.sh | bash
 
 ## Install the plugin
 
-From the team's git repository (once this repo is pushed):
+Needs [Claude Code](https://claude.com/claude-code) (`claude --version`).
 
 ```bash
-claude plugin marketplace add <repo-git-url>
+claude plugin marketplace add canhvo-agilityio/rn-starter-skills
+claude plugin install rn-starter@rn-starter-skills
 ```
 
+Restart Claude Code, then check that the four skills are listed: `claude plugin list` shows `rn-starter@rn-starter-skills` as enabled.
+
+To get a newer version later (the version number may not change between pushes, so reinstall):
+
 ```bash
+claude plugin marketplace update rn-starter-skills
+claude plugin uninstall rn-starter@rn-starter-skills
 claude plugin install rn-starter@rn-starter-skills
 ```
 
@@ -101,16 +108,6 @@ Or try it straight from a local checkout:
 
 ```bash
 claude --plugin-dir /path/to/rn-starter-skills
-```
-
-After pulling changes into an installed copy:
-
-```bash
-claude plugin marketplace update rn-starter-skills
-```
-
-```bash
-claude plugin update rn-starter@rn-starter-skills
 ```
 
 ## Usage
