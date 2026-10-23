@@ -42,7 +42,6 @@ Then `eas init --account <owner> --non-interactive` and `eas.json` from `referen
 Read `references/identity.md`. One `AskUserQuestion` round (max 4):
 - iOS bundle id and Android package (`com.<company>.<app>`), stating that **they can't change once the app is on a store**; an app already on a store keeps its ids.
 - Whether test builds use the production API or a staging one (a `staging` profile, `references/eas.md` → Profiles).
-- **Is the app already on the App Store / Google Play** (even in TestFlight or internal testing)? It decides whether credentials are created or must be the existing ones.
 - The API URL per environment, if the app reads one (names from `.env.example`, values from the dev).
 
 ## Phase 3 — Plan → dev approval
@@ -69,7 +68,7 @@ Read `references/credentials.md` once, then for each round:
 | **6 — Submit** | App Store Connect API key on EAS | Google service account key on EAS | same files → Submit |
 | **7 — Push** (only if `features.push`) | APNs key on EAS | FCM V1 service account key on EAS, plus `google-services.json` and the app's push config | `push.md` |
 
-**Never let EAS generate an Android keystore for an app that's already on Google Play** — `credentials-android.md` → Build.
+**Android keystore without asking when it's clear**: a keystore in the dev's folder → upload it; no keystore and no `releaseSigns` in the inventory (a new project) → EAS generates one. Ask "is this app already on Google Play?" only when there's no keystore **and** `releaseSigns` isn't empty — generating a new keystore for a published app can't be undone (`credentials-android.md` → Build).
 
 ## Phase 8 — Check and hand off
 
@@ -85,5 +84,5 @@ Update `docs/release-plan.md`, tell the dev briefly what's on EAS, what's left o
 - **The Credentials page is the finish line**, with what's outside EAS listed next to it.
 - **Ask for files, not account details.** Guidance only for what's missing.
 - **Secrets stay out of the chat and the repo.** Paths, not contents; the developer uploads and types passwords.
-- **Identity and keystores are permanent.** Confirm before creating; reuse what a published app already has.
+- **Identity and keystores are permanent.** Infer from the files and the project; ask only when a wrong guess can't be undone.
 - **Present isn't proven.** Offer the test build; say plainly when it wasn't run.
