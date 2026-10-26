@@ -9,7 +9,7 @@
     {
       "name": "rn-starter",
       "source": "./",
-      "description": "Four skills: rn-starter (clean machine to running app), rn-design-import (screens from text, screenshots or Figma), rn-api-connect (mocks to a real API from OpenAPI) and rn-release-setup (EAS and store credentials for TestFlight and Google Play)."
+      "description": "Four skills: rn-starter (clean machine to running app), rn-ui (screens from text, screenshots or Figma), rn-api-connect (mocks to a real API from OpenAPI) and rn-release-setup (EAS and store credentials for TestFlight and Google Play)."
     }
   ]
 }

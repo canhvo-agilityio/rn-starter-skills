@@ -67,7 +67,7 @@ Find the symptom, apply the fix, rerun the step that failed. If nothing here mat
 | An old Node keeps winning after `install-node` | a system-wide Node (MSI) is in the *system* PATH, which Windows puts before the user PATH | dev uninstalls the old Node (Settings → Apps), or upgrades it to an LTS ≥ 22.13 |
 | Gradle: `Filename longer than 260 characters` / weird path errors | Windows path length limit with deep `node_modules` | keep projects in a short path (e.g. `C:\dev\app`); enabling long paths needs admin: `New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem -Name LongPathsEnabled -Value 1 -PropertyType DWORD -Force` |
 | Installs/builds extremely slow | antivirus scanning `node_modules` and Gradle caches | suggest the dev excludes the project folder and `%USERPROFILE%\.gradle` from real-time scanning (their/IT's call) |
-| `python3` opens the Microsoft Store / isn't found | no Python on a clean Windows | `palette.py` / `ttf-name.py` (rn-design-import) need Python: skip them and read colors from the design yourself, or ask the dev to install Python (`winget install Python.Python.3.12`) |
+| `python3` opens the Microsoft Store / isn't found | no Python on a clean Windows | `palette.py` / `ttf-name.py` (rn-ui) need Python: skip them and read colors from the design yourself, or ask the dev to install Python (`winget install Python.Python.3.12`) |
 
 ## Re.Pack
 

@@ -95,7 +95,7 @@ export const usePlaceOrder = () => {
 };
 ```
 
-A mutation hook that already updates the cache optimistically (the mutable-mock pattern from rn-design-import: `onMutate` → `setQueryData`, `onError` → roll back, `onSettled` → invalidate) stays as it is — only the service function behind it changes. The rollback now matters: on an API error the heart goes back and the screen should say why (`screen-states.md` → Mutations).
+A mutation hook that already updates the cache optimistically (the mutable-mock pattern from rn-ui: `onMutate` → `setQueryData`, `onError` → roll back, `onSettled` → invalidate) stays as it is — only the service function behind it changes. The rollback now matters: on an API error the heart goes back and the screen should say why (`screen-states.md` → Mutations).
 
 **A mutation that reads before it writes** (removing a favorite needs the favorite's own id, so the service lists favorites first, then DELETEs) races when the user taps twice quickly: the second call reads a list the first hasn't changed yet. Run those one at a time with a mutation scope — TanStack Query queues mutations that share a scope id:
 

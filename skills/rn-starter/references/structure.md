@@ -20,7 +20,7 @@ Layered: code is grouped by what it is — routes, screens, shared components, h
 │   │       ├── types.ts, utils.ts  only if needed
 │   │       └── __tests__/
 │   ├── components/                 shared UI (button.tsx, product-card/index.tsx), no screen knowledge
-│   │   └── icons/                  icon components generated from SVG (rn-design-import `svg-icons.sh`), with index.ts
+│   │   └── icons/                  icon components generated from SVG (rn-ui `svg-icons.sh`), with index.ts
 │   ├── hooks/                      shared hooks: use-products.ts (TanStack Query over services/)
 │   ├── services/                   data access: products.ts (returns mocks until the API exists)
 │   ├── mocks/                      mock data, imported only by services/ and tests
@@ -35,7 +35,7 @@ Layered: code is grouped by what it is — routes, screens, shared components, h
 └── README.md
 ```
 
-Files and folders are kebab-case, as in the Expo templates. Components are arrow functions with named exports; route files are the only default exports. The full naming and code-style list is in rn-design-import's `references/conventions.md`.
+Files and folders are kebab-case, as in the Expo templates. Components are arrow functions with named exports; route files are the only default exports. The full naming and code-style list is in rn-ui's `references/conventions.md`.
 
 Tests go in a `__tests__/` folder beside the code they test, named after the file (`components/__tests__/button.test.tsx`, `utils/__tests__/pricing.test.ts`, `screens/cart/__tests__/index.test.tsx`). Shared test helpers (`renderWithProviders`) go in `src/test-utils.tsx`.
 
@@ -103,7 +103,7 @@ Run `npx eslint src` after adding it; it must pass on the scaffold. (Verified on
 ## Moving template files
 
 - **Expo `default` template (SDK 58+)**: ships `src/app`, `src/components`, `src/hooks`, `src/constants` and the `@/` alias.
-  - Move the theme into `src/theme/`: `src/constants/theme.ts` → `src/theme/tokens.ts`, `src/hooks/use-theme.ts` → `src/theme/use-theme.ts`, `src/components/themed-text.tsx` / `themed-view.tsx` → `src/theme/`. Keep their export names and fix the imports (`grep -rl "@/constants/theme\|@/hooks/use-theme\|themed-" src`). With NativeWind, Unistyles or a UI library, set the theme up as rn-design-import `theme.md` describes for it instead.
+  - Move the theme into `src/theme/`: `src/constants/theme.ts` → `src/theme/tokens.ts`, `src/hooks/use-theme.ts` → `src/theme/use-theme.ts`, `src/components/themed-text.tsx` / `themed-view.tsx` → `src/theme/`. Keep their export names and fix the imports (`grep -rl "@/constants/theme\|@/hooks/use-theme\|themed-" src`). With NativeWind, Unistyles or a UI library, set the theme up as rn-ui `theme.md` describes for it instead.
   - Turn the demo home route into the first screen: `src/screens/home/index.tsx` exporting `HomeScreen`, and make `src/app/index.tsx` a one-line re-export. Delete the `explore` demo route and its demo components only when replacing them (or when the dev wants a blank start; the template's `npm run reset-project` does this too).
   - If an older template puts routes in `app/` at the root, move them under `src/` (expo-router detects `src/app` automatically).
 - **CLI template**: create `src/screens/home/index.tsx` from `App.tsx`'s content, keep a small `src/app/App.tsx` that sets up providers and navigation (`src/navigation/` for the navigators), and point `index.js` at it.

@@ -44,17 +44,26 @@ Follow the layout already in `src/`: put new code next to code of the same kind,
 - Files and folders are kebab-case (`product-card.tsx`, `use-products.ts`).
 - Components are arrow functions with named exports, props (when there are any) typed with an `interface <Name>Props`; route files are the only default exports.
 - {{STYLE_RULE}} Colors, spacing and fonts always come from the theme, never literals.
-- Icons are components in `src/components/icons/` generated from the design's SVGs in `docs/design/icons/` (rn-design-import's `svg-icons.sh`). Never PNG icons in `assets/`.
+- Icons are components in `src/components/icons/` generated from the design's SVGs in `docs/design/icons/` (rn-ui's `svg-icons.sh`). Never PNG icons in `assets/`.
 - Constants are `UPPER_SNAKE_CASE`. Comments explain why, not what.
 - Growing lists: `FlatList` with a `memo` item and stable `renderItem` / `keyExtractor`.
 - Forms keep the focused input above the keyboard (check Android too) and use `keyboardShouldPersistTaps="handled"`.
 - Screens that can lose unsaved input ask before leaving (`usePreventRemove` / `beforeRemove`).
 - Tests go in `__tests__/` beside the code, named after the file. React Native Testing Library 14 is async: `await render(…)`, `await user.press(…)`.
 
+## Verifying your work
+
+{{VERIFY}}
+
+Run these before reporting a task complete, and paste the output. A change that hasn't been checked isn't done.
+If a test fails, fix the code, not the test. Never skip or delete a failing test.
+For a change someone can see or tap, run the `verifier` subagent: it opens the app, checks the change and reports, without editing.
+
 ## Working in this repo
 
 - A hook formats and lint-fixes every file you edit (`.claude/hooks/format.mjs`). When it reports problems, fix them before moving on.
+- A guard hook (`.claude/hooks/guard.mjs`) blocks pushes to {{PROTECTED}}, reading or editing secret files (`.env`, signing keys, keystores, service-account keys) and hand edits to generated `*.gen.ts` files. When it blocks something, do what its message says; don't look for a way around it.
 - {{INSTALL_RULE}}
-- Before calling a change done: type check, and run the tests related to what changed.
 - Before committing, run the `code-reviewer` subagent on the change and fix what it reports.
+- When you make the same mistake twice, add the correction to this file.
 {{COMMIT_RULE}}

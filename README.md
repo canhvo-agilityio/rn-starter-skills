@@ -5,11 +5,11 @@ A Claude Code plugin for React Native developers, with four skills:
 | Skill | Use when | Result |
 |---|---|---|
 | **`rn-starter`** | There's no project yet, often on a brand-new machine | Environment installed, project running on a simulator, emulator or phone |
-| **`rn-design-import`** | A project exists (or `rn-starter` just created one) | Theme, fonts, components, screens and navigation built from a design |
+| **`rn-ui`** | A project exists (or `rn-starter` just created one) | Theme, fonts, components, screens and navigation built from a design |
 | **`rn-api-connect`** | Screens run on mocks and the backend has a Swagger / OpenAPI spec | Types generated from the spec, a typed client, services switched to the API one domain at a time, loading / error / empty states — screens otherwise unchanged |
 | **`rn-release-setup`** | The app runs and is about to go to testers on TestFlight / Google Play internal testing | EAS project, identity, build profiles and environments, build / submit / push credentials on EAS from the files the developer or client provides, a list of what's left outside EAS |
 
-Developers just describe what they want. For example, *"Create a new RN app with 5 screens: Login, Home, Search, Detail, Profile"*: `rn-starter` scaffolds the project, runs the empty app, then hands over to `rn-design-import` to build the screens.
+Developers just describe what they want. For example, *"Create a new RN app with 5 screens: Login, Home, Search, Detail, Profile"*: `rn-starter` scaffolds the project, runs the empty app, then hands over to `rn-ui` to build the screens.
 
 The wizard talks to the developer in the language they write in.
 
@@ -17,15 +17,15 @@ The wizard talks to the developer in the language they write in.
 
 1. Inspect the machine (git, Node, package manager, plus JDK/Android SDK and Xcode/iOS Simulator when needed)
 2. Install what's missing (Node via fnm, no Homebrew or sudo needed)
-3. Ask the developer: **Expo / RN CLI** → **Metro / Re.Pack** → template → libraries (navigation, state, data, styling, UI library, lint, structure) → **code quality** (Jest + React Native Testing Library, Husky + lint-staged with pre-commit/pre-push rules, commitlint, Claude Code files) → run on **a real iPhone/Android phone (Expo Go) / iOS Simulator / Android emulator / web** → is there a design
+3. Ask the developer: **Expo / RN CLI** → **Metro / Re.Pack** → template → libraries (navigation, state, data, styling, UI library, lint, structure) → **code quality** (Jest + React Native Testing Library, Husky + lint-staged with pre-commit/pre-push rules and protected branches, commitlint, Claude Code files) → run on **a real iPhone/Android phone (Expo Go) / iOS Simulator / Android emulator / web** → is there a design
 4. Install the platform toolchain if needed:
    - Android: JDK 17, Android SDK, emulator, AVD. No Android Studio.
    - iOS Simulator (macOS only): Xcode, iOS runtime, simulator; CocoaPods for RN CLI.
 5. Summarize the choices; the developer confirms
-6. Scaffold the project with a standard folder structure, verify the build, write `.rn-starter.json`, set up tests and git hooks
-7. Run the app and confirm the developer sees the first screen; hand over to `rn-design-import` if there's a design
+6. Scaffold the project with a standard folder structure, verify the build, write `.rn-starter.json`, set up tests and git hooks. With ESLint it adds code rules against sloppy shortcuts (`any`, casts through `unknown`, `@ts-ignore`, leftover `console.log`, empty `catch`, color literals in UI files). The Claude Code files add `CLAUDE.md` with a *Verifying your work* table, a format hook, a guard hook (no pushes to protected branches, no `.env` or credential files, no hand edits to generated files), and two subagents: `code-reviewer` and `verifier` (runs the app and checks the change, report only)
+7. Run the app and confirm the developer sees the first screen; hand over to `rn-ui` if there's a design
 
-## rn-design-import: design → working screens
+## rn-ui: design → working screens
 
 Accepts one or a mix of:
 - **A description:** *"it has Login, Home, Cart…"*
@@ -121,7 +121,7 @@ In Claude Code, type `/rn-starter` or just ask, e.g. *"create a new React Native
   plugin.json            # plugin manifest
   marketplace.json       # lets the team add it with `claude plugin marketplace add`
 skills/rn-starter/
-  SKILL.md               # wizard flow (phases 0 → 8; phase 7b hands over to rn-design-import)
+  SKILL.md               # wizard flow (phases 0 → 8; phase 7b hands over to rn-ui)
   scripts/
     doctor.sh            # read-only environment check
     env.sh               # puts fnm/JDK/Android/Homebrew on PATH in the current shell
@@ -130,7 +130,8 @@ skills/rn-starter/
     start-emulator.sh    # boots the Android emulator and waits for it
     setup-ios.sh         # Xcode/license/iOS runtime/simulator (+ CocoaPods); exit 2 = waiting on the developer
     start-simulator.sh   # boots the iOS Simulator and waits for it
-    setup-quality.sh     # Jest + RNTL, Husky (pre-commit / pre-push), lint-staged, commitlint
+    setup-quality.sh     # Jest + RNTL, Husky (pre-commit / pre-push, protected branches), lint-staged, commitlint
+    setup-claude.sh      # CLAUDE.md, format + guard hooks, code-reviewer + verifier subagents
     lib.sh               # shared helpers
     windows/             # PowerShell twins of the scripts above (doctor, env, install-node, install-android, start-emulator), used automatically on Windows
   references/
@@ -139,8 +140,9 @@ skills/rn-starter/
     libraries.md         # how to install each library
     structure.md         # standard folder structure
     troubleshooting.md   # common errors on fresh machines
-    quality.md           # hook rules, custom rule examples (Jira keys, branch names), verification
-skills/rn-design-import/
+    quality.md           # hook rules, ESLint code rules, custom rule examples (Jira keys, branch names), Claude Code files, verification
+  assets/claude/         # CLAUDE.md template, format.mjs, guard.mjs, code-reviewer.md, verifier.md
+skills/rn-ui/
   SKILL.md               # design → UI flow (phases 0 → 6)
   scripts/
     detect-project.sh    # reads the project's stack and conventions → JSON

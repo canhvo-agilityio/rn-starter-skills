@@ -35,11 +35,11 @@ All pure JS — work in Expo Go.
 |---|---|---|
 | **StyleSheet** | nothing | add `src/theme/` with colors + spacing tokens |
 | **NativeWind** | follow https://www.nativewind.dev/docs/getting-started/installation (Expo and CLI sections differ) | touches babel, metro and tailwind config — do it exactly as the guide says, then restart Metro with cache clear (`npx expo start -c` / `npx react-native start --reset-cache`) |
-| **Unistyles** | follow https://www.unistyl.es/v3/start/getting-started exactly (it pins the `react-native-nitro-modules` version; on Expo install with `npx expo install`) | needs New Architecture, RN 0.81+ / Expo SDK 54+ and `react-native-nitro-modules` → **never runs in Expo Go**. RN CLI, or Expo with a development build (`devBuild: true`). Only offer when no run target is Expo Go. Theme setup: rn-design-import `theme.md` §4 |
+| **Unistyles** | follow https://www.unistyl.es/v3/start/getting-started exactly (it pins the `react-native-nitro-modules` version; on Expo install with `npx expo install`) | needs New Architecture, RN 0.81+ / Expo SDK 54+ and `react-native-nitro-modules` → **never runs in Expo Go**. RN CLI, or Expo with a development build (`devBuild: true`). Only offer when no run target is Expo Go. Theme setup: rn-ui `theme.md` §4 |
 
 ## UI component library
 
-Asked only when styling is StyleSheet. The library's theme becomes the app's only theme — set it up as rn-design-import `theme.md` §6 describes, with the design's tokens in `src/theme/colors.ts` / `tokens.ts` fed into the library's config.
+Asked only when styling is StyleSheet. The library's theme becomes the app's only theme — set it up as rn-ui `theme.md` §6 describes, with the design's tokens in `src/theme/colors.ts` / `tokens.ts` fed into the library's config.
 
 | Option | Install | Minimal setup |
 |---|---|---|

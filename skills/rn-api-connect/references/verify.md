@@ -30,7 +30,7 @@ Plain `http://` works in Expo Go. In a development or release build Android bloc
 
 ## 3. Run the app
 
-Start the dev server the way rn-design-import `verify.md` §2 describes, with these additions learned in real runs:
+Start the dev server the way rn-ui `verify.md` §2 describes, with these additions learned in real runs:
 
 - **Port**: if 8081 is taken (another project's Metro), start on a free one (`npx expo start --port 8082`) and use that port in every URL; on Android also `adb reverse tcp:8082 tcp:8082`.
 - **Env changes need a restart** of the dev server — `EXPO_PUBLIC_*` values are inlined when the bundle is built. Restart with `--clear`, and **after every restart** terminate Expo Go on each device before reopening a link (`xcrun simctl terminate booted host.exp.Exponent`; `adb shell am force-stop host.exp.exponent`) — otherwise it keeps showing the previous bundle and you check the old values.
