@@ -1,6 +1,6 @@
 ---
 name: rn-ui
-description: Builds working, themed, navigable screens in an existing React Native / Expo project from a list of screens, screenshots or Figma links, through a design spec the developer approves, then checks each screen on the simulators. Use when someone wants to build or add screens from a description, an image or Figma, "make it look like this", or set up a theme, fonts or icons from a design. Not for creating a new project (rn-starter) or connecting a backend (rn-api-connect).
+description: Builds working, themed, navigable screens in an existing React Native / Expo project from a list of screens, screenshots or Figma links, through a design spec the developer approves, then checks each screen on the simulators. Use when someone wants to build or add screens from a description, an image or Figma, "make it look like this", or set up a theme, fonts or icons from a design. Not for creating a new project (rn-starter), analyzing a ticket before building (rn-feature) or connecting a backend (rn-api-connect).
 ---
 
 # Design → React Native UI

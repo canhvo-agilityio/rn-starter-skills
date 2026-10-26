@@ -1,10 +1,11 @@
 # rn-starter
 
-A Claude Code plugin for React Native developers, with four skills:
+A Claude Code plugin for React Native developers, with five skills:
 
 | Skill | Use when | Result |
 |---|---|---|
 | **`rn-starter`** | There's no project yet, often on a brand-new machine | Environment installed, project running on a simulator, emulator or phone |
+| **`rn-feature`** | A ticket arrives (Jira, GitHub issue, pasted text), with or without a design and an API spec | `docs/tickets/<id>.md`: numbered requirements (R1, R2…) traced to design and API, concerns with who decides, questions ready to send. Analysis only for now |
 | **`rn-ui`** | A project exists (or `rn-starter` just created one) | Theme, fonts, components, screens and navigation built from a design |
 | **`rn-api-connect`** | Screens run on mocks and the backend has a Swagger / OpenAPI spec | Types generated from the spec, a typed client, services switched to the API one domain at a time, loading / error / empty states — screens otherwise unchanged |
 | **`rn-release-setup`** | The app runs and is about to go to testers on TestFlight / Google Play internal testing | EAS project, identity, build profiles and environments, build / submit / push credentials on EAS from the files the developer or client provides, a list of what's left outside EAS |
@@ -24,6 +25,19 @@ The wizard talks to the developer in the language they write in.
 5. Summarize the choices; the developer confirms
 6. Scaffold the project with a standard folder structure, verify the build, write `.rn-starter.json`, set up tests and git hooks. With ESLint it adds code rules against sloppy shortcuts (`any`, casts through `unknown`, `@ts-ignore`, leftover `console.log`, empty `catch`, color literals in UI files). The Claude Code files add `CLAUDE.md` with a *Verifying your work* table, a format hook, a guard hook (no pushes to protected branches, no `.env` or credential files, no hand edits to generated files), and two subagents: `code-reviewer` and `verifier` (runs the app and checks the change, report only)
 7. Run the app and confirm the developer sees the first screen; hand over to `rn-ui` if there's a design
+
+## rn-feature: ticket → analysis
+
+Give it a ticket: a GitHub issue, Jira (through a connected Jira connector, or pasted), or plain text, plus the design and the API spec when there are any (links in the ticket are picked up).
+
+1. Map the project: routes with their URL paths and screens, shared components, data domains, and the docs already there, including other tickets and the files they touch (`scripts/project-map.sh`).
+2. Read the ticket: title, body, comments, the acceptance criteria it can spot and the Figma / image / Swagger links (`scripts/fetch-ticket.sh`). The ticket is never edited.
+3. Number the acceptance criteria R1…Rn: one testable behavior each, in the ticket's words. Nothing is invented: what seems missing becomes a question.
+4. Match each R# to the design (frames, elements, states) and the API (endpoint, parameters, fields shown vs returned, auth, errors).
+5. Write `docs/tickets/<id>.md`: traceability table, concerns C# (between what, severity, owner), questions Q# grouped by owner with a recommended answer, scope (screens, components, data, files likely touched). `scripts/check-ticket.sh` checks the file's contract.
+6. Several tickets: one subagent each, then the overlaps between them and the order to build them in.
+
+Rerun it when answers come back: R# keep their numbers, answered concerns become `resolved`. Building from the analysis comes in a later version; meanwhile `rn-ui` and `rn-api-connect` take the ticket file as input.
 
 ## rn-ui: design → working screens
 
@@ -112,7 +126,7 @@ claude --plugin-dir /path/to/rn-starter-skills
 
 ## Usage
 
-In Claude Code, type `/rn-starter` or just ask, e.g. *"create a new React Native app"*, *"new laptop, set it up for RN"*, *"build these screens from this Figma link"*, *"connect the app to the API, here's the Swagger link"*, *"set up EAS so we can ship to TestFlight"*.
+In Claude Code, type `/rn-starter` or just ask, e.g. *"create a new React Native app"*, *"new laptop, set it up for RN"*, *"build these screens from this Figma link"*, *"connect the app to the API, here's the Swagger link"*, *"set up EAS so we can ship to TestFlight"*, *"analyze ticket PROJ-412"*.
 
 ## Layout
 
@@ -142,6 +156,16 @@ skills/rn-starter/
     troubleshooting.md   # common errors on fresh machines
     quality.md           # hook rules, ESLint code rules, custom rule examples (Jira keys, branch names), Claude Code files, verification
   assets/claude/         # CLAUDE.md template, format.mjs, guard.mjs, code-reviewer.md, verifier.md
+skills/rn-feature/
+  SKILL.md               # ticket → analysis flow (phases 0 → 7)
+  scripts/
+    project-map.sh       # routes → screens, components, data domains, existing docs and tickets → JSON
+    fetch-ticket.sh      # GitHub issue or pasted text → title, body, comments, acceptance criteria, links
+    check-ticket.sh      # checks docs/tickets/<id>.md against the contract; exit 3 = problems
+  references/
+    ticket-template.md   # docs/tickets/<id>.md template and the rules the check enforces
+    analyze.md           # requirements, design, API, cross-check, questions, scope, follow-up runs
+    ticket-sources.md    # GitHub, Jira (connector or pasted), plain text
 skills/rn-ui/
   SKILL.md               # design → UI flow (phases 0 → 6)
   scripts/
