@@ -1,6 +1,6 @@
 # rn-starter
 
-A Claude Code plugin for React Native developers, with five skills:
+A Claude Code plugin for React Native developers, with six skills:
 
 | Skill | Use when | Result |
 |---|---|---|
@@ -8,6 +8,7 @@ A Claude Code plugin for React Native developers, with five skills:
 | **`rn-feature`** | A ticket arrives (Jira, GitHub issue, pasted text), with or without a design and an API spec | `docs/tickets/<id>.md`: numbered requirements (R1, R2…) traced to design and API, concerns with who decides, questions ready to send; then, on request, a plan accepted in plan mode, commits per step, bugs fixed test-first, every R# verified, and a PR mapping each R# to its evidence |
 | **`rn-ui`** | A project exists (or `rn-starter` just created one) | Theme, fonts, components, screens and navigation built from a design |
 | **`rn-api-connect`** | Screens run on mocks and the backend has a Swagger / OpenAPI spec | Types generated from the spec, a typed client, services switched to the API one domain at a time, loading / error / empty states — screens otherwise unchanged |
+| **`rn-e2e`** | A screen or a ticket's requirements need proof in the running app | Maestro flows (one per R#), `testID`s on the elements they use, green on the simulator against mocks, JUnit report and screenshots, ready for CI |
 | **`rn-release-setup`** | The app runs and is about to go to testers on TestFlight / Google Play internal testing | EAS project, identity, build profiles and environments, build / submit / push credentials on EAS from the files the developer or client provides, a list of what's left outside EAS |
 
 Developers just describe what they want. For example, *"Create a new RN app with 5 screens: Login, Home, Search, Detail, Profile"*: `rn-starter` scaffolds the project, runs the empty app, then hands over to `rn-ui` to build the screens.
@@ -43,7 +44,7 @@ Rerun it when answers come back: R# keep their numbers, answered concerns become
 **Build** ("build / implement / fix this ticket"):
 1. Ready check: no blocking concern; open `decide` concerns are built on their recommended answers only if the dev says so, and are listed as assumptions.
 2. A plan of small steps in **plan mode** (what, which skill, which R#, which files, how it's checked). The dev accepting it is the approval; it goes into the ticket file.
-3. A branch in the project's naming; each step handed to `rn-ui` (screens) or `rn-api-connect` (data, sign-in) with one handoff contract (no repeated questions or approvals, a report back), checked and committed in the project's format.
+3. A branch in the project's naming; each step handed to `rn-ui` (screens), `rn-api-connect` (data, sign-in) or `rn-e2e` (flows per R#) with one handoff contract (no repeated questions or approvals, a report back), checked and committed in the project's format.
 4. Bugs test-first: the failing test is committed and locked (`scripts/lock-tests.sh`; rn-starter's guard refuses edits to it), the fix makes it pass untouched.
 5. Verify: the project's checks, `code-reviewer`, then `verifier` in the app R# by R#; the Evidence table records each result.
 6. A pull request from the ticket file (`scripts/ticket-pr.sh`: R# → evidence, decisions, assumptions, what's not verified), pushed only on the dev's yes, never merged by the agent.
@@ -87,6 +88,15 @@ Give it the backend's Swagger link (or an OpenAPI/Swagger file; a Postman collec
 7. Verify on every target against the API: real data on each screen, mutations, the error state with the API off, 404, empty lists, load-more, mock mode; boundary check (`scripts/check-mocks.sh`).
 
 When the backend changes: refresh the spec, `<pm> run api:types`, and `tsc` points at the mappers to fix.
+
+## rn-e2e: end-to-end flows with Maestro
+
+1. Check Maestro (installs it with the dev's yes: official installer into `~/.maestro`, JDK 17 only if missing), booted devices, how the app opens (Expo Go or a build: bundle id, package, scheme), existing flows (`scripts/e2e-doctor.sh`).
+2. One flow per requirement: from a ticket's R# or the dev's list; an R# that isn't visible end to end gets a unit test instead.
+3. `testID`s (`<screen>-<element>`) on the elements the flows use; shared components pass a `testID` prop through. Nothing else in the app changes.
+4. Flows in `.maestro/<ticket>/r<n>-<slug>.yaml`, tagged with the ticket and the R#, opening their screen through a subflow that restarts the app, waiting with `extendedWaitUntil`, asserting by id. No hard-coded URL, bundle id or coordinate: `${APP_ID}` and `${APP_URL}` come from the run (`scripts/check-flows.sh` checks it, and which R# have no flow).
+5. Run on the simulator against mock data (`scripts/run-flows.sh`): JUnit report, screenshots, a JSON summary per flow. A red flow is fixed when the flow is wrong and reported when the app is.
+6. `e2e:ios` / `e2e:android` scripts and a `.maestro/README.md`; CI runs the same flows on a build (`references/ci.md`, wired by `rn-pipeline`).
 
 ## rn-release-setup: ready for TestFlight and Google Play
 
@@ -135,7 +145,7 @@ claude --plugin-dir /path/to/rn-starter-skills
 
 ## Usage
 
-In Claude Code, type `/rn-starter` or just ask, e.g. *"create a new React Native app"*, *"new laptop, set it up for RN"*, *"build these screens from this Figma link"*, *"connect the app to the API, here's the Swagger link"*, *"set up EAS so we can ship to TestFlight"*, *"analyze ticket PROJ-412"*, *"build ticket PROJ-412"*.
+In Claude Code, type `/rn-starter` or just ask, e.g. *"create a new React Native app"*, *"new laptop, set it up for RN"*, *"build these screens from this Figma link"*, *"connect the app to the API, here's the Swagger link"*, *"set up EAS so we can ship to TestFlight"*, *"analyze ticket PROJ-412"*, *"build ticket PROJ-412"*, *"write E2E tests for the checkout flow"*.
 
 ## Layout
 
@@ -216,6 +226,16 @@ skills/rn-api-connect/
     verify.md            # checking against the API on each target, error/empty/mock modes
     plan-template.md     # docs/api-plan.md template
     other-inputs.md      # Postman collections and plain descriptions
+skills/rn-e2e/
+  SKILL.md               # Maestro flows per requirement (phases 0 → 6)
+  scripts/
+    e2e-doctor.sh        # Maestro, Java, devices, how the app opens, existing flows, testIDs → JSON; exit 2 = install needed
+    install-maestro.sh   # Maestro (official installer) + JDK 17 if missing, PATH block; only with the dev's yes
+    run-flows.sh         # runs flows for a target (Expo Go / build, iOS / Android) → JUnit + JSON summary
+    check-flows.sh       # syntax and conventions; which R# of a ticket have no flow
+  references/
+    flows.md             # what a flow covers, testIDs, layout, commands, targets, data and sign-in, troubleshooting
+    ci.md                # what CI needs, the usual options, what to keep in the repo
 skills/rn-release-setup/
   SKILL.md               # EAS + identity + profiles + build/submit/push credentials (phases 0 → 8)
   scripts/

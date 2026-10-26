@@ -29,12 +29,13 @@ The plan is a table of steps, each small enough to verify on its own and to comm
 | 2 | Orders and order detail screens on mocks shaped like the API | rn-ui | R1, R3, R5, R6 | `src/screens/orders/*`, `src/screens/order-detail/*`, `src/components/order-card.tsx` | screenshots against the theme; tsc, lint, tests |
 | 3 | Orders tab in the tab bar | direct | R1 | `src/components/app-tabs.tsx` | open the tab |
 | 4 | Domain `orders` on the API: list with paging and status, detail | rn-api-connect | R1, R2, R4, R7, R8 | `src/services/orders.ts`, `src/hooks/use-orders.ts` | mapper tests; real data on screen |
-| 5 | Verify every R# | verifier | all | — | Evidence table |
+| 5 | Flows for R1–R8 | rn-e2e | R1, R2, R3, R5, R6, R8 | `.maestro/SHOP-27/*`, `testID`s in the new screens | flows pass on the iOS Simulator |
+| 6 | Verify every R# | verifier | all | — | Evidence table |
 
 Rules for the plan:
 - **Order**: sign-in before the domains that need a token; types and mocks before screens; screens before connecting them; the bug's failing test first (below). Read-only data before mutations.
 - **One-time setup belongs to a step.** The first rn-api-connect step includes its Phase 4 infrastructure (client, `env.ts`, generated types) unless the project map shows an API client already, plus the base URL to develop against and the `.env` lines the dev must add. A library with native code, or a switch to a development build (maps, camera, social sign-in), is its own step the dev sees in the plan: a called skill stops rather than add one on its own.
-- **Skill per step**: screens, components, theme, navigation → rn-ui. Data, sign-in, client → rn-api-connect. A small change that follows the project's conventions (one navigation entry, a util with its test) → `direct`, done here.
+- **Skill per step**: screens, components, theme, navigation → rn-ui. Data, sign-in, client → rn-api-connect. A Maestro flow per R# that a user can see or do → rn-e2e, after the screens exist (the flows are the strongest evidence; R# that aren't visible end to end get a unit test instead). A small change that follows the project's conventions (one navigation entry, a util with its test) → `direct`, done here.
 - **Every active R#** appears in at least one step, except those marked `n/a` in Traceability. Every decision and assumption that shapes a step is cited in it (`C3: courier row hidden`).
 - **Risks**: say which step could break existing screens (shared components, the theme, navigation) and how its check covers them.
 - Good enough when a dev who never saw this conversation could build the ticket from the plan alone.
@@ -66,7 +67,7 @@ Keep the dev posted in one line per step (step 2 of 5 done: orders screens on mo
 
 A bug fix is proven by a test that failed before the fix and that the fix wasn't allowed to change. The project's pre-commit hook runs related tests, so a failing test can't be committed alone; it's locked instead, and committed with the fix.
 
-1. **Reproduce it as a test** that fails for the reason in the ticket: a unit test for logic (`utils/`, a mapper, a hook), a React Native Testing Library test for a component or screen, a Maestro flow when rn-e2e is available and the bug only shows end to end. Run it and read the failure: it must fail on the expected assertion, not on a typo or a missing mock. Keep that output: it's the "before" half of the evidence.
+1. **Reproduce it as a test** that fails for the reason in the ticket: a unit test for logic (`utils/`, a mapper, a hook), a React Native Testing Library test for a component or screen, a Maestro flow (rn-e2e) when the bug only shows end to end. Run it and read the failure: it must fail on the expected assertion, not on a typo or a missing mock. Keep that output: it's the "before" half of the evidence.
 2. Lock the test files (and any snapshot file they use) so the fix can't weaken them. From the project root:
    ```bash
    bash "<skill-dir>/scripts/lock-tests.sh" lock <test files>
@@ -84,11 +85,12 @@ After the last step:
 
 1. Every check in `CLAUDE.md` → Verifying your work, on the whole branch.
 2. The `code-reviewer` subagent on the branch (`git diff <base>...HEAD`). Fix what it reports and rerun it; commit the fixes.
-3. The `verifier` subagent with the ticket file: it opens the app on the main target and checks each R#, reporting pass / fail / not verified with screenshots. A fail goes back to the step that owns that R#.
+3. The ticket's flows: `run-flows.sh <project> --tags <ticket id>` (rn-e2e), all green.
+4. The `verifier` subagent with the ticket file: it opens the app on the main target and checks each R#, reporting pass / fail / not verified with screenshots. A fail goes back to the step that owns that R#.
 
    A project rn-starter didn't set up may not have these subagents (`.claude/agents/`). Then do the same work yourself, following rn-starter's `assets/claude/code-reviewer.md` and `verifier.md` as the checklists, and say so in the PR.
-4. Fill the Evidence table, one row per active R#: the evidence (test name, Maestro flow, screenshot path, the verifier's finding) and a result: `pass`, `fail`, `not verified: <reason>` or `n/a`. Never mark an R# `pass` without evidence you saw. Commit it.
-5. `check-ticket.sh` must pass. No R# may be left `fail`; a `not verified` is allowed only with its reason, and the PR lists it.
+5. Fill the Evidence table, one row per active R#: the evidence (Maestro flow, test name, screenshot path, the verifier's finding) and a result: `pass`, `fail`, `not verified: <reason>` or `n/a`. Never mark an R# `pass` without evidence you saw. Commit it.
+6. `check-ticket.sh` must pass. No R# may be left `fail`; a `not verified` is allowed only with its reason, and the PR lists it.
 
 Other run targets (Android emulator, a phone): run the verifier there too when the project lists them, or list them as not verified.
 
