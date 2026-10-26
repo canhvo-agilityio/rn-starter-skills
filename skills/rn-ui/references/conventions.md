@@ -71,7 +71,7 @@ Imports: use the `@/` alias across folders (`@/components/button`, `@/hooks/use-
 
 ## Component checklist
 
-- Typed props, `style` passthrough for one-off overrides.
+- Typed props, `style` passthrough for one-off overrides, and an optional `testID` passed to the root or the pressable, so end-to-end flows (rn-e2e) can find it.
 - Uses `useTheme()` / theme tokens only.
 - Pressables have `accessibilityRole="button"` and a label when there's no visible text.
 - Screens wrap content in a safe-area aware container (`SafeAreaView` from `react-native-safe-area-context`, or the template's screen component). Inside tab navigators use `edges={['top']}` and don't add `insets.top` by hand.

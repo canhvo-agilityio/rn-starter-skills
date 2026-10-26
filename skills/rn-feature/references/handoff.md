@@ -1,6 +1,6 @@
-# Calling rn-ui and rn-api-connect from rn-feature
+# Calling rn-ui, rn-api-connect and rn-e2e from rn-feature
 
-When rn-feature builds a ticket, it hands each part to the skill that knows how to do it: screens to rn-ui, data to rn-api-connect. The handoff is one contract, the same for both, so neither skill re-asks what the dev already approved and rn-feature gets back what it needs to fill the Evidence table.
+When rn-feature builds a ticket, it hands each part to the skill that knows how to do it: screens to rn-ui, data to rn-api-connect, end-to-end flows to rn-e2e. The handoff is one contract, the same for both, so neither skill re-asks what the dev already approved and rn-feature gets back what it needs to fill the Evidence table.
 
 ## Calling
 
@@ -25,7 +25,7 @@ Decisions: C2 → pending orders show only under "All" with a badge (PO, 2026-10
 | Questions | Only what the ticket file and the decisions don't answer, and only if it blocks the step. Everything else uses the recorded decision or the skill's recommended default, noted in the report | Its usual question rounds |
 | Approval | **Skipped**: the dev approved the plan in plan mode. Still write or update the skill's own document (`docs/design-spec.md`, `docs/api-plan.md`), tagging what this step added with the ticket id | The skill's spec / plan approval |
 | Scope | Stays inside the step's scope. Something outside it that the step needs (another screen, a new endpoint, a library with native code, a development build) → stop and report it; rn-feature updates the plan with the dev | Whatever the dev asked |
-| Verification | Its own checks on the main target, including its boundary checks (rn-ui: the structure self-check; rn-api-connect: mock mode still works and `check-mocks.sh`), not every target: rn-feature runs the verifier at the end | Every run target |
+| Verification | Its own checks on the main target, including its boundary checks (rn-ui: the structure self-check; rn-api-connect: mock mode still works and `check-mocks.sh`; rn-e2e: `check-flows.sh` and the flows green), not every target: rn-feature runs the verifier at the end | Every run target |
 | Commit | **None**: rn-feature commits per step | Offers to commit |
 | Hand-off | The report below, instead of its usual hand-off message | Its usual hand-off |
 

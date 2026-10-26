@@ -79,6 +79,9 @@ if [ -n "${ANDROID_HOME:-}" ]; then
   done
 fi
 
+# Maestro (rn-e2e's install-maestro.sh, or Maestro's own installer)
+[ -x "$HOME/.maestro/bin/maestro" ] && case ":$PATH:" in *":$HOME/.maestro/bin:"*) ;; *) export PATH="$HOME/.maestro/bin:$PATH" ;; esac
+
 fi
 
 unset _rn_home _d _sdk _p _b _la _rn_win
