@@ -9,7 +9,9 @@
 # every concern a gap names exists; every concern has a severity (blocking | decide | note |
 # resolved), owners among PO / design / backend / dev, and Affects naming existing R#; every
 # blocking/decide concern is asked in a "**Q<n>** (C<n>)" item, with "Recommended:" for decide;
-# no blocking concern left when status is ready or later.
+# no blocking concern left when status is ready or later. Once building (planned / in-progress /
+# done): a Plan step table with valid statuses that names every active R#; Evidence rows with valid
+# results; done = every step done or skipped and every active R# in Evidence, none fail.
 #
 # Exit codes: 0 valid · 1 error (no file) · 3 problems found
 
@@ -152,6 +154,48 @@ if (['ready', 'planned', 'in-progress', 'done'].includes(fm.status) && blocking.
   problems.push(`status is ${fm.status} but ${blocking.join(', ')} still blocking (resolve them or set status: questions-open)`);
 }
 
+// Plan and Evidence, once the ticket is being built
+const building = ['planned', 'in-progress', 'done'].includes(fm.status);
+const notApplicable = new Set(traceRows.filter((r) => /^n\/a\b/i.test((r.status || '').trim()))
+  .map((r) => Number((r['#'] || '').replace(/^R/, ''))));
+const planRows = (table('plan') || []).filter((r) => (r.step || '').trim());
+// "R1, R3" and ranges "R1–R3" / "R1-R3"
+const rNumbers = (s) => [...s.matchAll(/R(\d+)(?:\s*[–-]\s*R?(\d+))?/g)].flatMap((m) => {
+  const a = Number(m[1]); const b = m[2] ? Number(m[2]) : a;
+  return Array.from({ length: Math.max(0, b - a) + 1 }, (_, i) => a + i);
+});
+const STEP_STATUSES = ['todo', 'doing', 'done', 'blocked', 'skipped'];
+const planned = new Set();
+for (const row of planRows) {
+  const st = (row.status || '').toLowerCase();
+  if (!STEP_STATUSES.includes(st)) problems.push(`Plan: step ${row.step} status must be one of ${STEP_STATUSES.join(', ')} (got "${row.status ?? ''}")`);
+  for (const n of rNumbers(row['r#'] || '')) {
+    if (!seen.has(n)) problems.push(`Plan: step ${row.step} names R${n}, which isn't in Requirements`);
+    planned.add(n);
+  }
+}
+if (building) {
+  if (!planRows.length) problems.push(`status is ${fm.status} but the Plan section has no step table (| Step | What | Skill | R# | Files | Check | Status |)`);
+  else for (const n of active) if (!notApplicable.has(n) && !planned.has(n)) problems.push(`Plan: no step builds R${n} ("all" doesn't count)`);
+}
+const evidenceRows = (table('evidence') || []).filter((r) => /^R\d+$/.test((r['#'] || '').trim()));
+const results = {};
+for (const row of evidenceRows) {
+  const n = Number(row['#'].replace(/^R/, ''));
+  const result = (row.result || '').trim();
+  if (!seen.has(n)) problems.push(`Evidence: R${n} isn't in Requirements`);
+  if (!/^(pass|fail|n\/a|not verified\b.*)$/i.test(result)) problems.push(`Evidence: R${n} result must be pass, fail, not verified: <reason> or n/a (got "${result}")`);
+  if (/^pass$/i.test(result) && !(row.evidence || '').trim()) problems.push(`Evidence: R${n} is pass with no evidence`);
+  results[n] = result.toLowerCase();
+}
+if (fm.status === 'done') {
+  for (const row of planRows) if (!['done', 'skipped'].includes((row.status || '').toLowerCase())) problems.push(`status is done but plan step ${row.step} is ${row.status}`);
+  for (const n of active) {
+    if (!(n in results)) problems.push(`status is done but R${n} has no Evidence row`);
+    else if (results[n] === 'fail') problems.push(`status is done but R${n} is fail`);
+  }
+}
+
 const count = (s) => Object.values(concerns).filter((x) => x === s).length;
 console.log(JSON.stringify({
   file, ticket: fm.ticket ?? null, type: fm.type ?? null, status: fm.status ?? null,
@@ -162,6 +206,13 @@ console.log(JSON.stringify({
   },
   concerns: { blocking: count('blocking'), decide: count('decide'), note: count('note'), resolved: count('resolved') },
   questions: questionCount,
+  plan: { steps: planRows.length, done: planRows.filter((r) => /^done$/i.test(r.status || '')).length },
+  evidence: {
+    pass: Object.values(results).filter((r) => r === 'pass').length,
+    fail: Object.values(results).filter((r) => r === 'fail').length,
+    notVerified: Object.values(results).filter((r) => r.startsWith('not verified')).length,
+    rows: evidenceRows.length,
+  },
   problems,
 }, null, 2));
 process.exitCode = problems.length ? 3 : 0;

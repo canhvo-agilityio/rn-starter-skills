@@ -62,7 +62,7 @@ For a change someone can see or tap, run the `verifier` subagent: it opens the a
 ## Working in this repo
 
 - A hook formats and lint-fixes every file you edit (`.claude/hooks/format.mjs`). When it reports problems, fix them before moving on.
-- A guard hook (`.claude/hooks/guard.mjs`) blocks pushes to {{PROTECTED}}, reading or editing secret files (`.env`, signing keys, keystores, service-account keys) and hand edits to generated `*.gen.ts` files. When it blocks something, do what its message says; don't look for a way around it.
+- A guard hook (`.claude/hooks/guard.mjs`) blocks pushes to {{PROTECTED}}, reading or editing secret files (`.env`, signing keys, keystores, service-account keys), hand edits to generated `*.gen.ts` files, and changes to a test locked while a bug is being fixed. When it blocks something, do what its message says; don't look for a way around it.
 - {{INSTALL_RULE}}
 - Before committing, run the `code-reviewer` subagent on the change and fix what it reports.
 - When you make the same mistake twice, add the correction to this file.

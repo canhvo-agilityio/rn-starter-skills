@@ -110,7 +110,7 @@ return useMutation({
 
 Make the write idempotent too: POST only when the item isn't there yet; DELETE every match.
 
-Mutations that need auth while sign-in doesn't exist yet stay mocked (plan decision).
+Mutations that need auth while sign-in doesn't exist yet stay mocked unless the plan sets up sign-in first (`auth.md`).
 
 ## Prefetch and detail from list
 

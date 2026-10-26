@@ -5,7 +5,7 @@ A Claude Code plugin for React Native developers, with five skills:
 | Skill | Use when | Result |
 |---|---|---|
 | **`rn-starter`** | There's no project yet, often on a brand-new machine | Environment installed, project running on a simulator, emulator or phone |
-| **`rn-feature`** | A ticket arrives (Jira, GitHub issue, pasted text), with or without a design and an API spec | `docs/tickets/<id>.md`: numbered requirements (R1, R2…) traced to design and API, concerns with who decides, questions ready to send. Analysis only for now |
+| **`rn-feature`** | A ticket arrives (Jira, GitHub issue, pasted text), with or without a design and an API spec | `docs/tickets/<id>.md`: numbered requirements (R1, R2…) traced to design and API, concerns with who decides, questions ready to send; then, on request, a plan accepted in plan mode, commits per step, bugs fixed test-first, every R# verified, and a PR mapping each R# to its evidence |
 | **`rn-ui`** | A project exists (or `rn-starter` just created one) | Theme, fonts, components, screens and navigation built from a design |
 | **`rn-api-connect`** | Screens run on mocks and the backend has a Swagger / OpenAPI spec | Types generated from the spec, a typed client, services switched to the API one domain at a time, loading / error / empty states — screens otherwise unchanged |
 | **`rn-release-setup`** | The app runs and is about to go to testers on TestFlight / Google Play internal testing | EAS project, identity, build profiles and environments, build / submit / push credentials on EAS from the files the developer or client provides, a list of what's left outside EAS |
@@ -26,18 +26,27 @@ The wizard talks to the developer in the language they write in.
 6. Scaffold the project with a standard folder structure, verify the build, write `.rn-starter.json`, set up tests and git hooks. With ESLint it adds code rules against sloppy shortcuts (`any`, casts through `unknown`, `@ts-ignore`, leftover `console.log`, empty `catch`, color literals in UI files). The Claude Code files add `CLAUDE.md` with a *Verifying your work* table, a format hook, a guard hook (no pushes to protected branches, no `.env` or credential files, no hand edits to generated files), and two subagents: `code-reviewer` and `verifier` (runs the app and checks the change, report only)
 7. Run the app and confirm the developer sees the first screen; hand over to `rn-ui` if there's a design
 
-## rn-feature: ticket → analysis
+## rn-feature: ticket → analysis → pull request
 
 Give it a ticket: a GitHub issue, Jira (through a connected Jira connector, or pasted), or plain text, plus the design and the API spec when there are any (links in the ticket are picked up).
 
-1. Map the project: routes with their URL paths and screens, shared components, data domains, and the docs already there, including other tickets and the files they touch (`scripts/project-map.sh`).
+**Analyze** ("analyze this ticket"):
+1. Map the project: routes with their URL paths and screens, shared components, data domains, signs of sign-in, and the docs already there, including other tickets and the files they touch (`scripts/project-map.sh`).
 2. Read the ticket: title, body, comments, the acceptance criteria it can spot and the Figma / image / Swagger links (`scripts/fetch-ticket.sh`). The ticket is never edited.
 3. Number the acceptance criteria R1…Rn: one testable behavior each, in the ticket's words. Nothing is invented: what seems missing becomes a question.
 4. Match each R# to the design (frames, elements, states) and the API (endpoint, parameters, fields shown vs returned, auth, errors).
 5. Write `docs/tickets/<id>.md`: traceability table, concerns C# (between what, severity, owner), questions Q# grouped by owner with a recommended answer, scope (screens, components, data, files likely touched). `scripts/check-ticket.sh` checks the file's contract.
 6. Several tickets: one subagent each, then the overlaps between them and the order to build them in.
 
-Rerun it when answers come back: R# keep their numbers, answered concerns become `resolved`. Building from the analysis comes in a later version; meanwhile `rn-ui` and `rn-api-connect` take the ticket file as input.
+Rerun it when answers come back: R# keep their numbers, answered concerns become `resolved`.
+
+**Build** ("build / implement / fix this ticket"):
+1. Ready check: no blocking concern; open `decide` concerns are built on their recommended answers only if the dev says so, and are listed as assumptions.
+2. A plan of small steps in **plan mode** (what, which skill, which R#, which files, how it's checked). The dev accepting it is the approval; it goes into the ticket file.
+3. A branch in the project's naming; each step handed to `rn-ui` (screens) or `rn-api-connect` (data, sign-in) with one handoff contract (no repeated questions or approvals, a report back), checked and committed in the project's format.
+4. Bugs test-first: the failing test is committed and locked (`scripts/lock-tests.sh`; rn-starter's guard refuses edits to it), the fix makes it pass untouched.
+5. Verify: the project's checks, `code-reviewer`, then `verifier` in the app R# by R#; the Evidence table records each result.
+6. A pull request from the ticket file (`scripts/ticket-pr.sh`: R# → evidence, decisions, assumptions, what's not verified), pushed only on the dev's yes, never merged by the agent.
 
 ## rn-ui: design → working screens
 
@@ -126,7 +135,7 @@ claude --plugin-dir /path/to/rn-starter-skills
 
 ## Usage
 
-In Claude Code, type `/rn-starter` or just ask, e.g. *"create a new React Native app"*, *"new laptop, set it up for RN"*, *"build these screens from this Figma link"*, *"connect the app to the API, here's the Swagger link"*, *"set up EAS so we can ship to TestFlight"*, *"analyze ticket PROJ-412"*.
+In Claude Code, type `/rn-starter` or just ask, e.g. *"create a new React Native app"*, *"new laptop, set it up for RN"*, *"build these screens from this Figma link"*, *"connect the app to the API, here's the Swagger link"*, *"set up EAS so we can ship to TestFlight"*, *"analyze ticket PROJ-412"*, *"build ticket PROJ-412"*.
 
 ## Layout
 
@@ -157,15 +166,19 @@ skills/rn-starter/
     quality.md           # hook rules, ESLint code rules, custom rule examples (Jira keys, branch names), Claude Code files, verification
   assets/claude/         # CLAUDE.md template, format.mjs, guard.mjs, code-reviewer.md, verifier.md
 skills/rn-feature/
-  SKILL.md               # ticket → analysis flow (phases 0 → 7)
+  SKILL.md               # analysis (phases 0 → 7) and building (phases 8 → 13)
   scripts/
     project-map.sh       # routes → screens, components, data domains, existing docs and tickets → JSON
     fetch-ticket.sh      # GitHub issue or pasted text → title, body, comments, acceptance criteria, links
-    check-ticket.sh      # checks docs/tickets/<id>.md against the contract; exit 3 = problems
+    check-ticket.sh      # checks docs/tickets/<id>.md against the contract (plan and evidence too); exit 3 = problems
+    lock-tests.sh        # locks the test that reproduces a bug, proves the fix didn't touch it
+    ticket-pr.sh         # ticket file → PR title and body (R# → evidence, decisions, not verified)
   references/
     ticket-template.md   # docs/tickets/<id>.md template and the rules the check enforces
     analyze.md           # requirements, design, API, cross-check, questions, scope, follow-up runs
     ticket-sources.md    # GitHub, Jira (connector or pasted), plain text
+    build.md             # plan mode, branch and commits, steps, bugs test-first, verify, pull request
+    handoff.md           # the contract for calling rn-ui and rn-api-connect, and their report back
 skills/rn-ui/
   SKILL.md               # design → UI flow (phases 0 → 6)
   scripts/
@@ -185,7 +198,7 @@ skills/rn-ui/
     navigation.md        # expo-router / React Navigation, deep links for verification
     verify.md            # screenshot each screen and compare with the design
     conventions.md       # defaults when the project has none
-    special-components.md # maps, sheets, media, charts…: libraries per framework, native setup, verification
+    special-components.md # maps, sheets, media, charts, social sign-in…: libraries per framework, native setup, verification
     follow-up.md         # adding a feature to an app that already has screens
 skills/rn-api-connect/
   SKILL.md               # mocks → API flow (phases 0 → 7)
@@ -196,6 +209,7 @@ skills/rn-api-connect/
   references/
     openapi.md           # getting the spec, reading the summary, warnings, generating types
     client.md            # env.ts, ApiError, openapi-fetch client, query retry, ESLint rule
+    auth.md              # sign-in: session in the keychain, refresh on 401, sign-out, social sign-in
     mapping.md           # matching functions to endpoints, DTO → app-type mappers, tests
     data-hooks.md        # pagination, mutations, invalidation, hooks without TanStack Query
     screen-states.md     # loading / error / empty, load-more, mutation errors

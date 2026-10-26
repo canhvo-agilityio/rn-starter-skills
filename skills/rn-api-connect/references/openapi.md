@@ -28,7 +28,7 @@ Docs behind a login: ask the dev to open the spec link (the small URL under the 
 ## Reading the summary
 
 - `servers` — base URLs. Relative ones are resolved against where the spec was served. None → ask the dev.
-- `auth` — security schemes (`bearer`, `apiKey in header "X-Api-Key"`, `oauth2`). Endpoints with `auth: true` need a token: until the app has sign-in, keep those domains mocked or use a dev token from `.env` (Phase 2 question).
+- `auth` — security schemes (`bearer`, `apiKey in header "X-Api-Key"`, `oauth2`). Endpoints with `auth: true` need a token: until the app has sign-in, set it up first (`auth.md`), keep those domains mocked, or use a dev token from `.env` (Phase 2 question).
 - `errorSchema` — the schema(s) used by 4xx/5xx responses, most used first. It shapes `toApiError` (`client.md`). Empty → the default reader (`message`, `detail`, `title`, `error`).
 - `endpoints` — per endpoint: `path_params`, `query` (`?` = optional), `body`, `response` (schema name, `X[]` for arrays, `{ a, b }` for inline objects), `list` (`array` or `Wrapper.field` when the list sits inside an object), `pagination` (`style`: `page` / `offset` / `cursor` / `limit-only` / `unknown`, its `params`, and the wrapper's other fields such as `total`, `next`).
 - `listsWithoutPagination` — lists that return everything at once. Fine for short lists (categories); worth raising with the backend team for long ones.

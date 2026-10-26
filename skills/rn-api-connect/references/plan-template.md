@@ -7,7 +7,7 @@ The contract for this skill's changes, approved by the dev before any code chang
 
 Spec: docs/api/openapi.json — from <source URL or file>, OpenAPI <version> (<converted from Swagger 2.0>), "<title>" <api version>, saved <date>
 Base URL: <EXPO_PUBLIC_API_URL for development> (<team dev server / local>) — the developer sets it in their own .env
-Auth: <bearer token on N endpoints — not connected until sign-in exists / none>
+Auth: <bearer token on N endpoints — sign-in set up in this plan (domain `auth`, references/auth.md) / not connected until sign-in exists / none>
 Errors: <schema name and shape, e.g. { code, message, errors: { field: [msg] } } / default reader>
 Client: openapi-fetch + openapi-typescript (`<pm> run api:types`)
 Mocks: EXPO_PUBLIC_USE_MOCKS=1

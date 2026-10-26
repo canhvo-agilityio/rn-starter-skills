@@ -1,15 +1,17 @@
 ---
 name: rn-feature
-description: Analyzes a ticket for a React Native / Expo app before anyone writes code. It numbers the acceptance criteria (R1, R2…), matches each one to a screen in the design and an endpoint in the API, and writes docs/tickets/<id>.md with the gaps, the concerns (each with who decides) and questions ready to send to the PO, designer or backend team. Use when someone says "analyze this ticket", pastes a user story, a Jira or GitHub issue, asks what a ticket needs, or wants a ticket checked against Figma / screenshots and Swagger before building. Several tickets can be analyzed in parallel. Building from the analysis comes in a later version; to build screens directly use rn-ui, to connect an API rn-api-connect.
+description: Takes a ticket for a React Native / Expo app from analysis to a pull request. Analyze - numbers the acceptance criteria (R1, R2…), matches each to a screen in the design and an endpoint in the API, and writes docs/tickets/<id>.md with the gaps, the concerns (each with who decides) and questions ready to send. Build - a plan the dev accepts in plan mode, a branch, each step handed to rn-ui (screens) or rn-api-connect (data, sign-in) and committed, bugs fixed test-first, every R# verified in the app, and a PR that maps each R# to its evidence. Use when someone says "analyze this ticket", "build / implement / fix this ticket", pastes a user story, a Jira or GitHub issue, or wants a ticket checked against Figma / screenshots and Swagger. Several tickets can be analyzed in parallel. For screens or an API without a ticket, use rn-ui or rn-api-connect directly.
 ---
 
-# Ticket → analysis
+# Ticket → analysis → pull request
 
-Goal: before anyone writes code, the team knows exactly what the ticket asks for, where each part lives in the design and the API, and what's missing or contradictory, written as `docs/tickets/<id>.md`, with the questions ready to send to whoever has to answer them.
+Goal: before anyone writes code, the team knows exactly what the ticket asks for, where each part lives in the design and the API, and what's missing or contradictory, written as `docs/tickets/<id>.md`, with the questions ready to send to whoever has to answer them. Then, when the dev says build, that file becomes an accepted plan, commits and a pull request in which every requirement has its evidence.
 
-**Who owns what.** The ticket and every answer to a question belong to people: the PO, the designer, the backend team, the dev. This skill reads the ticket, never edits it (not in Jira, not in GitHub), and never invents a requirement: something it thinks is missing becomes a question, not an R#. The analysis, the cross-check and the questions are this skill's work, and people review them.
+**Who owns what.** The ticket and every answer to a question belong to people: the PO, the designer, the backend team, the dev. This skill reads the ticket, never edits it (not in Jira, not in GitHub), and never invents a requirement: something it thinks is missing becomes a question, not an R#. The analysis, the cross-check, the questions, the plan and the code are this skill's work, and people review them: the plan before any code, the pull request before any merge.
 
-Talk to the dev in their language. Write the ticket file in the ticket's language. This version analyzes and stops: no branch, no code.
+Talk to the dev in their language. Write the ticket file in the ticket's language.
+
+**Which mode.** "Analyze", "what does this ticket need", "check it against the design": the analysis (Phases 0–7), then stop. "Build", "implement", "fix", "làm ticket này": the analysis first if there's no ticket file yet, then Building (Phases 8–13).
 
 ## Phase 0: Understand the project
 
@@ -85,9 +87,27 @@ Then compare the Scope sections: tickets that touch the same screen, shared comp
 
 ## Phase 7: Hand-off
 
-Tell the dev briefly: how many requirements, how many fully covered by design and API, the blocking concerns, and the questions per owner (offer to copy each group as a message). Then stop: no branch, no code.
+Tell the dev briefly: how many requirements, how many fully covered by design and API, the blocking concerns, and the questions per owner (offer to copy each group as a message). In analyze mode, stop here: no branch, no code.
 
-Next steps to mention: once the answers are in, run this skill again on the same ticket to update the file; to build, use rn-ui (screens) and rn-api-connect (data) with the ticket file as their input. Offer to commit the ticket file (`docs(tickets): analyze <id>`); don't commit without a yes.
+Next steps to mention: once the answers are in, run this skill again on the same ticket to update the file; then ask it to build the ticket. Offer to commit the ticket file (`docs(tickets): analyze <id>`); don't commit without a yes.
+
+## Building
+
+Read `references/build.md` before starting, and `references/handoff.md` for calling the other skills.
+
+**Phase 8: Ready to build?** `check-ticket.sh` passes and no concern is `blocking`. Open `decide` concerns: the dev chooses to build with the recommended answers (recorded as assumptions) or to wait. Clean working tree, not on a protected branch, no other ticket in progress on the same files.
+
+**Phase 9: Plan in plan mode.** Enter plan mode, read the code the ticket touches, and present a plan of small steps: what, which skill (rn-ui, rn-api-connect, or direct), which R#, which files, how each is checked. Every active R# is in a step; sign-in before the domains that need it; for a bug, the failing test is step 1. The dev accepting the plan is the approval. Then write it into the ticket file's Plan section, set `status: planned`.
+
+**Phase 10: Branch.** The project's branch naming, from the up-to-date base branch. Set `status: in-progress`; the first commit is the ticket file with its plan.
+
+**Phase 11: Steps.** For each step: call rn-ui or rn-api-connect with the handoff arguments (or do a direct step), read its report, run the project's checks, commit in the project's format, mark the step done. A step that needs something outside its scope stops the build until the dev updates the plan.
+
+Bug tickets: reproduce the bug as a test that fails for the reported reason, lock it (`scripts/lock-tests.sh lock <files>`, from the project root), fix the code without touching it, prove it (`lock-tests.sh check`, tests green), commit the test with the fix, unlock.
+
+**Phase 12: Verify.** The checks from `CLAUDE.md`, the `code-reviewer` subagent on the branch, then the `verifier` subagent with the ticket file, R# by R#. Fill the Evidence table: every active R# with its evidence and `pass`, `fail`, `not verified: <reason>` or `n/a`. Fails go back to their step; nothing ships `fail`. `check-ticket.sh` passes. Without the two subagents in the project, do their checklists yourself and say so.
+
+**Phase 13: Pull request.** `scripts/ticket-pr.sh` turns the ticket file into a title and body (R# → evidence, decisions, assumptions, what's not verified). Show the dev the branch, commits, remote and base, and push and open the PR only on a yes. Never merge it. After the merge, a rerun records the PR and sets `status: done`.
 
 ## Principles
 
@@ -96,3 +116,5 @@ Next steps to mention: once the answers are in, run this skill again on the same
 - **Gaps are reported, not filled.** A missing state, field or rule is a question with a recommended answer, never a silent assumption.
 - **Every concern has an owner.** A problem nobody owns doesn't get answered.
 - **Analysis changes nothing** in the app, the ticket or the API.
+- **No code before an accepted plan, no merge by the agent.** The plan and the pull request are where people decide.
+- **Evidence, not claims.** An R# is done when a test, a flow or a screenshot you saw shows it; anything unchecked says so.

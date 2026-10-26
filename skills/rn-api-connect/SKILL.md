@@ -11,7 +11,9 @@ Talk to the dev in their language. Keep them in the loop at the two points that 
 
 **Never open `.env`, `.env.local` or any other env file except the committed templates** (`.env.example`, `.env.sample`, `.env.template`) — not to read values, not to list names, not to edit. They hold the developer's secrets. What you need from them (the API URL, a dev token) you ask the developer for; what the app needs in them you give the developer as lines to add.
 
-Out of scope: sign-in, token storage and refresh (leave the seam — `client.md` → Auth), forms, websockets, offline sync. Say so if asked, and note it under Open points.
+Sign-in, token storage, refresh and sign-out are in scope when the dev wants them: `references/auth.md` replaces rn-ui's mock session with a real one behind the same interface, as an `auth` domain connected before the domains that need a token. Forms are rn-ui's (`conventions.md` → Form state and validation); this skill only maps the API's field errors (`ApiError.fieldErrors`). Out of scope: websockets, offline sync. Say so if asked, and note it under Open points.
+
+**Called by rn-feature** (the arguments start with `Called by rn-feature`): the dev already approved a plan for a ticket. Follow `../rn-feature/references/handoff.md`: connect only the domains and endpoints in the step's scope, take answers from the ticket file and its decisions instead of the Phase 2 question round (ask only what they don't answer and the step can't go on without), skip the plan approval in Phase 3 (still update `docs/api-plan.md`, tagging the domains with the ticket id), verify on the main target only (mock mode and `check-mocks.sh` included), don't commit, and end with the report block instead of the Phase 7 hand-off.
 
 ## Phase 0 — Understand the project
 
@@ -55,7 +57,7 @@ Then ask what you can't infer, in one `AskUserQuestion` round (max 4), each with
 - the base URL when the spec has no server, or several (dev / staging / prod — pick the one to develop against);
 - a service function with no endpoint, or two candidate endpoints;
 - a field the screens need that the API doesn't return (keep it mocked / derive it / drop it from the UI);
-- endpoints that need auth while sign-in doesn't exist yet: *keep this domain mocked (Recommended)* / *use a dev token the dev puts in `.env`*;
+- endpoints that need auth while sign-in doesn't exist yet (`auth` in the project has no real session): *set up sign-in first, `references/auth.md` (Recommended when the spec has a login endpoint)* / *keep this domain mocked* / *use a dev token the dev puts in `.env`*;
 - a mock id hard-coded in a screen: what the screen should use instead (*the first item from the API (Recommended)* / a value the dev gives).
 
 Pagination: show the list endpoints with the detected style and parameters (`page` + `limit`, `cursor`, …) and let the dev correct them in the plan — an unrecognized parameter name silently loads only the first page.
@@ -105,7 +107,7 @@ A target or screen you didn't check is listed as not verified — never implied 
 ## Phase 7 — Hand-off
 
 1. Update `docs/api-plan.md`: statuses, what stays mocked and why, open points (missing endpoints, fields, spec problems to raise with the backend team).
-2. Tell the dev briefly: domains connected and verified (per target), what's still mocked, how to switch to mocks (`EXPO_PUBLIC_USE_MOCKS=1`), how to refresh types when the backend changes (rerun this skill with the link, or replace `docs/api/openapi.json` → `<pm> run api:types` → `tsc` lists the mappers to fix), and what's left for sign-in.
+2. Tell the dev briefly: domains connected and verified (per target), what's still mocked, how to switch to mocks (`EXPO_PUBLIC_USE_MOCKS=1`), how to refresh types when the backend changes (rerun this skill with the link, or replace `docs/api/openapi.json` → `<pm> run api:types` → `tsc` lists the mappers to fix), and what's left for sign-in (what `auth.md` set up, or that it's still mocked).
 3. If the project is a git repo, offer to commit (`feat(api): connect <domains> to the API`, body wrapped at 72 columns — commitlint rejects long lines). Follow the project's own rules before committing: its `CLAUDE.md` (e.g. run its `code-reviewer` subagent first — on a change this size it finds real bugs) and its hooks. Don't commit without a yes.
 
 ## Principles

@@ -9,6 +9,8 @@ Goal: the dev's design becomes **real, navigable screens running in their app**,
 
 Talk to the dev in their language. Keep them in the loop at the two points that matter: approving the spec (Phase 3) and confirming the result (Phase 6).
 
+**Called by rn-feature** (the arguments start with `Called by rn-feature`): the dev already approved a plan for a ticket. Follow `../rn-feature/references/handoff.md`: build only the step's scope, take answers from the ticket file and its recorded decisions, asking only what they don't answer and the step can't go on without, skip the spec approval in Phase 3 (still update `docs/design-spec.md`, tagging the screens with the ticket id), verify on the main target only, don't commit, and end with the report block instead of the Phase 6 hand-off. When the call names API schemas, shape `types/<domain>.ts` after them (same fields, the app's own names and types) so the later switch to the real API needs little mapping.
+
 ## Phase 0 — Understand the project
 
 ```bash

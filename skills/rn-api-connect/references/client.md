@@ -117,7 +117,7 @@ import { env } from './env';
 type TokenGetter = () => string | null | undefined | Promise<string | null | undefined>;
 let getToken: TokenGetter | null = null;
 
-// Sign-in code registers how to read the current access token.
+// Sign-in code registers how to read the current access token (references/auth.md adds refresh).
 export const setAuthTokenGetter = (getter: TokenGetter | null) => {
   getToken = getter;
 };
