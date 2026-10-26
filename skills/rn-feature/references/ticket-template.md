@@ -80,6 +80,34 @@ _Filled when the ticket is built: each R# with the test, flow or screenshot that
 - 2026-10-26: analyzed (design: Figma 2 frames; API: openapi.json from dev). 4 questions open.
 ```
 
+## Plan and Evidence, once the ticket is being built
+
+The placeholders are replaced when the dev accepts the plan (`references/build.md`). By then the example's C1 was answered (`resolved`: the PO dropped the Cancelled tab for now), since nothing is built on a blocking concern:
+
+```markdown
+## Plan
+
+Accepted in plan mode by the dev on 2026-10-29. Branch `feat/PROJ-412-order-history`, base `main`.
+
+| Step | What | Skill | R# | Files | Check | Status |
+|---|---|---|---|---|---|---|
+| 1 | Order screens on mocks shaped like the API | rn-ui | R1, R3, R4 | `src/screens/orders/*`, `src/screens/order-detail/*` | screenshots; tsc, lint, tests | done |
+| 2 | Status tabs; Cancelled hidden until the API has it (C1 resolved by the PO) | rn-ui | R2 | `src/screens/orders/components/status-tabs.tsx` | tab test | done |
+| 3 | Domain `orders` on the API | rn-api-connect | R1, R2, R3, R4 | `src/services/orders.ts`, `src/hooks/use-orders.ts` | mapper tests; real data | doing |
+| 4 | Verify every R# | verifier | all | — | Evidence table | todo |
+
+## Evidence
+
+| # | Evidence | Result |
+|---|---|---|
+| R1 | `orders/__tests__/index.test.tsx` "lists newest first"; verifier `r1-list.png` | pass |
+| R2 | `status-tabs.test.tsx`; verifier `r2-tabs.png` (3 tabs, per C1) | pass |
+| R3 | verifier `r3-detail.png` | pass |
+| R4 | load more seen on the simulator with 45 orders | not verified: dev API has 6 orders |
+```
+
+Step Status: `todo`, `doing`, `done`, `blocked`, `skipped`. Result: `pass`, `fail`, `not verified: <reason>`, `n/a`. `all` in the R# column (the verify step) doesn't count as building anything: every active R# needs a step that builds it.
+
 ## Rules the script checks
 
 - Frontmatter has `ticket`, `type` (`feature` / `bug`) and `status` (`questions-open` / `ready` / `planned` / `in-progress` / `done`).
@@ -88,6 +116,8 @@ _Filled when the ticket is built: each R# with the test, flow or screenshot that
 - Every concern a gap points to exists. Every concern has a severity (`blocking` / `decide` / `note` / `resolved`), an owner among `PO`, `design`, `backend`, `dev` (one or more, comma-separated), and Affects naming R# that exist.
 - Every `blocking` or `decide` concern is asked in at least one question: a `**Q<n>**` line with `(C<n>)` in it. A question about a `decide` concern has a `Recommended:` answer.
 - `status: ready` (or later) with a concern still `blocking` is an error.
+- `planned`, `in-progress` and `done` need a Plan table: valid step statuses, and every active R# whose traceability isn't `n/a` named in at least one step (`all` doesn't count).
+- Evidence rows name existing R# and use a valid result; `pass` needs evidence. `done` needs every step `done` or `skipped` and every active R# in Evidence, none `fail` (a `not verified: <reason>` stays visible in the check's output and the PR). R# ranges like `R1–R3` count as R1, R2, R3.
 
 ## Bug tickets
 

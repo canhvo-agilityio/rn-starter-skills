@@ -22,6 +22,7 @@ Look for these in the design and list each one under **Special components** in `
 | Row actions revealed by swiping | swipeable rows |
 | Very long or infinite lists | high-performance list |
 | Embedded web content, payment pages | web view |
+| "Continue with Google / Apple / Facebook" buttons | social sign-in |
 
 Don't over-detect: a static illustration of a map in a marketing banner is an image.
 
@@ -68,6 +69,9 @@ Defaults per framework. Expo projects use `npx expo install` (SDK-matched versio
 | Swipeable rows | `react-native-gesture-handler` `Swipeable` | same | — |
 | Long lists | `@shopify/flash-list` | same | — |
 | Web view | `react-native-webview` | same | — |
+| Sign in with Apple | `expo-apple-authentication` (iOS) | `expo-apple-authentication` via Expo modules, or `@invertase/react-native-apple-authentication` | the *Sign in with Apple* capability on the App ID; `usesAppleSignIn: true` in `app.json` (Expo) |
+| Google sign-in | `@react-native-google-signin/google-signin` with its config plugin (development build, not Expo Go) | same | iOS: the reversed client id as a URL scheme; Android: the SHA-1 of each signing key registered in Google Cloud. A web client id for the backend's token check |
+| Facebook login | `react-native-fbsdk-next` with its config plugin (development build) | same | app id and client token in the native config |
 
 Expo permission strings go in `app.json` through the module's config plugin, e.g.:
 
@@ -76,6 +80,10 @@ Expo permission strings go in `app.json` through the module's config plugin, e.g
 ```
 
 Write real, specific permission texts — App Store review rejects vague ones.
+
+**Social sign-in** splits in two. This skill builds the buttons, the native setup and a wrapper (`components/social-sign-in.tsx`) that returns the provider's token (an Apple identity token, a Google id token) through a prop like `onToken(provider, token)`; until a backend exists the screen hook signs in the mock session with it. Exchanging that token with the backend and storing the session is rn-api-connect's `references/auth.md`. Two things to raise with the dev before building:
+- **App Store rule**: an iOS app whose sign-in uses a third-party service (Google, Facebook…) must also offer an equivalent option that limits data to name and email, lets users hide their email and doesn't track them for ads. Sign in with Apple meets it, so iOS designs with Google or Facebook buttons usually need an Apple button too. Check the current guideline text (App Review Guidelines 4.8) when the design leaves it out, and put it under Open points.
+- **Expo Go**: Google and Facebook sign-in need a development build (`devBuild: true`). Apple sign-in opens in Expo Go on iOS, but the token it returns is issued to Expo Go's bundle id, so a backend checking it for your app rejects it: the full flow needs a development build too. When the project runs in Expo Go only, offer a placeholder button for now, or the switch to a development build. Confirm both with `lib-info.sh` (Expo Go flag) before promising either.
 
 ## 5. Wrap the library in a component
 

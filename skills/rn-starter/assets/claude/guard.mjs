@@ -5,6 +5,7 @@
 //   2. reading or writing secret files: .env files (not the committed templates), signing keys,
 //      keystores, credentials.json, service-account keys
 //   3. hand edits to generated files (*.gen.ts, e.g. src/types/api.gen.ts)
+//   4. while rn-feature fixes a bug: changes to the test that reproduces it (.claude/fix-task.json)
 // It guards against mistakes, not against someone determined to get around it: the real push
 // protection is branch protection on the server. Anything it can't parse is allowed, so a bug
 // here never blocks normal work. Plain Node with no dependencies, so it runs the same on Windows.
@@ -47,6 +48,26 @@ const SECRET_REASON = (p) => `${p} holds secrets, so it stays closed: never read
 const isGenerated = (p) => /\.gen\.(ts|tsx|js)$/.test(String(p));
 const GENERATED_REASON = (p) => `${p} is generated, never edited by hand. Change its source instead `
   + '(for src/types/api.gen.ts: refresh docs/api/openapi.json, then run the api:types script) or fix the mapper that uses it.';
+
+// ---------------------------------------------------------------- tests locked during a bug fix
+// rn-feature's lock-tests.sh writes .claude/fix-task.json (and copies in .claude/fix-task/) once
+// the failing test reproduces the bug. Only that script changes the lock.
+const LOCK = path.join(root, '.claude', 'fix-task.json');
+const LOCK_COPIES = path.join(root, '.claude', 'fix-task');
+const lockedFiles = () => {
+  try {
+    return JSON.parse(fs.readFileSync(LOCK, 'utf8')).files
+      .map((f) => path.resolve(root, typeof f === 'string' ? f : f.path));
+  } catch {
+    return [];
+  }
+};
+const isLockFile = (abs) => abs === LOCK || abs === LOCK_COPIES || abs.startsWith(LOCK_COPIES + path.sep);
+const LOCKED_REASON = (p) => `${p} is the test that reproduces the bug, locked until the fix is done. `
+  + 'Make it pass by fixing the code, not the test. If the test itself is wrong, stop and tell the developer.';
+const LOCK_REASON = 'The bug-fix test lock (.claude/fix-task*) only changes through lock-tests.sh (check, restore, unlock).';
+// Commands that can change a file named among their arguments. Redirections are checked by target.
+const WRITERS = /(^|\s)(rm|mv|cp|tee|truncate|git\s+(checkout|restore|rm|mv)|prettier\s+.*--write|eslint\s+.*--fix)\s|sed\s+(-[a-zA-Z]*i|--in-place)|perl\s+-[a-zA-Z]*i/;
 
 // ---------------------------------------------------------------- protected branches
 const protectedBranches = () => {
@@ -131,6 +152,17 @@ const checkBash = (cmd) => {
     if (redirected || inlineSecret || (secretWord && READERS.has(cmdName))) {
       deny(SECRET_REASON(secretWord || inlineSecret || '.env'));
     }
+
+    // changing a locked test through the shell: a writing command naming it, or a redirect into it
+    const locked = lockedFiles();
+    if (locked.length && !/lock-tests\.sh/.test(seg)) {
+      const targets = [...seg.matchAll(/\d*>>?\s*("[^"]*"|'[^']*'|[^\s;|&]+)/g)].map((r) => r[1].replace(/^["']|["']$/g, ''));
+      const named = WRITERS.test(seg) ? w : [];
+      const paths = [...named, ...targets].map((x) => path.resolve(root, x));
+      if (paths.some(isLockFile)) deny(LOCK_REASON);
+      const hit = paths.find((p) => locked.includes(p));
+      if (hit) deny(LOCKED_REASON(path.relative(root, hit)));
+    }
   }
 };
 
@@ -141,6 +173,11 @@ if (tool === 'Bash') {
   if (isSecret(file)) deny(SECRET_REASON(path.basename(file)));
   const rel = path.relative(root, file);
   if (tool !== 'Read' && isGenerated(file)) deny(GENERATED_REASON(rel && !rel.startsWith('..') ? rel : file));
+  if (tool !== 'Read' && file) {
+    const abs = path.resolve(root, file);
+    if (isLockFile(abs)) deny(LOCK_REASON);
+    if (lockedFiles().includes(abs)) deny(LOCKED_REASON(rel));
+  }
 } else if (tool === 'Grep' || tool === 'Glob') {
   const target = args.path || '';
   if (target && isSecret(target)) deny(SECRET_REASON(path.basename(target)));
