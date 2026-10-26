@@ -32,4 +32,4 @@ Every TestFlight build asks whether the app uses non-exempt encryption; until so
 
 ## Icon and splash
 
-The inventory shows `icon` and `splash`. A store build needs a 1024×1024 icon without transparency for iOS (App Store Connect rejects an alpha channel) and an adaptive icon for Android. If the project still has the template's icon, say so — publishing Expo's logo is a common first-release mistake — and ask the dev for the real one (rn-design-import may have exported it into `assets/images/`). Splash: the `expo-splash-screen` plugin config.
+The inventory shows `icon` and `splash`. A store build needs a 1024×1024 icon without transparency for iOS (App Store Connect rejects an alpha channel) and an adaptive icon for Android. If the project still has the template's icon, say so — publishing Expo's logo is a common first-release mistake — and ask the dev for the real one (rn-ui may have exported it into `assets/images/`). Splash: the `expo-splash-screen` plugin config.

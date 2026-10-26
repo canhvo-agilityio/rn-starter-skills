@@ -1,6 +1,6 @@
 # Quality tooling: unit tests, git hooks, commit rules
 
-**Contents:** Options and what they do · Custom answers ("Other") · Verify (don't skip — a hook that silently passes everything is worse than none) · README section · Claude Code files
+**Contents:** Options and what they do · Custom answers ("Other") · Code rules (ESLint) · Verify (don't skip — a hook that silently passes everything is worse than none) · README section · Claude Code files
 
 Set up with one script after the project exists, `git init` has run, and lint/format is in place (Phase 6):
 
@@ -8,7 +8,7 @@ Set up with one script after the project exists, `git init` has run, and lint/fo
 bash "<skill-dir>/scripts/setup-quality.sh" \
   --test \
   --pre-commit lint,format,related-tests \
-  --pre-push typecheck,test \
+  --pre-push typecheck,test,protect \
   --commit-msg conventional \
   <project-dir>
 ```
@@ -29,7 +29,7 @@ The script also writes `jest-env.d.ts` (`/// <reference types="jest" />`): TypeS
 | Type check | pre-commit | `tsc --noEmit` (whole project) | slows commits on big projects |
 | Type check | pre-push | `tsc --noEmit` | fine |
 | All tests | pre-push | `jest` | fine |
-| Protect main | pre-push | refuses pushes from `main`/`master` | instant |
+| Protected branches | pre-push | refuses any push whose target is in `protectedBranches` (`.rn-starter.json`, default `main`, `master`), including `git push origin feature:main` | instant |
 | Conventional Commits | commit-msg | `commitlint` with `@commitlint/config-conventional` | instant |
 
 Defaults (all marked recommended): unit tests on; pre-commit = lint + format + related tests; pre-push = type check + all tests; commit messages = Conventional Commits. Keep the slow checks in pre-push: a commit that takes 30 seconds teaches people `--no-verify`.
@@ -68,6 +68,43 @@ echo "$branch" | grep -Eq '^(main|master|develop|(feature|fix|chore)/[a-z0-9._-]
 
 Show the dev the exact config before applying a custom rule — free-text rules are easy to misread — then verify it like the built-in ones.
 
+## Code rules (ESLint)
+
+Whenever ESLint is the linter, add these rules too. They reject the shortcuts that make code look finished while hiding a problem: `any`, casts through `unknown`, `@ts-ignore`, leftover `console.log`, empty `catch`, color literals in UI files, and untyped service functions. They use only rules that ship with ESLint and typescript-eslint (`eslint-config-expo` already registers the plugin), so nothing new is installed. The same rules run in three places: the format hook on every file Claude edits, lint-staged on commit, and CI once `rn-pipeline` sets it up.
+
+Add to `eslint.config.js` after the existing entries (and after the structure rules from `structure.md`, if any). `no-restricted-syntax` is one rule, so the UI block repeats the double-cast selector rather than losing it:
+
+```js
+const testFiles = ['src/**/__tests__/**', 'src/test-utils.tsx'];
+const doubleCast = {
+  selector: 'TSAsExpression > TSAsExpression[typeAnnotation.type="TSUnknownKeyword"]',
+  message: 'A cast through unknown hides a type error. Fix the type, or map the data where it enters the app.',
+};
+const colorLiteral = {
+  selector: 'Literal[value=/^(#[0-9a-fA-F]{3,8}|rgba?\\(|hsla?\\()/]',
+  message: 'Colors come from the theme (src/theme), never literals.',
+};
+
+// in the defineConfig([...]) array:
+{
+  files: ['src/**/*.{ts,tsx}'],
+  ignores: testFiles,
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/ban-ts-comment': ['error', { 'ts-ignore': true, 'ts-nocheck': true, 'ts-expect-error': 'allow-with-description', minimumDescriptionLength: 10 }],
+    'no-console': ['error', { allow: ['warn', 'error'] }],
+    'no-empty': ['error', { allowEmptyCatch: false }],
+    'no-restricted-syntax': ['error', doubleCast],
+  },
+},
+{ files: ['src/{app,screens,components}/**/*.tsx'], ignores: testFiles, rules: { 'no-restricted-syntax': ['error', doubleCast, colorLiteral] } },
+{ files: ['src/services/**/*.ts'], ignores: testFiles, rules: { '@typescript-eslint/explicit-module-boundary-types': 'error' } },
+```
+
+The color rule covers UI files only; `src/theme/` and `src/constants/` are where colors are defined. Then run `npx eslint src`. The Expo SDK 58 `default` template trips it twice, which is expected: `themed-text.tsx` (moves to `src/theme/` with the layered structure, where the rule doesn't apply) and the demo `animated-icon.tsx` (move the color into the theme, or drop the file with the other demo components). Its `use-color-scheme.web.ts` also fails `react-hooks/set-state-in-effect`, a template issue unrelated to these rules: record it in the baseline and leave it unless the dev asks.
+
+Verified on an Expo SDK 58 app (ESLint 9.39): each rule fires on a sample screen and service, and test files are left alone. With Biome, skip this section: Biome's recommended rules already reject `any` (`noExplicitAny`); mention that the other rules aren't applied.
+
 ## Verify (don't skip — a hook that silently passes everything is worse than none)
 
 Run these without creating commits:
@@ -78,8 +115,10 @@ echo "bad message" | npx commitlint                   # must FAIL
 echo "chore: verify hooks" | npx commitlint           # must pass (use a matching example for custom rules)
 printf 'const   x =  1\n' > tmp-check.ts && git add tmp-check.ts && npx lint-staged   # file gets fixed/formatted
 git reset -q tmp-check.ts && rm tmp-check.ts
-sh -e .husky/pre-push                                  # runs type check + tests (on a non-main branch if protect-main)
+echo "refs/heads/x 0 refs/heads/feature/check 0" | sh -e .husky/pre-push   # runs type check + tests, must pass
                                                        # -e matters: Husky runs hooks with `sh -e`; plain `sh` ignores failures
+echo "refs/heads/x 0 refs/heads/main 0" | sh -e .husky/pre-push; echo "exit $?"   # with protect: must print "blocked" and exit 1
+                                                       # repeat for each other name in protectedBranches
 ```
 
 The first real commit of the scaffold (`chore: scaffold app with rn-starter`) then goes through all hooks — a last end-to-end check.
@@ -107,9 +146,11 @@ bash "<skill-dir>/scripts/setup-claude.sh" <project-dir>
 
 | File | What it does |
 |---|---|
-| `CLAUDE.md` | Stack, commands for this package manager, the structure rules and code style (`references/structure.md`, rn-design-import `conventions.md`), and the working rules: fix what the hook reports, type check and run related tests before calling a change done, run `code-reviewer` before committing |
+| `CLAUDE.md` | Stack, commands for this package manager, the structure rules and code style (`references/structure.md`, rn-ui `conventions.md`), a **Verifying your work** table (each check with its healthy output; nothing is done until they've run, fix the code not the test, `verifier` for visible changes), and the working rules: fix what the hooks report, run `code-reviewer` before committing, add a correction here when a mistake repeats |
 | `.claude/hooks/format.mjs` + `.claude/settings.json` | `PostToolUse` hook on `Edit`/`MultiEdit`/`Write`: runs the project's Prettier then `eslint --fix` (or `biome check --write`) on the edited file. Errors that `--fix` can't solve go back to Claude (exit 2), so it fixes them in the same turn. Plain Node, so it works on Windows too |
+| `.claude/hooks/guard.mjs` + `.claude/settings.json` | `PreToolUse` hook that denies three things before they happen, with a reason that tells Claude what to do instead: a `git push` to a protected branch (`protectedBranches` in `.rn-starter.json`, default `main`, `master`; also catches `feature:main`, `HEAD`, `--all`, `-C dir`), reading or editing secret files (`.env*` except the committed templates, `.p8`, `.p12`, `.jks`, `.keystore`, `credentials.json`, service-account keys), and hand edits to `*.gen.ts`. It guards against mistakes; the real push protection is branch protection on the server (`rn-pipeline`). Anything it can't parse is allowed, so it never blocks normal work by accident |
 | `.claude/agents/code-reviewer.md` | Read-only subagent: reviews uncommitted changes (or a branch), runs ESLint, `tsc` and related tests, and reports bugs, broken structure rules and React Native pitfalls with `file:line` and a fix |
+| `.claude/agents/verifier.md` | Subagent that runs the app on the main target, opens each changed screen by deep link, exercises the change and the neighboring flows, and reports per requirement (pass / fail / not verified) with screenshots. Never edits |
 
 Exit code 3 means the project already had a `CLAUDE.md` and it was kept. Show the dev what the generated one would add and offer to merge it in, or rerun with `--force` if they want it replaced.
 
@@ -125,9 +166,15 @@ printf 'import { mockProducts } from "@/mocks/products";\nexport const A = () =>
 echo '{"tool_input":{"file_path":"'"$PWD"'/src/tmp-check.tsx"}}' | CLAUDE_PROJECT_DIR="$PWD" node .claude/hooks/format.mjs; echo "exit $?"
                                          # layered structure: must print the mocks rule and exit 2
 rm -f src/tmp-check.ts src/tmp-check.tsx
+guard() { node -e 'console.log(JSON.stringify({tool_name:process.argv[1],tool_input:process.argv[1]==="Bash"?{command:process.argv[2]}:{file_path:process.argv[2]}}))' "$1" "$2" | CLAUDE_PROJECT_DIR="$PWD" node .claude/hooks/guard.mjs; echo " [$1 $2]"; }
+guard Bash "git push origin feature/x:main"   # must print a deny for main (and each protected branch)
+guard Bash "git push origin feature/x"        # must print nothing
+guard Read "$PWD/.env"                        # must print a deny
+guard Read "$PWD/.env.example"                # must print nothing
+guard Edit "$PWD/src/types/api.gen.ts"        # must print a deny
 ```
 
-Check that `.claude/agents/code-reviewer.md` exists and `CLAUDE.md` lists the right commands for the package manager. Commit all of it with the scaffold. Only `.claude/settings.local.json` stays out of git, and the script adds it to `.gitignore`.
+Check that `.claude/agents/code-reviewer.md` and `.claude/agents/verifier.md` exist and `CLAUDE.md` lists the right commands for the package manager. Commit all of it with the scaffold. Only `.claude/settings.local.json` stays out of git, and the script adds it to `.gitignore`.
 
 README section (in the dev's language), e.g.:
 
@@ -136,5 +183,6 @@ README section (in the dev's language), e.g.:
 
 - `CLAUDE.md` holds the project rules Claude follows. Edit it when a convention changes.
 - Every file Claude edits is formatted and lint-fixed automatically (`.claude/hooks/format.mjs`).
-- Ask Claude to "review my changes" before committing: it runs the `code-reviewer` subagent.
+- Claude can't push to the protected branches, open `.env` or credential files, or hand-edit generated files (`.claude/hooks/guard.mjs`).
+- Ask Claude to "review my changes" before committing: it runs the `code-reviewer` subagent. "Verify it in the app" runs the `verifier` subagent.
 ```

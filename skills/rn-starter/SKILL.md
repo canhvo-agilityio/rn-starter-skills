@@ -1,6 +1,6 @@
 ---
 name: rn-starter
-description: Step-by-step wizard from a machine with nothing installed (macOS, Windows or Linux) to a running React Native app: installs missing tooling, asks which framework, bundler, template, libraries and run targets, scaffolds a layered project with quality tooling, and runs it on the chosen targets. Use when someone wants to start, create, bootstrap or scaffold a React Native / Expo app, set up a machine for React Native, onboard a new mobile developer, or asks how to get an RN app running. Not for adding screens to an existing app (rn-design-import).
+description: Step-by-step wizard from a machine with nothing installed (macOS, Windows or Linux) to a running React Native app: installs missing tooling, asks which framework, bundler, template, libraries and run targets, scaffolds a layered project with quality tooling, and runs it on the chosen targets. Use when someone wants to start, create, bootstrap or scaffold a React Native / Expo app, set up a machine for React Native, onboard a new mobile developer, or asks how to get an RN app running. Not for adding screens to an existing app (rn-ui).
 ---
 
 # React Native starter wizard
@@ -106,17 +106,19 @@ One `AskUserQuestion` call, up to four questions:
 Then a second call:
 
 - **Lint & format** — ESLint + Prettier (Recommended) / Biome / none
-- **Folder structure** — Layered team structure from `references/structure.md`: `screens/`, `components/`, `hooks/`, `services/` with ESLint-enforced rules (Recommended) / keep the template as is. Ask this even with a design input: the structure is set up here during scaffolding, and rn-design-import then builds the screens inside it.
+- **Folder structure** — Layered team structure from `references/structure.md`: `screens/`, `components/`, `hooks/`, `services/` with ESLint-enforced rules (Recommended) / keep the template as is. Ask this even with a design input: the structure is set up here during scaffolding, and rn-ui then builds the screens inside it.
 - **UI component library** — only when styling is StyleSheet (that's why it's in this second call): None — our own components on the theme (Recommended) / React Native Paper (Material 3). With NativeWind or Unistyles don't ask; no library is verified for them yet (`references/libraries.md` → "UI component library" says why).
 - **Code quality** (`multiSelect: true`) — Unit tests: Jest + React Native Testing Library (Recommended) / Git hooks: Husky + lint-staged (Recommended) / Commit message rules: Conventional Commits via commitlint (Recommended) / Claude Code setup: `CLAUDE.md`, a format-on-edit hook and a `code-reviewer` subagent (Recommended).
 
 If git hooks or commit rules were chosen, one more call (`references/quality.md` lists what each option runs):
 
 - **Before each commit** (`multiSelect: true`, staged files only) — Lint + auto-fix (Recommended) / Format (Recommended) / Related unit tests (Recommended) / Type check (slower).
-- **Before each push** (`multiSelect: true`) — Type check (Recommended) / All unit tests (Recommended) / Block direct pushes to main.
+- **Before each push** (`multiSelect: true`) — Type check (Recommended) / All unit tests (Recommended) / Block direct pushes to protected branches.
 - **Commit message format** — Conventional Commits, e.g. `feat: add cart` (Recommended) / No check. Custom formats (Jira keys, required scope) come in through "Other".
 
 Offer lint/format items only if a linter was chosen above, test items only if unit tests were.
+
+If they chose to block pushes, ask in plain text which branches are protected: `main` by default, plus the team's environment branches if it has them (e.g. `dev`, `stag`, `prod`). Record the answer as `protectedBranches`. The git hook and the Claude Code guard hook both read that one list.
 
 ## Phase 4 — Platform toolchain (only if needed)
 
@@ -178,7 +180,7 @@ Follow `references/frameworks.md` for the exact create command for the chosen fr
 2. If pnpm: create `pnpm-workspace.yaml` containing `nodeLinker: hoisted` and `strictDepBuilds: false` (exact command and why in `references/frameworks.md`) **before** installing (React Native's Metro and autolinking expect a flat `node_modules`). Use this file rather than `.npmrc` — npm prints a warning on every `npx` call when it sees pnpm-only keys in `.npmrc`.
 3. Install chosen libraries using the commands in `references/libraries.md`. For Expo always use `npx expo install <pkg>` so versions match the SDK.
 4. Apply the folder structure from `references/structure.md` if chosen: move the template's theme into `src/theme/`, turn the demo home into the first screen (`src/screens/home/`) with a one-line route file, and add the ESLint rules. Move existing template files rather than duplicating them, update imports, and run `npx eslint src`.
-5. Set up lint/format if chosen.
+5. Set up lint/format if chosen. With ESLint, also add the code rules from `references/quality.md` → Code rules (no `any`, no casts through `unknown`, no `@ts-ignore`, no leftover `console.log`, no empty `catch`, no color literals in UI files) and run `npx eslint src`.
    - CLI with the iOS Simulator as a target: install the iOS native dependencies with `cd ios && pod install`. It was skipped at create time with `--install-pods false`. Run it after adding libraries, because new native modules need it too. The first run downloads React Native's prebuilt core and takes ~3–5 min, so run it in the background. The CLI's own output suggests `bundle install && bundle exec pod install`; ignore that and use plain `pod install` from Homebrew (macOS's Ruby is too old for the bundler path).
 6. Verify before running it — the exact commands are under "Verify" in `references/frameworks.md`:
    - Expo: `npx expo-doctor` must pass, and `npx expo export --platform android` must bundle. Together they prove the dependencies line up and the JS compiles, without needing a phone.
@@ -186,19 +188,19 @@ Follow `references/frameworks.md` for the exact create command for the chosen fr
 
 If a step fails, read `references/troubleshooting.md` before improvising. Fix, then rerun the same verification.
 
-Write `.rn-starter.json` at the project root with the recorded choices, so later skills (rn-design-import) generate code that matches:
+Write `.rn-starter.json` at the project root with the recorded choices, so later skills (rn-ui) generate code that matches:
 
 ```json
 { "framework": "expo", "template": "default", "packageManager": "pnpm", "bundler": "metro",
   "navigation": "expo-router", "state": "zustand", "serverData": "tanstack-query",
   "styling": "stylesheet", "uiLibrary": "none", "lint": "eslint-prettier", "structure": "layered",
-  "devBuild": false, "runTargets": ["ios-simulator"],
+  "devBuild": false, "runTargets": ["ios-simulator"], "protectedBranches": ["main", "dev", "stag", "prod"],
   "quality": { "unitTests": "jest-rntl", "preCommit": ["lint", "format", "related-tests"],
-               "prePush": ["typecheck", "test"], "commitMsg": "conventional", "claude": true },
+               "prePush": ["typecheck", "test", "protect"], "commitMsg": "conventional", "claude": true },
   "createdWith": "rn-starter 1.0.0" }
 ```
 
-`structure` is `layered` or `template` (kept as is). `uiLibrary` is `none` or `react-native-paper`. `devBuild` is `true` when an Expo project needs a development build instead of Expo Go (Unistyles, or another library with native code Expo Go lacks).
+`structure` is `layered` or `template` (kept as is). `protectedBranches` lists the branches nobody pushes to directly (only when the dev chose to block pushes; omit it otherwise). `uiLibrary` is `none` or `react-native-paper`. `devBuild` is `true` when an Expo project needs a development build instead of Expo Go (Unistyles, or another library with native code Expo Go lacks).
 
 Make sure the project is a git repo (Expo already ran `git init`; for CLI, created with `--skip-git-init`, run `git init` now). Then, if any code-quality option was chosen, set it up with `scripts/setup-quality.sh` and run the checks in "Verify" — both in `references/quality.md`. Apply any custom ("Other") rules on top of the generated files before verifying. If Claude Code setup was chosen, run `scripts/setup-claude.sh` **after** `.rn-starter.json` and the quality tooling exist (it reads both) and check it as in `references/quality.md` → "Claude Code files".
 
@@ -230,7 +232,7 @@ The run is done when the app's first screen is visible **on every selected targe
 
 ## Phase 7b — Build the screens (only with a design input)
 
-The empty app now runs, so the toolchain is proven. Hand over to the **rn-design-import** skill with the recorded design input (screen list, image paths, or Figma link) and the project path. It reads `.rn-starter.json`, writes `docs/design-spec.md` for the dev to approve, generates theme, fonts, components, screens and navigation, and verifies each screen on the already-running simulator/emulator. Continue with Phase 8 when it reports back.
+The empty app now runs, so the toolchain is proven. Hand over to the **rn-ui** skill with the recorded design input (screen list, image paths, or Figma link) and the project path. It reads `.rn-starter.json`, writes `docs/design-spec.md` for the dev to approve, generates theme, fonts, components, screens and navigation, and verifies each screen on the already-running simulator/emulator. Continue with Phase 8 when it reports back.
 
 If the skill isn't available, tell the dev the screens weren't generated and finish the hand-off with the empty app.
 

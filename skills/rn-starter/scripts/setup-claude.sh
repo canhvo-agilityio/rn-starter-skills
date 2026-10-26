@@ -2,14 +2,17 @@
 # Add Claude Code project files to a React Native / Expo project:
 #   CLAUDE.md                        stack, commands, structure and code-style rules for Claude
 #   .claude/hooks/format.mjs         PostToolUse hook: Prettier/ESLint (or Biome) on every edited file
-#   .claude/settings.json            registers the hook (merged into an existing file)
+#   .claude/hooks/guard.mjs          PreToolUse hook: blocks pushes to protected branches, secret files,
+#                                    hand edits to generated files
+#   .claude/settings.json            registers both hooks (merged into an existing file)
 #   .claude/agents/code-reviewer.md  read-only review subagent
+#   .claude/agents/verifier.md       runs the app and checks the change, report only
 #
 # Usage: setup-claude.sh [--force] [project-dir]
-#   --force   overwrite an existing CLAUDE.md and code-reviewer.md
+#   --force   overwrite an existing CLAUDE.md and the two agent files
 #
-# Idempotent: format.mjs is always refreshed, the hook is registered once, and files the team may
-# have edited (CLAUDE.md, code-reviewer.md) are only created when missing unless --force.
+# Idempotent: the hook scripts are always refreshed, each hook is registered once, and files the
+# team may have edited (CLAUDE.md, the agents) are only created when missing unless --force.
 # Reads .rn-starter.json when present, else package.json. Needs node (always there in an RN project).
 # Plain bash + node, so it runs as-is in Git Bash on Windows.
 #
@@ -38,26 +41,26 @@ log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 mkdir -p .claude/hooks .claude/agents
 written=(.claude/settings.json)
 
-log "Format hook"
+log "Format and guard hooks"
 cp "$assets/format.mjs" .claude/hooks/format.mjs
+cp "$assets/guard.mjs" .claude/hooks/guard.mjs
 node - <<'EOF'
 const fs = require('fs');
 const file = '.claude/settings.json';
-const command = 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/format.mjs"';
 let settings = {};
 if (fs.existsSync(file)) settings = JSON.parse(fs.readFileSync(file, 'utf8'));
 settings.hooks ??= {};
-settings.hooks.PostToolUse ??= [];
-const registered = settings.hooks.PostToolUse.some((entry) =>
-  (entry.hooks || []).some((h) => h.command === command));
-if (!registered) {
-  settings.hooks.PostToolUse.push({
-    matcher: 'Edit|MultiEdit|Write',
-    hooks: [{ type: 'command', command, timeout: 60 }],
-  });
-}
+const register = (event, matcher, script, timeout) => {
+  const command = `node "$CLAUDE_PROJECT_DIR/.claude/hooks/${script}"`;
+  settings.hooks[event] ??= [];
+  const registered = settings.hooks[event].some((entry) =>
+    (entry.hooks || []).some((h) => h.command === command));
+  if (!registered) settings.hooks[event].push({ matcher, hooks: [{ type: 'command', command, timeout }] });
+  console.log(`${script}: ${registered ? 'already registered' : 'registered'} (${event})`);
+};
+register('PostToolUse', 'Edit|MultiEdit|Write', 'format.mjs', 60);
+register('PreToolUse', 'Bash|Read|Edit|MultiEdit|Write|NotebookEdit|Grep|Glob', 'guard.mjs', 10);
 fs.writeFileSync(file, JSON.stringify(settings, null, 2) + '\n');
-console.log(registered ? 'hook already registered in .claude/settings.json' : 'hook registered in .claude/settings.json');
 EOF
 
 # Personal overrides stay out of git; the shared settings, hook, agent and CLAUDE.md go in.
@@ -65,14 +68,16 @@ if [ -f .gitignore ] && ! grep -qx '.claude/settings.local.json' .gitignore; the
   printf '\n# Claude Code personal settings\n.claude/settings.local.json\n' >> .gitignore
 fi
 
-log "Review subagent"
-if [ "$force" -eq 1 ] || [ ! -f .claude/agents/code-reviewer.md ]; then
-  cp "$assets/code-reviewer.md" .claude/agents/code-reviewer.md
-  written+=(.claude/agents/code-reviewer.md)
-  echo "wrote .claude/agents/code-reviewer.md"
-else
-  echo "kept existing .claude/agents/code-reviewer.md (--force to replace)"
-fi
+log "Subagents"
+for agent in code-reviewer verifier; do
+  if [ "$force" -eq 1 ] || [ ! -f ".claude/agents/$agent.md" ]; then
+    cp "$assets/$agent.md" ".claude/agents/$agent.md"
+    written+=(".claude/agents/$agent.md")
+    echo "wrote .claude/agents/$agent.md"
+  else
+    echo "kept existing .claude/agents/$agent.md (--force to replace)"
+  fi
+done
 
 log "CLAUDE.md"
 kept=0
@@ -123,6 +128,19 @@ const commands = [
   ['Related tests only', deps.jest && 'npx jest --findRelatedTests <files>'],
 ].filter(([, c]) => c).map(([k, c]) => `| ${k} | \`${c}\` |`);
 
+// Each check with what a healthy run looks like, so "it passed" is something Claude can see.
+const biome = fs.existsSync('biome.json') || fs.existsSync('biome.jsonc');
+const verify = [
+  fs.existsSync('tsconfig.json') && ['Type check', 'npx tsc --noEmit', 'prints nothing, exit 0'],
+  biome ? ['Lint', 'npx biome check src', 'no errors']
+    : deps.eslint && ['Lint', 'npx eslint src', 'prints nothing, exit 0'],
+  deps.jest && ['Tests for what changed', 'npx jest --findRelatedTests <changed files> --passWithNoTests', '"Tests: N passed", no failures'],
+  scripts.test && ['All unit tests', pmRun('test'), 'every suite passes'],
+  isExpo && ['After adding or upgrading a package', 'npx expo-doctor', 'every check passes'],
+].filter(Boolean).map(([k, c, ok]) => `| ${k} | \`${c}\` | ${ok} |`);
+let protectedList = ['main', 'master'];
+if (Array.isArray(starter.protectedBranches) && starter.protectedBranches.length) protectedList = starter.protectedBranches;
+
 const layered = (starter.structure || (fs.existsSync('src/screens') ? 'layered' : 'template')) === 'layered';
 const commitlint = fs.readdirSync('.').some((f) => /^commitlint\.config\./.test(f));
 const husky = fs.existsSync('.husky');
@@ -134,12 +152,14 @@ let md = fs.readFileSync(process.argv[2], 'utf8')
   .replace('{{AGENTS}}', fs.existsSync('AGENTS.md') ? 'Framework guidance from the template: @AGENTS.md' : '')
   .replace('{{STACK}}', stack)
   .replace('{{COMMANDS}}', ['| | |', '|---|---|', ...commands].join('\n'))
+  .replace('{{VERIFY}}', ['| Check | Command | Healthy output |', '|---|---|---|', ...verify].join('\n'))
+  .replace('{{PROTECTED}}', `protected branches (${protectedList.map((b) => `\`${b}\``).join(', ')})`)
   .replace('{{STYLE_RULE}}', ({
     'react-native-paper': 'UI comes from React Native Paper; style through its theme (`useAppTheme()`), not a second theme.',
     tamagui: 'UI comes from Tamagui; use its components and theme values the way existing components do, not a second theme.',
     '@gluestack-ui/core': 'UI comes from gluestack-ui; style with `className` and its CSS-variable tokens.',
   })[['react-native-paper', 'tamagui', '@gluestack-ui/core'].find((d) => deps[d])]
-    || (deps.nativewind ? 'Style with `className`; colors are CSS variables per scheme (`theme.md` in rn-design-import).'
+    || (deps.nativewind ? 'Style with `className`; colors are CSS variables per scheme (`theme.md` in rn-ui).'
     : deps['react-native-unistyles'] ? 'Style with `StyleSheet.create((theme) => …)` from react-native-unistyles at the bottom of the file; avoid `useUnistyles()`.'
     : 'Styles go at the bottom of the file: a module-level `StyleSheet.create` for layout and tokens, and `createThemedStyles` from `src/theme` for colors (built once per scheme, shared by every instance).'))
   .replace('{{INSTALL_RULE}}', isExpo
@@ -174,6 +194,9 @@ log "Summary"
 echo "CLAUDE.md                         $([ "$kept" -eq 1 ] && echo 'existing file kept' || echo 'written')"
 echo ".claude/settings.json             PostToolUse (Edit|MultiEdit|Write) → node .claude/hooks/format.mjs"
 echo ".claude/hooks/format.mjs          $( [ -f biome.json ] || [ -f biome.jsonc ] && echo 'biome check --write' || echo 'prettier --write, eslint --fix') on the edited file"
+echo ".claude/settings.json             PreToolUse (Bash|Read|Edit|Write|…) → node .claude/hooks/guard.mjs"
+echo ".claude/hooks/guard.mjs           blocks pushes to: $(node -e "try{const b=require('./.rn-starter.json').protectedBranches;if(b&&b.length){console.log(b.join(', '));process.exit(0)}}catch{}console.log('main, master')"); secret files; edits to *.gen.ts"
 echo ".claude/agents/code-reviewer.md   subagent 'code-reviewer' (read-only)"
+echo ".claude/agents/verifier.md        subagent 'verifier' (runs the app, reports only)"
 [ "$kept" -eq 1 ] && exit 3
 exit 0

@@ -5,7 +5,9 @@
 # Usage: setup-quality.sh [options] [project-dir]
 #   --test                         Jest + React Native Testing Library (+ jest-expo on Expo), sample test
 #   --pre-commit <list>            comma list: lint,format,related-tests,typecheck   (needs a git repo)
-#   --pre-push <list>              comma list: typecheck,test,protect-main
+#   --pre-push <list>              comma list: typecheck,test,protect   (protect: refuse pushes to the
+#                                  branches in .rn-starter.json "protectedBranches", default main,master;
+#                                  protect-main is accepted as an old name)
 #   --commit-msg conventional|none commitlint with @commitlint/config-conventional
 #
 # Custom rules the dev asked for ("Other" answers) are not options here: run this with the
@@ -130,12 +132,21 @@ fi
 
 if [ -n "$pre_push" ]; then
   {
-    if has_item "$pre_push" protect-main; then
+    if has_item "$pre_push" protect || has_item "$pre_push" protect-main; then
+      # Git gives pre-push one "<local ref> <local sha> <remote ref> <remote sha>" line per ref
+      # being pushed, so `git push origin feature:main` is caught too, not only pushes from main.
+      # The list lives in .rn-starter.json (protectedBranches), shared with the Claude guard hook.
       cat <<'EOF'
-branch="$(git rev-parse --abbrev-ref HEAD)"
-case "$branch" in
-  main|master) echo "Pushing directly to $branch is blocked. Create a branch and open a PR." >&2; exit 1 ;;
-esac
+protected="$(node -e "try{const b=require('./.rn-starter.json').protectedBranches;if(Array.isArray(b)&&b.length){console.log(b.join(' '));process.exit(0)}}catch{}console.log('main master')")"
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  branch="${remote_ref#refs/heads/}"
+  for p in $protected; do
+    if [ "$branch" = "$p" ]; then
+      echo "Pushing directly to $branch is blocked (protectedBranches in .rn-starter.json). Push a feature branch and open a pull request." >&2
+      exit 1
+    fi
+  done
+done
 EOF
     fi
     has_item "$pre_push" typecheck && echo "npx tsc --noEmit"

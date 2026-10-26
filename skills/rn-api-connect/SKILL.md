@@ -21,7 +21,7 @@ source "<skill-dir>/../rn-starter/scripts/env.sh"; bash "<skill-dir>/scripts/api
 
 It prints JSON: framework, package manager, layout, query library, env setup (the template file and its variables, the variables the code reads, whether git ignores `.env` — never `.env` itself), an existing API client, and every **domain** (service file) with its functions, hooks, the screens using them, its mocks, and its `source` (`mock` / `connected` / `api` / `mixed`).
 
-- **Exit 3, no service seam** (no `src/services/`, data fetched inside screens): this skill needs one. Offer to add the layered data layer first (rn-design-import `references/conventions.md` → Data seams) as a separate step the dev approves, or stop.
+- **Exit 3, no service seam** (no `src/services/`, data fetched inside screens): this skill needs one. Offer to add the layered data layer first (rn-ui `references/conventions.md` → Data seams) as a separate step the dev approves, or stop.
 - **`docs/api-plan.md` exists** → a follow-up run (a new domain, a refreshed spec). Read it and continue from its statuses.
 - **An API client already exists** (`apiClient` set, `axios` installed): follow it — reuse its base URL, auth and error handling, and adapt the patterns in `references/client.md` to it instead of adding a second client.
 - **`queryLibrary: none`** → recommend TanStack Query (cache, retry, invalidation; the hooks pattern assumes it). If the dev declines, keep plain hooks (`references/data-hooks.md` → Without TanStack Query).

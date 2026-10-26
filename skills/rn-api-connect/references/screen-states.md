@@ -6,7 +6,7 @@ With mocks these states never showed: data arrived instantly and always existed.
 
 ## Shared components
 
-If the project already has state components (an `EmptyState`, a `Loading`), use and extend them. Otherwise add three small ones to `src/components/`, on the theme (rn-design-import `theme.md`), each with a test:
+If the project already has state components (an `EmptyState`, a `Loading`), use and extend them. Otherwise add three small ones to `src/components/`, on the theme (rn-ui `theme.md`), each with a test:
 
 ```tsx
 // src/components/query-state.tsx — from a real run on rn-starter's StyleSheet theme
