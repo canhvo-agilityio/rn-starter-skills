@@ -16,6 +16,7 @@ Run `project-map.sh` and `check-ticket.sh` on the ticket file, then:
 | The ticket changed since the analysis (new comments, edited criteria) | Run a follow-up analysis first |
 | Another ticket `in-progress` touches the same files (`filesTouched`) | Tell the dev; build after it or agree who touches the shared file |
 | Uncommitted changes other than the ticket file you just updated | Ask the dev to commit or stash them first. The ticket file goes into the plan's first commit, on the feature branch (Phase 10); nothing is committed on `main` or another protected branch |
+| The project's `.claude/agents/` or `.claude/hooks/` are older than the plugin's (compare with rn-starter's `assets/claude/`; they're copies made at scaffold time) | Offer `bash "<rn-starter skill-dir>/scripts/setup-claude.sh" --update-agents <project>`: refreshes the hooks and the `verifier` / `code-reviewer` agents, keeps `CLAUDE.md`. On a yes, commit it on its own (`chore: update Claude agents from rn-starter`) before the feature branch |
 | Claude Code wasn't started from the project folder | The project's hooks (format, guard) and its subagents (`code-reviewer`, `verifier`) load only when the session's working directory is the project. Say so: the dev restarts Claude Code there, or you go on knowing the guard isn't active and do the subagents' checklists yourself |
 
 ## The plan (plan mode)

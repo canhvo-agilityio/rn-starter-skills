@@ -113,7 +113,7 @@ Commands you'll use most:
 | `assertVisible` / `assertNotVisible` with `id` (and `text` when the text is the requirement; it's a regex) | check |
 | `scrollUntilVisible: { element: { id: … } }` | reach a row below the fold |
 | `back` | Android back button |
-| `takeScreenshot: <name>` | evidence; saved under the run's output folder |
+| `takeScreenshot: <name>` | evidence; saved under `--test-output-dir/<run>/<flow>/takeScreenshot/<name>.png` (without that option, under `~/.maestro/tests/`, whatever path you give) |
 | `runFlow: { file: …, env: { … } }` | reuse a subflow |
 
 Rules:
@@ -138,6 +138,19 @@ The scheme is `expo.scheme` in `app.json` (Expo) or the URL scheme registered in
 
 ## Data and sign-in
 
+**Expo Go's dev-tools button.** Expo Go floats a dev-tools button (id `gearshape.fill`) over the app, by default on top of the header's right action (a heart, a share button); `clearState` puts it back there, and a tap on that action opens the dev menu instead. Move it once per launch in the open / reset subflow, before tapping header actions:
+
+```yaml
+- swipe:
+    from:
+      id: "gearshape.fill"
+    direction: DOWN
+    duration: 1500
+    optional: true
+```
+
+Only once per launch: a second swipe on the moved button taps it. Builds don't have the button.
+
 **Resetting storage.** A flow that needs an empty start (a persisted cart, a first-run screen) uses `clearState`. In Expo Go that clears Expo Go's own storage, so Expo Go shows its one-time developer-menu introduction afterwards: dismiss it in the same subflow (`tapOn: { text: "Continue", optional: true }` after an optional wait). On a build, `clearState` just resets the app.
 
 - Run against mocks: `EXPO_PUBLIC_USE_MOCKS=1` (rn-api-connect's flag) on the dev server. Flows can then rely on known items (`orders-item-1003`), and an empty or error state can be a dedicated mock the flow switches to through a route parameter or a mock flag the app already has. Don't add test-only branches to screens to make a flow pass.
@@ -158,5 +171,6 @@ The scheme is `expo.scheme` in `app.json` (Expo) or the URL scheme registered in
 | Every flow fails at its first wait, on the first tab | Native tabs: the cold start ignored the deep link; use the subflow's wait and second `openLink` |
 | An id inside a card isn't found on iOS | The pressable card is one accessibility element: assert its `accessibilityLabel` |
 | `back` does nothing on iOS | It's the Android back button; on iOS tap the header's back button by its label |
+| A tap on a header action opens Expo Go's dev menu | The dev-tools button sits on top of it: swipe it away first (Data and sign-in) |
 | Every flow fails at its first wait | The setup, not the flows: dev server without `dev-server.env`, app on its sign-in screen, an Expo Go sheet. Look at one screenshot first |
 | A tap seems ignored right after navigation | Expo Go lags about a second after a transition: wait for the new screen's element before tapping or taking a screenshot |

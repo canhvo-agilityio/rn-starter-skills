@@ -152,7 +152,7 @@ bash "<skill-dir>/scripts/setup-claude.sh" <project-dir>
 | `.claude/agents/code-reviewer.md` | Read-only subagent: reviews uncommitted changes (or a branch), runs ESLint, `tsc` and related tests, and reports bugs, broken structure rules and React Native pitfalls with `file:line` and a fix |
 | `.claude/agents/verifier.md` | Subagent that runs the app on the main target, opens each changed screen by deep link, exercises the change and the neighboring flows, and reports per requirement (pass / fail / not verified) with screenshots. Never edits |
 
-Exit code 3 means the project already had a `CLAUDE.md` and it was kept. Show the dev what the generated one would add and offer to merge it in, or rerun with `--force` if they want it replaced.
+A project made with an older plugin version gets the current hooks and agents with `--update-agents` (CLAUDE.md is kept; `git diff` shows what changed in the agents). Exit code 3 means the project already had a `CLAUDE.md` and it was kept. Show the dev what the generated one would add and offer to merge it in, or rerun with `--force` if they want it replaced.
 
 The structure section follows `structure` in `.rn-starter.json`: the layered rules, or "follow the layout already in `src/`" when the template was kept. When the dev changes a convention later, they edit `CLAUDE.md`. It's theirs from now on.
 

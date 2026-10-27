@@ -8,8 +8,11 @@
 #   .claude/agents/code-reviewer.md  read-only review subagent
 #   .claude/agents/verifier.md       runs the app and checks the change, report only
 #
-# Usage: setup-claude.sh [--force] [project-dir]
-#   --force   overwrite an existing CLAUDE.md and the two agent files
+# Usage: setup-claude.sh [--force | --update-agents] [project-dir]
+#   --force           overwrite an existing CLAUDE.md and the two agent files
+#   --update-agents   bring a project made with an older plugin up to date: refresh the hooks and
+#                     the two agent files, keep CLAUDE.md (git diff shows what changed; re-apply any
+#                     edits the team had made to the agents)
 #
 # Idempotent: the hook scripts are always refreshed, each hook is registered once, and files the
 # team may have edited (CLAUDE.md, the agents) are only created when missing unless --force.
@@ -23,10 +26,11 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 assets="$here/../assets/claude"
 
-force=0; dir="."
+force=0; update_agents=0; dir="."
 while [ $# -gt 0 ]; do
   case "$1" in
     --force) force=1 ;;
+    --update-agents) update_agents=1 ;;
     -*) echo "unknown option: $1" >&2; exit 64 ;;
     *) dir="$1" ;;
   esac
@@ -70,7 +74,7 @@ fi
 
 log "Subagents"
 for agent in code-reviewer verifier; do
-  if [ "$force" -eq 1 ] || [ ! -f ".claude/agents/$agent.md" ]; then
+  if [ "$force" -eq 1 ] || [ "$update_agents" -eq 1 ] || [ ! -f ".claude/agents/$agent.md" ]; then
     cp "$assets/$agent.md" ".claude/agents/$agent.md"
     written+=(".claude/agents/$agent.md")
     echo "wrote .claude/agents/$agent.md"
@@ -204,5 +208,5 @@ echo ".claude/settings.json             PreToolUse (Bash|Read|Edit|Write|â€¦) â†
 echo ".claude/hooks/guard.mjs           blocks pushes to: $(node -e "try{const b=require('./.rn-starter.json').protectedBranches;if(b&&b.length){console.log(b.join(', '));process.exit(0)}}catch{}console.log('main, master')"); secret files; edits to *.gen.ts"
 echo ".claude/agents/code-reviewer.md   subagent 'code-reviewer' (read-only)"
 echo ".claude/agents/verifier.md        subagent 'verifier' (runs the app, reports only)"
-[ "$kept" -eq 1 ] && exit 3
+[ "$kept" -eq 1 ] && [ "$update_agents" -eq 0 ] && exit 3
 exit 0
