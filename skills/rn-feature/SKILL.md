@@ -95,7 +95,7 @@ Next steps to mention: once the answers are in, run this skill again on the same
 
 Read `references/build.md` before starting, and `references/handoff.md` for calling the other skills.
 
-**Phase 8: Ready to build?** `check-ticket.sh` passes and no concern is `blocking`. Open `decide` concerns: the dev chooses to build with the recommended answers (recorded as assumptions) or to wait. Clean working tree, not on a protected branch, no other ticket in progress on the same files.
+**Phase 8: Ready to build?** `check-ticket.sh` passes and no concern is `blocking`. Open `decide` concerns: the dev chooses to build with the recommended answers (recorded as assumptions) or to wait. No uncommitted changes besides the ticket file (it's committed with the plan, on the feature branch), no other ticket in progress on the same files, and Claude Code running from the project folder so its hooks and subagents load.
 
 **Phase 9: Plan in plan mode.** Enter plan mode, read the code the ticket touches, and present a plan of small steps: what, which skill (rn-ui, rn-api-connect, rn-e2e, or direct), which R#, which files, how each is checked. Every active R# is in a step; sign-in before the domains that need it; for a bug, the failing test is step 1. The dev accepting the plan is the approval. Then write it into the ticket file's Plan section, set `status: planned`.
 

@@ -81,7 +81,7 @@ What building this ticket touches, as precisely as the analysis allows. It's wha
 - Screens: new / changed, by the folder name they have or will have.
 - Shared components: new / changed / reused.
 - Data: domains and functions, new endpoints the app hasn't called before.
-- Files likely touched: paths (globs are fine for new folders). Include shared files explicitly: navigation layouts, the theme, `src/types/api.gen.ts`, `package.json` when a library is needed.
+- Files likely touched: paths (globs are fine for new folders), following rn-ui's `conventions.md` (a component used by one screen lives in that screen's `components/`, not `src/components/`). Include shared files explicitly: navigation layouts, the theme, `src/types/api.gen.ts`, `package.json` when a library is needed.
 - Overlaps with other open tickets, and the order you'd build them in.
 - Out of scope: what the ticket excludes, and what you propose to leave out (that's also a question).
 - Work by skill: which parts rn-ui, rn-api-connect and rn-e2e would do.
@@ -92,7 +92,8 @@ When `docs/tickets/<id>.md` exists:
 
 1. Read it, then the ticket again (new comments, an edited description) and anything the dev tells you was answered.
 2. **R# never change number.** A changed criterion keeps its number with the new wording and a note in From (`AC 2, changed 2026-10-28`). A dropped one keeps its row struck through. A new one takes the next free number.
-3. Answered concerns become `resolved` with the decision, who made it and the date; their questions are removed from Questions (the decision stays in the concern).
+3. Answered concerns become `resolved` with the decision, who made it and the date; their questions are removed from Questions (the decision stays in the concern). A decision that changes what an R# asks for (a tab dropped, a field hidden) rewords that R# to what will be built, keeping its number, with the reason in From (`AC 2 + description, changed per C1`): the R# must describe what the Evidence proves. Traceability rows whose gap was only that concern become `covered`.
+   A `decide` concern the dev chose to build on its recommendation stays `decide` with `assumed:` in its text, and its question stays: the owner can still answer, and the PR lists it.
 4. Recheck the traceability rows the answers affect, add concerns the changes create, update Scope.
 5. Add a History line, update `status`, run `check-ticket.sh`.
 

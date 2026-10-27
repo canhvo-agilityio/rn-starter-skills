@@ -61,6 +61,11 @@ if [ "$want_test" -eq 1 ]; then
     npx expo install jest-expo jest @types/jest -- -D
     add_dev @testing-library/react-native test-renderer
     pkg_set "p.scripts=p.scripts||{};p.scripts.test=p.scripts.test||'jest';p.jest=p.jest||{preset:'jest-expo'}"
+    # The SDK 58 template's theme imports src/global.css (web styles); Jest can't parse CSS, so any
+    # test that renders a themed component fails without a stub.
+    mkdir -p jest
+    [ -f jest/style-stub.js ] || printf '// Jest can'"'"'t parse CSS; the theme imports global.css for web only.\nmodule.exports = {};\n' > jest/style-stub.js
+    pkg_set "p.jest.moduleNameMapper=Object.assign({'\\\\.css\$':'<rootDir>/jest/style-stub.js'},p.jest.moduleNameMapper||{})"
   else
     # The RN CLI template already ships Jest with the react-native preset.
     add_dev @testing-library/react-native test-renderer

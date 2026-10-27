@@ -131,15 +131,21 @@ If the dev declined it, keep the project's hooks and add what the screens now ne
 ```ts
 export const useCoffee = (id: string) => {
   const [state, setState] = useState<{ data?: Coffee; error?: ApiError; isLoading: boolean }>({ isLoading: true });
-  const load = useCallback(() => {
-    setState((s) => ({ ...s, isLoading: true, error: undefined }));
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    // State changes only in the promise callbacks: React's lint rejects a setState directly in an effect.
+    let active = true;
     getCoffee(id).then(
-      (data) => setState({ data, isLoading: false }),
-      (error) => setState({ error, isLoading: false }),
+      (data) => { if (active) setState({ data, isLoading: false }); },
+      (error) => { if (active) setState({ error, isLoading: false }); },
     );
-  }, [id]);
-  useEffect(load, [load]);
-  return { ...state, refetch: load };
+    return () => { active = false; };
+  }, [id, attempt]);
+  const refetch = useCallback(() => {
+    setState((s) => ({ ...s, isLoading: true, error: undefined }));
+    setAttempt((n) => n + 1);
+  }, []);
+  return { ...state, refetch };
 };
 ```
 
