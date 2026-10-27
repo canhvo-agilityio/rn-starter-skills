@@ -1,6 +1,6 @@
 # Theme
 
-**Contents:** Pick the setup from the project · 1. Tokens (every setup) · 2. Light, dark and the user's choice (every setup) · 3. StyleSheet only (no UI library) — the default · 4. Unistyles 3 · 5. NativeWind · 6. With a UI library · Default scales when the design doesn't define them
+**Contents:** Pick the setup from the project · 1. Tokens (every setup) · 2. Light, dark and the user's choice (every setup) · 3. StyleSheet only (no UI library) · 4. Unistyles 3 · 5. NativeWind (rn-starter's default) · 6. With a UI library · Default scales when the design doesn't define them
 
 One source of truth for colors, typography, spacing, radii and shadows. Screens and components read from it; nothing else hard-codes a visual value.
 
@@ -12,8 +12,8 @@ Read `styling` and `uiLibrary` from `detect-project.sh`. The tokens (section 1) 
 |---|---|---|---|
 | A UI library (Paper, Tamagui, gluestack-ui, …) | the library's theme config, filled from the tokens | the library's components, props and theme hook | 6 |
 | Unistyles | `StyleSheet.configure({ themes })` | `StyleSheet.create((theme) => …)` | 4 |
-| NativeWind | CSS variables per scheme | `className` | 5 |
-| StyleSheet only (default) | `src/theme/` | `useTheme()`, theme-aware styles | 3 |
+| NativeWind (rn-starter's default) | CSS variables per scheme | `className` | 5 |
+| StyleSheet only | `src/theme/` | `useTheme()`, theme-aware styles | 3 |
 
 - **Project already has a theme** (e.g. Expo SDK 58's `default` template ships `src/constants/theme.ts`, `src/hooks/use-theme.ts` and `src/components/themed-text.tsx`; rn-starter moves them to `src/theme/`): extend it and keep its exports and return shapes — the template's components depend on them. For the SDK 58 template:
   - `useTheme()` returns the color object directly (`const colors = useTheme()`), not `{ colors }`. Keep that; add new color names to both its light and dark palettes, and export typography/radius/shadow as separate constants next to it.
@@ -133,7 +133,7 @@ These files are plain data, so the same values feed any setup below: a UI librar
     Check it in Phase 5 by switching tabs in both directions (dark-header tab → light tab → back), not only by opening each tab fresh;
   - the root background, so dark mode doesn't flash white on launch or behind modals: `SystemUI.setBackgroundColorAsync(colors.background)` from `expo-system-ui` (Expo), or the native window background (CLI).
 
-## 3. StyleSheet only (no UI library) — the default
+## 3. StyleSheet only (no UI library)
 
 What the sources do, and what follows from it:
 
@@ -267,7 +267,7 @@ const styles = StyleSheet.create((theme) => ({
 
 `adaptiveThemes: true` follows the system and needs themes named `light` and `dark`. For a user override, call `UnistylesRuntime.setAdaptiveThemes(false)` then `UnistylesRuntime.setTheme('dark')`; `setTheme` throws while adaptive themes are on. `adaptiveThemes` and `initialTheme` can't both be set. Avoid `useUnistyles()` in components, because it re-renders on every theme change; `StyleSheet.create` is the intended path.
 
-## 5. NativeWind
+## 5. NativeWind (rn-starter's default)
 
 Colors become CSS variables with a value per scheme, so `bg-surface` switches without `dark:` variants on every element:
 

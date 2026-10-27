@@ -6,7 +6,7 @@ Keep it short and scannable — the dev approves it in a minute, and the next im
 # Design spec — <App name>
 
 Source: <Figma link(s) / screenshots in docs/design/ / description from <date>>
-Stack: <Expo SDK 58 · expo-router · StyleSheet>   ← from detect-project.sh
+Stack: <Expo SDK 58 · expo-router · NativeWind>   ← from detect-project.sh
 
 ## Navigation
 
