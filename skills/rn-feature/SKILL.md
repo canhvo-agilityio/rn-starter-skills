@@ -13,6 +13,8 @@ Talk to the dev in their language. Write the ticket file in the ticket's languag
 
 **Which mode.** "Analyze", "what does this ticket need", "check it against the design": the analysis (Phases 0–7), then stop. "Build", "implement", "fix", "làm ticket này": the analysis first if there's no ticket file yet, then Building (Phases 8–13).
 
+**Invoked as a slash command.** `/rn-feature SHOP-12` names the ticket: no ticket file yet → analyze; a file → the next step its status calls for (below). `/rn-feature build SHOP-12` builds. `/rn-feature` alone gives no ticket and no mode: run Phase 0, then ask once with `AskUserQuestion` which ticket, offering each `docs/tickets/*.md` with what comes next for it, plus *A new ticket (paste it, or a GitHub / Jira reference)*. What comes next follows the status: `questions-open` → update the analysis with the answers you have (follow-up run); `ready` → build; `planned` / `in-progress` → continue the build from the first plan step that isn't `done`; `done` → nothing left, say so.
+
 ## Phase 0: Understand the project
 
 ```bash

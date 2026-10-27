@@ -23,6 +23,8 @@ JSON: Maestro (path, version), Java (Maestro needs 17+), booted simulators and e
 - **No booted device**: boot one with rn-starter's `scripts/start-simulator.sh` or `start-emulator.sh`.
 - **No `.maestro/`**: first run here; Phase 3 creates the layout.
 
+**Invoked as a slash command with nothing else** (`/rn-e2e`): after Phase 0, ask once what to cover: each `docs/tickets/*.md` whose active R# have no flow yet (`check-flows.sh --ticket`), *A screen or flow I'll describe*, or *Rerun the existing flows* (straight to Phase 4).
+
 ## Phase 1: Decide what each flow proves
 
 From the ticket file (`docs/tickets/<id>.md`: Requirements and Traceability) or the dev's list: one flow per R#, named after it. An R# that isn't visible end to end (a mapper rule, a header sent to the API) is covered by a unit test instead: name that test in the report rather than forcing a flow.
