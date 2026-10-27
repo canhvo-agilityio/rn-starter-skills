@@ -7,7 +7,7 @@ description: Builds working, themed, navigable screens in an existing React Nati
 
 Goal: the dev's design becomes **real, navigable screens running in their app**, built on a shared theme and shared components, so the rest of the team can keep building on it. This is the initial UI setup — layouts, styling, navigation, mock data. Business logic and real API calls are out of scope; leave clear seams for them (typed props, a `services/` call returning mock data).
 
-Talk to the dev in their language. Keep them in the loop at the two points that matter: approving the spec (Phase 3) and confirming the result (Phase 6).
+Talk to the dev in their language. Keep them in the loop at the two points that matter: approving the spec (Phase 3) and confirming the result (Phase 6). **Invoked as a slash command**, the text after the skill's name is the dev's request: read it like any message, use what it gives (links, names, files, constraints) and ask only for what it leaves out.
 
 **Called by rn-feature** (the arguments start with `Called by rn-feature`): the dev already approved a plan for a ticket. Follow `../rn-feature/references/handoff.md`: build only the step's scope, take answers from the ticket file and its recorded decisions, asking only what they don't answer and the step can't go on without, skip the spec approval in Phase 3 (still update `docs/design-spec.md`, tagging the screens with the ticket id), verify on the main target only, don't commit, and end with the report block instead of the Phase 6 hand-off. When the call names API schemas, shape `types/<domain>.ts` after them (same fields, the app's own names and types) so the later switch to the real API needs little mapping.
 

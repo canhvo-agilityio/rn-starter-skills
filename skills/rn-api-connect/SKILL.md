@@ -7,7 +7,7 @@ description: Switches a React Native / Expo app from mock data to its real backe
 
 Goal: the screens built on mocks run on the real backend, **without the screens noticing** — except that loading, error and empty states now actually happen. Data flows screen → `hooks/` → `services/` → API; the API's shapes (DTOs) are mapped to the app's own types in the service, so a backend change shows up as a type error in a mapper, not a crash on a user's phone.
 
-Talk to the dev in their language. Keep them in the loop at the two points that matter: approving the plan (Phase 3) and confirming the result (Phase 7).
+Talk to the dev in their language. Keep them in the loop at the two points that matter: approving the plan (Phase 3) and confirming the result (Phase 7). **Invoked as a slash command**, the text after the skill's name is the dev's request: read it like any message, use what it gives (links, names, files, constraints) and ask only for what it leaves out.
 
 **Never open `.env`, `.env.local` or any other env file except the committed templates** (`.env.example`, `.env.sample`, `.env.template`) — not to read values, not to list names, not to edit. They hold the developer's secrets. What you need from them (the API URL, a dev token) you ask the developer for; what the app needs in them you give the developer as lines to add.
 

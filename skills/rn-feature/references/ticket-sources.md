@@ -32,6 +32,10 @@ The id is the issue key (`PROJ-412`).
 
 Same as Jira without a connector: save, run with `--text-file`, and ask for an id if the text has none (a short kebab-case slug like `order-history` is fine when the team has no tracker).
 
+## A request typed with the command
+
+`/rn-feature thêm nút share ở màn Detail`: no tracker, the dev's words are the ticket. Save them as the ticket text (your scratchpad, then `fetch-ticket.sh --text-file … --id <slug>` for links), use a short id (`detail-share`, or the tracker key if the dev gives one) and `source: dev request`. The requirements are numbered from those words and confirmed with the dev before anything else; what the request leaves out becomes questions for the dev (or the PO they name).
+
 ## What the script returns
 
 ```json

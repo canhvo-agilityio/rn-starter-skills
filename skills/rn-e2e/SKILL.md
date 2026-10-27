@@ -7,7 +7,7 @@ description: Writes and runs end-to-end tests for a React Native / Expo app with
 
 Goal: each behavior that matters has a Maestro flow that opens the app where the behavior starts, does what a user does, and asserts what they should see; the flows pass on the simulator, run with one command, and work unchanged in CI. A flow is the evidence for one requirement, so its name and tags say which.
 
-Talk to the dev in their language. Flows test the app; they never change what it does. The only app code this skill touches is `testID` props and accessibility labels (a pressable card needs one for its content to be readable at all, by VoiceOver and by Maestro).
+Talk to the dev in their language. **Invoked as a slash command**, the text after the skill's name is the dev's request: read it like any message, use what it gives (links, names, files, constraints) and ask only for what it leaves out. Flows test the app; they never change what it does. The only app code this skill touches is `testID` props and accessibility labels (a pressable card needs one for its content to be readable at all, by VoiceOver and by Maestro).
 
 **Called by rn-feature** (the arguments start with `Called by rn-feature`): follow `../rn-feature/references/handoff.md`. Scope is the R# list; write the flows into `.maestro/<ticket-id>/`, run them on the main target, don't commit, and end with the report block, one line per R# with the flow file and pass / fail. A flow that fails because the app is wrong is reported as `fail` for that R#, never weakened to pass.
 

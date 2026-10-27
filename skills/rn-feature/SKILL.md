@@ -13,7 +13,22 @@ Talk to the dev in their language. Write the ticket file in the ticket's languag
 
 **Which mode.** "Analyze", "what does this ticket need", "check it against the design": the analysis (Phases 0–7), then stop. "Build", "implement", "fix", "làm ticket này": the analysis first if there's no ticket file yet, then Building (Phases 8–13).
 
-**Invoked as a slash command.** `/rn-feature SHOP-12` names the ticket: no ticket file yet → analyze; a file → the next step its status calls for (below). `/rn-feature build SHOP-12` builds. `/rn-feature` alone gives no ticket and no mode: run Phase 0, then ask once with `AskUserQuestion` which ticket, offering each `docs/tickets/*.md` with what comes next for it, plus *A new ticket (paste it, or a GitHub / Jira reference)*. What comes next follows the status: `questions-open` → update the analysis with the answers you have (follow-up run); `ready` → build; `planned` / `in-progress` → continue the build from the first plan step that isn't `done`; `done` → nothing left, say so.
+**Invoked as a slash command.** The text after `/rn-feature` is the dev's request, read like any message. Take three things from it:
+- **The ticket**: an id (`SHOP-12`), a GitHub / Jira link, or ticket text pasted after the command.
+- **The mode**: "analyze", "build", "fix", "continue", "update with the answers". When the request names a ticket and no mode, the ticket file's status decides (below).
+- **Instructions that steer the work**: a scope ("only R1–R3", "the badge first"), an input ("use the Figma frame Order", "the Swagger is at …"), a constraint ("no new library", "from the dev branch"). Record them: scope and inputs in the ticket file (Scope, frontmatter), build instructions in the plan. One that contradicts the ticket or a decision is asked about, never applied silently.
+
+| The dev types | Means |
+|---|---|
+| `/rn-feature` | Nothing given: run Phase 0, then ask once with `AskUserQuestion` which ticket, offering each `docs/tickets/*.md` with what comes next for it, plus *A new ticket (paste it, or a GitHub / Jira reference)* |
+| `/rn-feature SHOP-12` | That ticket: analyze if it has no file yet, else the next step its status calls for |
+| `/rn-feature build SHOP-12 chỉ làm R1–R3 trước` | Build, with the plan limited to R1–R3 (the rest stays in the ticket for a later plan) |
+| `/rn-feature SHOP-12 PO trả lời: bỏ tab Đã hủy` | A follow-up run: record the answer as the decision on its concern, update the analysis |
+| `/rn-feature thêm nút share ở màn Detail` | No ticket: the request is the ticket (below) |
+
+**A request with no ticket** (a change described in the dev's words): that description is the ticket. Propose a short id in the team's style (the tracker key if they give one, else a kebab-case slug like `detail-share`), set `source: dev request` in the frontmatter, number the requirements from the dev's words, and show them to the dev before going further: they own what the change is, and a one-line request usually leaves out states and edge cases that become questions. Then continue in the mode the request asks for (analyze when it doesn't say).
+
+What comes next for a ticket follows its status: `questions-open` → update the analysis with the answers you have (follow-up run); `ready` → build; `planned` / `in-progress` → continue the build from the first plan step that isn't `done`; `done` → nothing left, say so.
 
 ## Phase 0: Understand the project
 
