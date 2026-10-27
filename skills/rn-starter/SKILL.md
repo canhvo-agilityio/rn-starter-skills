@@ -103,7 +103,7 @@ One `AskUserQuestion` call, up to four questions:
 - **Navigation** — expo-router (Recommended for Expo) / React Navigation (Recommended for CLI) / none
 - **State** — Zustand (Recommended) / Redux Toolkit / Jotai / none
 - **Server data** — TanStack Query (Recommended) / none
-- **Styling** — StyleSheet only (Recommended for beginners) / NativeWind / Unistyles. Offer Unistyles only when no run target is Expo Go: it has native code, so it runs in a native build — RN CLI, or an Expo development build (`npx expo run:ios|android`).
+- **Styling** — NativeWind, Tailwind classes with theme colors as CSS variables (Recommended) / StyleSheet only / Unistyles. Offer Unistyles only when no run target is Expo Go: it has native code, so it runs in a native build — RN CLI, or an Expo development build (`npx expo run:ios|android`).
 
 Then a second call:
 
@@ -166,7 +166,7 @@ Show the dev a summary of every choice and every command you are about to run, e
 | Package manager | pnpm |
 | Template | default (expo-router, TypeScript) |
 | Libraries | zustand, @tanstack/react-query |
-| Styling | StyleSheet |
+| Styling | NativeWind |
 | UI library | none |
 | Lint | ESLint + Prettier |
 | Run on | Phone via Expo Go |
@@ -195,7 +195,7 @@ Write `.rn-starter.json` at the project root with the recorded choices, so later
 ```json
 { "framework": "expo", "template": "default", "packageManager": "pnpm", "bundler": "metro",
   "navigation": "expo-router", "state": "zustand", "serverData": "tanstack-query",
-  "styling": "stylesheet", "uiLibrary": "none", "lint": "eslint-prettier", "structure": "layered",
+  "styling": "nativewind", "uiLibrary": "none", "lint": "eslint-prettier", "structure": "layered",
   "devBuild": false, "runTargets": ["ios-simulator"], "protectedBranches": ["main", "dev", "stag", "prod"],
   "quality": { "unitTests": "jest-rntl", "preCommit": ["lint", "format", "related-tests"],
                "prePush": ["typecheck", "test", "protect"], "commitMsg": "conventional", "claude": true },
