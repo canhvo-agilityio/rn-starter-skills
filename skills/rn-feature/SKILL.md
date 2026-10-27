@@ -20,15 +20,17 @@ Talk to the dev in their language. Write the ticket file in the ticket's languag
 
 | The dev types | Means |
 |---|---|
-| `/rn-feature` | Nothing given: run Phase 0, then ask once with `AskUserQuestion` which ticket, offering each `docs/tickets/*.md` with what comes next for it, plus *A new ticket (paste it, or a GitHub / Jira reference)* |
+| `/rn-feature` | Nothing given: ask what to build (below) |
 | `/rn-feature SHOP-12` | That ticket: analyze if it has no file yet, else the next step its status calls for |
 | `/rn-feature build SHOP-12 chỉ làm R1–R3 trước` | Build, with the plan limited to R1–R3 (the rest stays in the ticket for a later plan) |
 | `/rn-feature SHOP-12 PO trả lời: bỏ tab Đã hủy` | A follow-up run: record the answer as the decision on its concern, update the analysis |
 | `/rn-feature thêm nút share ở màn Detail` | No ticket: the request is the ticket (below) |
 
+**Nothing given.** Tickets live on the team's board (Jira, Linear, Asana, Trello, GitHub…), not in this repo, so on a first run `docs/tickets/` is empty. Ask in plain text, in the dev's language, what they want to build: "What feature do you want to build? Paste the ticket's link (Jira, Asana, Trello, GitHub…), paste its text, or describe the feature in your own words: what the user can do, on which screen, and anything you already know about the design or the API." Then read the answer like a request typed after the command: a link or a key → `references/ticket-sources.md`; text or a description → the ticket (below). Only when `docs/tickets/` already holds tickets that aren't `done` (look before asking: `ls docs/tickets/*.md` and their `status:`), add one line offering to continue them, each with what comes next ("SHOP-12 · in-progress: continue at step 5"). Never pick a ticket for the dev.
+
 **A request with no ticket** (a change described in the dev's words): that description is the ticket. Propose a short id in the team's style (the tracker key if they give one, else a kebab-case slug like `detail-share`), set `source: dev request` in the frontmatter, number the requirements from the dev's words, and show them to the dev before going further: they own what the change is, and a one-line request usually leaves out states and edge cases that become questions. Then continue in the mode the request asks for (analyze when it doesn't say).
 
-What comes next for a ticket follows its status: `questions-open` → update the analysis with the answers you have (follow-up run); `ready` → build; `planned` / `in-progress` → continue the build from the first plan step that isn't `done`; `done` → nothing left, say so.
+What comes next for a ticket follows its status: `questions-open` → update the analysis with the answers you have (follow-up run); `ready` → build; `planned` / `in-progress` → continue the build from the first plan step that isn't `done`. A finished ticket has no file: it was removed in the branch's last commit (Phase 13). When the dev names a ticket with no file, check git before analyzing it as new (`git log --all --oneline -- docs/tickets/<id>.md`): a removal means it's done, so say so and offer to restore it (`git show <commit>^:docs/tickets/<id>.md`) only for review changes or a reopened ticket.
 
 ## Phase 0: Understand the project
 
@@ -125,7 +127,7 @@ Bug tickets: reproduce the bug as a test that fails for the reported reason, loc
 
 **Phase 12: Verify.** The checks from `CLAUDE.md`, the `code-reviewer` subagent on the branch, the ticket's Maestro flows (rn-e2e's `run-flows.sh --tags <id>`), then the `verifier` subagent with the ticket file, R# by R#. Fill the Evidence table: every active R# with its evidence and `pass`, `fail`, `not verified: <reason>` or `n/a`. Fails go back to their step; nothing ships `fail`. `check-ticket.sh` passes. Without the two subagents in the project, do their checklists yourself and say so.
 
-**Phase 13: Pull request.** `scripts/ticket-pr.sh` turns the ticket file into a title and body (R# → evidence, decisions, assumptions, what's not verified). Show the dev the branch, commits, remote and base, and push and open the PR only on a yes. Never merge it. After the merge, a rerun records the PR and sets `status: done`.
+**Phase 13: Close the ticket file, then the pull request.** Set `status: done`, `check-ticket.sh` passes, commit. `scripts/ticket-pr.sh` turns the ticket file into a title and body (R# → evidence, decisions, assumptions, what's not verified); save it in your scratchpad. Then remove `docs/tickets/<id>.md` (and `docs/tickets/<id>/` if it has evidence) in the branch's last commit: the ticket file is working notes, the board keeps the requirement, the PR body keeps the evidence, and git history keeps the file. Show the dev the branch, commits, remote and base, and push and open the PR only on a yes. Never merge it.
 
 ## Principles
 

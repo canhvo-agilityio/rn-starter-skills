@@ -101,14 +101,17 @@ Other run targets (Android emulator, a phone): run the verifier there too when t
 
 ## Pull request
 
-1. Generate the body from the ticket file:
+1. Close the ticket file: set `status: done` in its frontmatter, run `check-ticket.sh` (it must pass: every step `done` or `skipped`, every active R# with evidence, none `fail`), and commit it with the Evidence table.
+2. Generate the body from the ticket file, before it's removed:
    ```bash
    bash "<skill-dir>/scripts/ticket-pr.sh" <project-dir>/docs/tickets/<id>.md            # add --type-prefix for feat:/fix: titles
    ```
-   Shape the title to the project's format (its commit or PR rules, recent PR titles). It prints a title and a body: the summary and ticket link, each R# with its evidence and result, the decisions and the assumptions, what's not verified, and the plan's steps. Use the project's PR template if it has one (`.github/PULL_REQUEST_TEMPLATE*`, `merge_request_templates/`), filling it from this output.
-2. Show the dev the branch, the commits, the remote and the base branch, and ask before pushing. Pushing is visible to the team.
-3. On a yes: push the branch (never to a protected branch) and open the PR with the tool the project has (`gh pr create`, `glab mr create`), against the base branch. Without one, give the dev the title and body to paste.
-4. Keep `status: in-progress`; don't add a commit just to record the PR link (that would need another push). When the PR is merged, rerun this skill on the ticket: it records the PR in History and sets `status: done` in a small follow-up change the dev commits.
+   Save the output in your scratchpad. Shape the title to the project's format (its commit or PR rules, recent PR titles). It prints a title and a body: the summary and ticket link, each R# with its evidence and result, the decisions and the assumptions, what's not verified, and the plan's steps. Use the project's PR template if it has one (`.github/PULL_REQUEST_TEMPLATE*`, `merge_request_templates/`), filling it from this output.
+   Evidence screenshots in `docs/tickets/<id>/evidence/` are about to be removed too: link them in the body by the commit from step 1 (`https://github.com/<owner>/<repo>/blob/<sha>/docs/tickets/<id>/evidence/<file>.png`), not by branch, so the links keep working.
+3. Remove the ticket file in the branch's last commit: `git rm -r docs/tickets/<id>.md docs/tickets/<id>/` (the folder only if it exists), message in the project's format, e.g. `chore(<id>): remove the ticket file, ticket done`. The file is working notes for the build: the board keeps the requirement, the PR body keeps the evidence, git history keeps the file (`git log --all -- docs/tickets/<id>.md`). So `docs/tickets/` only ever holds tickets in progress.
+4. Show the dev the branch, the commits, the remote and the base branch, and ask before pushing. Pushing is visible to the team.
+5. On a yes: push the branch (never to a protected branch) and open the PR with the tool the project has (`gh pr create`, `glab mr create`), against the base branch. Without one, give the dev the title and body to paste.
+6. **Review asks for changes**: restore the file from the commit before the removal (`git show <removal-commit>^:docs/tickets/<id>.md > docs/tickets/<id>.md`), set `status: in-progress`, add the change as a plan step, build and verify it as usual, then close and remove the file again in the last commit before pushing.
 
 Never merge the PR yourself.
 
