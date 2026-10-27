@@ -7,6 +7,8 @@ description: Step-by-step wizard from a machine with nothing installed (macOS, W
 
 Goal: the dev ends this session with a React Native app **running on their screen**, on a machine that may have had nothing installed. Scope is local development only: real phones through Expo Go, the iOS Simulator, the Android emulator, or web. No code signing, no paid Apple developer account, no store builds. Xcode is only installed when the dev picks the iOS Simulator.
 
+**Invoked as a slash command**, the text after the skill's name is the dev's request: read it like any message, use what it gives (links, names, files, constraints) and skip the questions it already answers.
+
 The dev may be new to React Native. Talk to them in their own language (if they write Vietnamese, ask every question in Vietnamese), keep jargon light, and explain in one short line *why* a step is needed when it is not obvious.
 
 ## How the wizard works

@@ -7,7 +7,7 @@ description: Sets up an app once for TestFlight and Google Play with EAS: Expo p
 
 Goal: when the developer opens the project's **Credentials** page on expo.dev, everything the app needs is there — build, submit and (if the app uses push) push credentials, for iOS and Android — and they know exactly what's left outside EAS. Nothing is built here unless the developer asks for a test build at the end; releasing comes after.
 
-Talk to the dev in their language. Say early how this works: **the developer provides the files (and types passwords into one local file); you do the rest** — scanning, uploading to EAS (`scripts/eas-credentials.sh` drives EAS's interactive credential menus without reading or typing any secret) and checking.
+Talk to the dev in their language. **Invoked as a slash command**, the text after the skill's name is the dev's request: read it like any message, use what it gives (links, names, files, constraints) and ask only for what it leaves out. Say early how this works: **the developer provides the files (and types passwords into one local file); you do the rest** — scanning, uploading to EAS (`scripts/eas-credentials.sh` drives EAS's interactive credential menus without reading or typing any secret) and checking.
 
 **Secrets never pass through the conversation.** Never open, print or copy the contents of credential files (`.p8`, `.p12`, `.jks`/`.keystore`, service-account `.json`, `credentials.json`) or of `.env` files. Refer to files by path; `scripts/scan-credentials.sh` identifies them without reading their secrets. Passwords are typed by the developer in their own terminal, never in the chat.
 
