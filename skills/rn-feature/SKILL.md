@@ -1,6 +1,6 @@
 ---
 name: rn-feature
-description: Takes a ticket for a React Native / Expo app from analysis to a pull request. Analyze - numbers the acceptance criteria (R1, R2…), matches each to a screen in the design and an endpoint in the API, and writes docs/tickets/<id>.md with the gaps, the concerns (each with who decides) and questions ready to send. Build - a plan the dev accepts in plan mode, a branch, each step handed to rn-ui (screens), rn-api-connect (data, sign-in) or rn-e2e (Maestro flows per R#) and committed, bugs fixed test-first, every R# verified in the app, and a PR that maps each R# to its evidence. Use when someone says "analyze this ticket", "build / implement / fix this ticket", pastes a user story, a Jira or GitHub issue, or wants a ticket checked against Figma / screenshots and Swagger. Several tickets can be analyzed in parallel. For screens or an API without a ticket, use rn-ui or rn-api-connect directly.
+description: Takes a ticket for a React Native / Expo app from analysis to a pull request. Analyze - numbers the acceptance criteria (R1, R2…), matches each to a screen in the design and an endpoint in the API, and writes docs/tickets/<id>.md with the gaps, the concerns (each with who decides) and questions ready to send. Build - a plan the dev accepts in plan mode, a branch, each step handed to rn-ui (screens), rn-api-connect (data, sign-in) or rn-e2e (Maestro flows per R#) and committed, bugs fixed test-first, every R# verified in the app, and a PR that maps each R# to its evidence. Use when someone says "analyze this ticket", "build / implement / fix this ticket", pastes a user story or a link to a Jira, Linear or GitHub issue, or wants a ticket checked against Figma / screenshots and Swagger. Several tickets can be analyzed in parallel. For screens or an API without a ticket, use rn-ui or rn-api-connect directly.
 ---
 
 # Ticket → analysis → pull request
@@ -49,7 +49,8 @@ Read `references/ticket-sources.md`. In short:
 | Source | How |
 |---|---|
 | GitHub issue (URL, `owner/repo#12`, `#12`) | `bash "<skill-dir>/scripts/fetch-ticket.sh" <ref>` |
-| Jira | The connected Jira / Atlassian connector, read only. No connector: ask the dev to paste the ticket |
+| A ticket on a board (Jira, Linear, Azure DevOps, Trello, ClickUp, Notion, a GitHub Projects draft) | In order: the board's connector if one is connected; else open the link the dev gave in **Claude in Chrome** (their own browser, already signed in) or the built-in browser (the dev signs in) and read the page; else ask the dev to paste it. Read only |
+| A requirement in the dev's words, typed or said | The words are the ticket: short id, `source: dev request`, requirements confirmed with the dev (`references/ticket-sources.md`) |
 | Pasted text, a file | Save it in your scratchpad, then `bash "<skill-dir>/scripts/fetch-ticket.sh" --text-file <file> --id <id>` |
 
 The script returns the title, the body, the comments (clarifications often live there), the acceptance criteria it can spot, and the links it finds: Figma, images, Swagger / OpenAPI. Read the body and the comments yourself; the extraction is a starting point.
