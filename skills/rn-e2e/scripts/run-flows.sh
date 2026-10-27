@@ -87,7 +87,8 @@ if [ "$build" -eq 0 ]; then
     [ "$start_server" -eq 1 ] || { echo "{\"error\":\"no dev server on :8081: start it with EXPO_NO_DOTENV=1 ${server_env[*]-} npx expo start --port 8081, or pass --start-server\"}"; exit 1; }
     env EXPO_NO_DOTENV=1 ${server_env[@]+"${server_env[@]}"} npx expo start --port 8081 > "${TMPDIR:-/tmp}/run-flows-metro.$$.log" 2>&1 &
     server_pid=$!; server_started=1
-    trap '[ -n "$server_pid" ] && kill "$server_pid" 2>/dev/null; pkill -P "$server_pid" 2>/dev/null; true' EXIT
+    # Keep the run's exit code: a kill that finds nothing must not turn a green run red under set -e.
+    trap 'rc=$?; pkill -P "$server_pid" 2>/dev/null || true; kill "$server_pid" 2>/dev/null || true; exit $rc' EXIT
     for _ in $(seq 1 90); do curl -fs --max-time 2 http://127.0.0.1:8081/status 2>/dev/null | grep -q running && break; sleep 2; done
     curl -fs --max-time 2 http://127.0.0.1:8081/status 2>/dev/null | grep -q running || { echo '{"error":"the dev server did not start; see '"${TMPDIR:-/tmp}/run-flows-metro.$$.log"'"}'; exit 1; }
   fi
