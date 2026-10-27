@@ -15,7 +15,8 @@ Run `project-map.sh` and `check-ticket.sh` on the ticket file, then:
 | `decide` concerns still open | One `AskUserQuestion`: *Build with the recommended answers (Recommended)* / *Wait for the answers*. Building with them is the dev's call, not the owner's answer: record each one in the ticket file as `assumed` in the concern's text (severity stays `decide`), and list them in the PR so the owner can still object |
 | The ticket changed since the analysis (new comments, edited criteria) | Run a follow-up analysis first |
 | Another ticket `in-progress` touches the same files (`filesTouched`) | Tell the dev; build after it or agree who touches the shared file |
-| Uncommitted changes, or the current branch is protected | Ask the dev to commit or stash first; never build on `main` or another protected branch |
+| Uncommitted changes other than the ticket file you just updated | Ask the dev to commit or stash them first. The ticket file goes into the plan's first commit, on the feature branch (Phase 10); nothing is committed on `main` or another protected branch |
+| Claude Code wasn't started from the project folder | The project's hooks (format, guard) and its subagents (`code-reviewer`, `verifier`) load only when the session's working directory is the project. Say so: the dev restarts Claude Code there, or you go on knowing the guard isn't active and do the subagents' checklists yourself |
 
 ## The plan (plan mode)
 
@@ -26,14 +27,15 @@ The plan is a table of steps, each small enough to verify on its own and to comm
 | Step | What | Skill | R# | Files | Check |
 |---|---|---|---|---|---|
 | 1 | Sign-in session behind the mock's interface | rn-api-connect (`auth.md`) | — | `src/stores/session.ts`, `src/services/auth.ts`, `src/lib/api-client.ts` | store + refresh tests; sign in on the simulator |
-| 2 | Orders and order detail screens on mocks shaped like the API | rn-ui | R1, R3, R5, R6 | `src/screens/orders/*`, `src/screens/order-detail/*`, `src/components/order-card.tsx` | screenshots against the theme; tsc, lint, tests |
-| 3 | Orders tab in the tab bar | direct | R1 | `src/components/app-tabs.tsx` | open the tab |
+| 2 | Orders tab in the tab bar, then the orders and order detail screens on mocks shaped like the API | rn-ui | R1, R3, R5, R6 | `src/components/app-tabs.tsx`, `src/screens/orders/*`, `src/screens/order-detail/*` | screenshots against the theme; tsc, lint, tests |
+| 3 | Pull to refresh on the list | direct | R1 | `src/screens/orders/index.tsx` | refresh test |
 | 4 | Domain `orders` on the API: list with paging and status, detail | rn-api-connect | R1, R2, R4, R7, R8 | `src/services/orders.ts`, `src/hooks/use-orders.ts` | mapper tests; real data on screen |
 | 5 | Flows for R1–R8 | rn-e2e | R1, R2, R3, R5, R6, R8 | `.maestro/SHOP-27/*`, `testID`s in the new screens | flows pass on the iOS Simulator |
 | 6 | Verify every R# | verifier | all | — | Evidence table |
 
 Rules for the plan:
-- **Order**: sign-in before the domains that need a token; types and mocks before screens; screens before connecting them; the bug's failing test first (below). Read-only data before mutations.
+- **Order**: sign-in before the domains that need a token; types and mocks before screens; screens before connecting them; the bug's failing test first (below). Read-only data before mutations. **A new screen gets its navigation entry in the same step** (or the step before): until it has one it can't be opened, not by tapping and, under native tabs, not even by deep link, so it can't be checked when it's built.
+- **Data on mocks only** (no API in this ticket, or the API isn't ready): rn-ui's data layer (types shaped after the spec, mocks, services, hooks) is part of the first screen step; there is no rn-api-connect step.
 - **One-time setup belongs to a step.** The first rn-api-connect step includes its Phase 4 infrastructure (client, `env.ts`, generated types) unless the project map shows an API client already, plus the base URL to develop against and the `.env` lines the dev must add. A library with native code, or a switch to a development build (maps, camera, social sign-in), is its own step the dev sees in the plan: a called skill stops rather than add one on its own.
 - **Skill per step**: screens, components, theme, navigation → rn-ui. Data, sign-in, client → rn-api-connect. A Maestro flow per R# that a user can see or do → rn-e2e, after the screens exist (the flows are the strongest evidence; R# that aren't visible end to end get a unit test instead). A small change that follows the project's conventions (one navigation entry, a util with its test) → `direct`, done here.
 - **Every active R#** appears in at least one step, except those marked `n/a` in Traceability. Every decision and assumption that shapes a step is cited in it (`C3: courier row hidden`).
@@ -84,12 +86,14 @@ When the bug can't be reproduced in a test (native-only behavior, a device-speci
 After the last step:
 
 1. Every check in `CLAUDE.md` → Verifying your work, on the whole branch.
-2. The `code-reviewer` subagent on the branch (`git diff <base>...HEAD`). Fix what it reports and rerun it; commit the fixes.
+2. The `code-reviewer` subagent on the branch (`git diff <base>...HEAD`). Fix what it reports and rerun it; commit the fixes. In build mode this one review of the whole branch replaces the project's "review before each commit" rule for the step commits: they're reviewed together here, before anything leaves the machine.
 3. The ticket's flows: `run-flows.sh <project> --tags <ticket id>` (rn-e2e), all green.
 4. The `verifier` subagent with the ticket file: it opens the app on the main target and checks each R#, reporting pass / fail / not verified with screenshots. A fail goes back to the step that owns that R#.
 
    A project rn-starter didn't set up may not have these subagents (`.claude/agents/`). Then do the same work yourself, following rn-starter's `assets/claude/code-reviewer.md` and `verifier.md` as the checklists, and say so in the PR.
 5. Fill the Evidence table, one row per active R#: the evidence (Maestro flow, test name, screenshot path, the verifier's finding) and a result: `pass`, `fail`, `not verified: <reason>` or `n/a`. Never mark an R# `pass` without evidence you saw. Commit it.
+
+   Where evidence lives: flows and tests are in the repo and anyone can rerun them, so they're the evidence the PR cites first. Screenshots from the verifier and from Maestro runs are in temporary folders; cite them only as supporting detail, or ask the dev once whether to keep a few in `docs/tickets/<id>/evidence/` (small PNGs, committed with the Evidence table). Targets you didn't check (Android, a phone, the real API) go in a `Not verified:` line under the Evidence table; the PR body copies it.
 6. `check-ticket.sh` must pass. No R# may be left `fail`; a `not verified` is allowed only with its reason, and the PR lists it.
 
 Other run targets (Android emulator, a phone): run the verifier there too when the project lists them, or list them as not verified.

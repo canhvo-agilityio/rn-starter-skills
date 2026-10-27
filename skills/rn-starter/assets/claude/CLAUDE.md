@@ -44,7 +44,7 @@ Follow the layout already in `src/`: put new code next to code of the same kind,
 - Files and folders are kebab-case (`product-card.tsx`, `use-products.ts`).
 - Components are arrow functions with named exports, props (when there are any) typed with an `interface <Name>Props`; route files are the only default exports.
 - {{STYLE_RULE}} Colors, spacing and fonts always come from the theme, never literals.
-- Icons are components in `src/components/icons/` generated from the design's SVGs in `docs/design/icons/` (rn-ui's `svg-icons.sh`). Never PNG icons in `assets/`.
+- Icons are components in `src/components/icons/` generated from the design's SVGs in `docs/design/icons/` (rn-ui's `svg-icons.sh`). New icons are never PNGs in `assets/` (the template's own tab icons can stay until the design replaces them).
 - Constants are `UPPER_SNAKE_CASE`. Comments explain why, not what.
 - Growing lists: `FlatList` with a `memo` item and stable `renderItem` / `keyExtractor`.
 - Forms keep the focused input above the keyboard (check Android too) and use `keyboardShouldPersistTaps="handled"`.
@@ -64,6 +64,6 @@ For a change someone can see or tap, run the `verifier` subagent: it opens the a
 - A hook formats and lint-fixes every file you edit (`.claude/hooks/format.mjs`). When it reports problems, fix them before moving on.
 - A guard hook (`.claude/hooks/guard.mjs`) blocks pushes to {{PROTECTED}}, reading or editing secret files (`.env`, signing keys, keystores, service-account keys), hand edits to generated `*.gen.ts` files, and changes to a test locked while a bug is being fixed. When it blocks something, do what its message says; don't look for a way around it.
 - {{INSTALL_RULE}}
-- Before committing, run the `code-reviewer` subagent on the change and fix what it reports.
+- Before calling a change finished or opening a pull request, run the `code-reviewer` subagent on it and fix what it reports.
 - When you make the same mistake twice, add the correction to this file.
 {{COMMIT_RULE}}

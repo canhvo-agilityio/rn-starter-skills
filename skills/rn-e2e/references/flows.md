@@ -2,7 +2,7 @@
 
 **Contents:** What a flow covers · testIDs · Layout · Writing flows · Targets and environment · Data and sign-in · Troubleshooting
 
-Checked with Maestro 2.7 on an Expo SDK 58 app in Expo Go on the iOS 26.5 Simulator: deep links through `exp://127.0.0.1:8081/--/<route>` after `stopApp`, `testID` → `id:` selectors, `config.yaml` with `excludeTags`, JUnit output and `--test-output-dir` (about 6 s per flow once the bundle is cached). The Android notes follow the same mechanics and haven't been run here yet.
+Checked with Maestro 2.7 on an Expo SDK 58 app with native tabs, in Expo Go on the iOS 26.5 Simulator, with 7 flows for a real ticket: deep links through `exp://127.0.0.1:8081/--/<route>` after `stopApp` and the native-tabs re-open, `testID` → `id:` selectors, `config.yaml` with `excludeTags`, JUnit output and `--test-output-dir` (about 6 s per flow once the bundle is cached). The Android notes follow the same mechanics and haven't been run here yet.
 
 ## What a flow covers
 
@@ -15,7 +15,9 @@ One requirement, from the screen where it starts to the assertion that proves it
 | R3 open detail | `/orders` | taps `orders-item-1003` | `order-detail-title` with the order code |
 | Sign in fails with a wrong password | `/login` | types email and a wrong password, taps `login-submit` | `login-error` visible, still on login |
 
-Each flow is independent: the open subflow stops the app and deep-links to the flow's start screen, so flows run in any order and alone (`--include-tags R2`). Without the `stopApp`, a deep link while the app is open can leave it where the previous flow ended (seen with native tabs: a link to `/` stayed on the Explore tab). Assert the state the requirement is about; one or two assertions are usually enough. A flow that walks through five screens to check one thing is five flows' worth of fragility.
+Each flow is independent: the open subflow stops the app and deep-links to the flow's start screen, so flows run in any order and alone (`--include-tags R2`). Without the `stopApp`, a deep link while the app is open can leave it where the previous flow ended. With native tabs (the SDK 58 template's `NativeTabs`), the opposite also happens: a cold start from a deep link lands on the first tab, hence the wait and the second `openLink` (iOS label of the tab bar: "Tab Bar"; check `maestro hierarchy` if it differs). A route with no tab trigger can't be opened by deep link at all under native tabs, so a new screen needs its navigation entry before its flow (or the verifier) can reach it.
+
+**Assert something only the target screen has.** A text that also appears in the tab bar ("Explore", "Orders") is visible on every screen: a flow asserting it passes on the wrong screen. Assert the screen's own `testID`. Assert the state the requirement is about; one or two assertions are usually enough. A flow that walks through five screens to check one thing is five flows' worth of fragility.
 
 ## testIDs
 
@@ -23,6 +25,7 @@ Each flow is independent: the open subflow stops the app and deep-links to the f
 - Names: kebab-case `<screen>-<element>` (`orders-list`, `orders-tab-shipping`, `login-email`, `login-submit`, `login-error`); rows `<screen>-item-<id>` with the item's id from the data, so a flow can pick a known mock item.
 - Shared components take `testID?: string` and put it on their root or their pressable, the same way they pass `style`. Screens set the id; components don't invent it.
 - Pressables keep their `accessibilityLabel` and `accessibilityRole`: a testID doesn't replace accessibility.
+- **A pressable hides its children on iOS.** A `Pressable` card with `accessible` (the default for pressables) is one element to VoiceOver and to Maestro: the `testID`s of the texts inside it aren't found. Give the pressable an `accessibilityLabel` that reads its content (`"DH1044, 24/09/2026, 948.000 ₫, Đang giao"`) and assert on that with `text:` (a regex), or put the testID on the pressable and assert its label. This improves VoiceOver too, so it's a fair change to the app; nothing else is.
 - Text components spread their props (`{...rest}`), so `testID` usually passes through already: check before editing.
 
 ## Layout
@@ -57,6 +60,13 @@ tags:
 ---
 # Start from a fresh launch, so a flow doesn't depend on where the previous one left the app.
 - stopApp
+- openLink: ${APP_URL}${ROUTE}
+# With native tabs, a cold start from a deep link lands on the first tab: wait until the app is up,
+# then open the route again on the running app. Drop these two steps for an app without native tabs.
+- extendedWaitUntil:
+    visible:
+      text: "Tab Bar"
+    timeout: 60000
 - openLink: ${APP_URL}${ROUTE}
 ```
 
@@ -140,3 +150,6 @@ The scheme is `expo.scheme` in `app.json` (Expo) or the URL scheme registered in
 | Deep link opens the home screen | The route doesn't exist at that path (check the project map's routes), or a guard redirected (not signed in) |
 | Flaky taps right after navigation | Wait for the new screen's element before tapping |
 | A flow passes alone but fails after another | The app was still on the previous flow's screen: open through the subflow (it stops the app first) |
+| Every flow fails at its first wait, on the first tab | Native tabs: the cold start ignored the deep link; use the subflow's wait and second `openLink` |
+| An id inside a card isn't found on iOS | The pressable card is one accessibility element: assert its `accessibilityLabel` |
+| `back` does nothing on iOS | It's the Android back button; on iOS tap the header's back button by its label |

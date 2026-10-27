@@ -112,7 +112,10 @@ for (const row of traceRows) {
   if (/^covered$/i.test(status) || /^n\/a\b/i.test(status)) continue;
   const gap = status.match(/^gap\s+(C\d+(?:\s*,\s*C\d+)*)$/i);
   if (!gap) { problems.push(`Traceability: R${n} status "${status}" must be covered, gap C<n>[, C<n>…] or n/a: <reason>`); continue; }
-  for (const c of gap[1].split(/\s*,\s*/)) if (!(c in concerns)) problems.push(`Traceability: R${n} points to ${c}, which isn't in Concerns`);
+  for (const c of gap[1].split(/\s*,\s*/)) {
+    if (!(c in concerns)) problems.push(`Traceability: R${n} points to ${c}, which isn't in Concerns`);
+    else if (concerns[c] === 'resolved') problems.push(`Traceability: R${n} is still a gap for ${c}, which is resolved: drop it from the gap (covered if nothing else is open)`);
+  }
 }
 for (const n of active) if (!traced.has(n)) problems.push(`Traceability: R${n} has no row`);
 

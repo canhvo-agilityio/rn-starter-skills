@@ -191,7 +191,7 @@ test('shows its title and calls onPress', async () => {
 });
 ```
 
-React Native Testing Library 14+ is async by default: `await render(...)`, and use `userEvent` (`await user.press/type`) rather than `fireEvent`. Query the way a user perceives the UI (`getByRole`, `getByText`), not by test IDs or style. Components that read the theme work as-is under `jest-expo`; if one needs a provider (navigation, safe area, query client), use a shared `renderWithProviders` helper instead of repeating setup.
+React Native Testing Library 14+ is async by default: `await render(...)`, and use `userEvent` (`await user.press/type`) rather than `fireEvent`. Query the way a user perceives the UI (`getByRole`, `getByText`), not by test IDs or style. Components that read the theme work under `jest-expo` once CSS imports are stubbed (the SDK 58 template's theme imports `global.css`; rn-starter's `setup-quality.sh` adds the stub; otherwise add `"moduleNameMapper": { "\\.css$": "<rootDir>/jest/style-stub.js" }` with a one-line `module.exports = {};` stub); if one needs a provider (navigation, safe area, query client), use a shared `renderWithProviders` helper instead of repeating setup.
 
 What to test: every shared component (renders, main interaction), every logic file in `utils/` (all branches — that's where bugs cost money), and screens' key states once they handle loading/empty/error.
 

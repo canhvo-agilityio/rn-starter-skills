@@ -81,7 +81,7 @@ export default function TabsLayout() {
 
 **Icons:** use the icon library the project already has (`detect-project.sh` → `icons`). Expo SDK 58's `default` template uses `expo-symbols` with native tabs (`sf` names on iOS, `md` Material names on Android) and does **not** include `@expo/vector-icons`. The example above assumes `@expo/vector-icons`; install it with `npx expo install @expo/vector-icons` only when the project has no icon set.
 
-**Native tabs** (`nativeTabs: true`, e.g. the SDK 58 template's `src/components/app-tabs.tsx`): adapt that file instead of adding a second tab system. Screens inside native tabs must not add `insets.top` manually — the tab container already accounts for part of it and you get a double gap. Use `SafeAreaView` from `react-native-safe-area-context` with `edges={['top']}`.
+**Native tabs** (`nativeTabs: true`, e.g. the SDK 58 template's `src/components/app-tabs.tsx`): adapt that file instead of adding a second tab system. A route inside native tabs without a trigger can't be opened, not even by deep link: add the trigger in the same step as the screen, or verification can't reach it. A cold start from a deep link lands on the first tab; open the link again once the app is up (rn-e2e's open subflow does). Screens inside native tabs must not add `insets.top` manually — the tab container already accounts for part of it and you get a double gap. Use `SafeAreaView` from `react-native-safe-area-context` with `edges={['top']}`.
 
 Remove the template's demo routes and demo components (`explore.tsx`, splash/logo overlays, hint rows) when the design replaces them, and list anything left behind in Open points.
 

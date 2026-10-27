@@ -67,6 +67,7 @@ const reqRows = reqs.map((r) => {
 const decided = concerns.filter((c) => /resolved/i.test(c.severity)).map((c) => `- ${c['#']}: ${c.concern}`);
 const assumed = concerns.filter((c) => /decide/i.test(c.severity) && /assumed/i.test(c.concern)).map((c) => `- ${c['#']} (${c.owner} to confirm): ${c.concern}`);
 const open = concerns.filter((c) => /blocking|decide/i.test(c.severity) && !/assumed/i.test(c.concern)).map((c) => `- ${c['#']} (${c.severity}, ${c.owner}): ${c.concern}`);
+const targetNotes = (sections.evidence || []).filter((l) => /^\s*(-\s*)?not verified\b/i.test(l)).map((l) => `- ${l.replace(/^\s*-?\s*not verified:?\s*/i, '')}`);
 const notVerified = reqs.filter((r) => /^not verified/i.test(evidence[r['#']]?.result || 'not verified')).map((r) => `- ${r['#']}: ${(evidence[r['#']]?.result || 'no evidence recorded').replace(/^not verified:?\s*/i, '')}`);
 
 const id = fm.ticket || '';
@@ -88,7 +89,7 @@ const body = [
   ...(decided.length ? ['', '## Decisions', '', ...decided] : []),
   ...(assumed.length ? ['', '## Built on assumptions (not yet confirmed by their owner)', '', ...assumed] : []),
   ...(open.length ? ['', '## Still open', '', ...open] : []),
-  ...(notVerified.length ? ['', '## Not verified', '', ...notVerified] : []),
+  ...(notVerified.length || targetNotes.length ? ['', '## Not verified', '', ...notVerified, ...targetNotes] : []),
   ...(steps.length ? ['', '## Steps', '', ...steps.map((s) => `${s.step}. ${s.what} (${s.skill}; ${s['r#']})${/done/i.test(s.status) ? '' : ` — ${s.status}`}`)] : []),
 ].join('\n');
 
