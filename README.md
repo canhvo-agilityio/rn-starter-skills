@@ -95,7 +95,7 @@ When the backend changes: refresh the spec, `<pm> run api:types`, and `tsc` poin
 2. One flow per requirement: from a ticket's R# or the dev's list; an R# that isn't visible end to end gets a unit test instead.
 3. `testID`s (`<screen>-<element>`) on the elements the flows use; shared components pass a `testID` prop through. Nothing else in the app changes.
 4. Flows in `.maestro/<ticket>/r<n>-<slug>.yaml`, tagged with the ticket and the R#, opening their screen through a subflow that restarts the app, waiting with `extendedWaitUntil`, asserting by id. No hard-coded URL, bundle id or coordinate: `${APP_ID}` and `${APP_URL}` come from the run (`scripts/check-flows.sh` checks it, and which R# have no flow).
-5. Run on the simulator against mock data (`scripts/run-flows.sh`): JUnit report, screenshots, a JSON summary per flow. A red flow is fixed when the flow is wrong and reported when the app is.
+5. Run on the simulator against mock data (`scripts/run-flows.sh`, `--start-server` starts the dev server with the variables the flows rely on, from `.maestro/dev-server.env`): JUnit report, screenshots, a JSON summary per flow, and a hint when every flow fails at once (usually the setup, not the flows). A red flow is fixed when the flow is wrong and reported when the app is.
 6. `e2e:ios` / `e2e:android` scripts and a `.maestro/README.md`; CI runs the same flows on a build (`references/ci.md`, wired by `rn-pipeline`).
 
 ## rn-release-setup: ready for TestFlight and Google Play
@@ -182,6 +182,7 @@ skills/rn-feature/
     fetch-ticket.sh      # GitHub issue or pasted text → title, body, comments, acceptance criteria, links
     check-ticket.sh      # checks docs/tickets/<id>.md against the contract (plan and evidence too); exit 3 = problems
     lock-tests.sh        # locks the test that reproduces a bug, proves the fix didn't touch it
+    set-step.sh          # sets a plan step's status in the ticket file, whatever the table padding
     ticket-pr.sh         # ticket file → PR title and body (R# → evidence, decisions, not verified)
   references/
     ticket-template.md   # docs/tickets/<id>.md template and the rules the check enforces
@@ -231,7 +232,7 @@ skills/rn-e2e/
   scripts/
     e2e-doctor.sh        # Maestro, Java, devices, how the app opens, existing flows, testIDs → JSON; exit 2 = install needed
     install-maestro.sh   # Maestro (official installer) + JDK 17 if missing, PATH block; only with the dev's yes
-    run-flows.sh         # runs flows for a target (Expo Go / build, iOS / Android) → JUnit + JSON summary
+    run-flows.sh         # runs flows for a target (Expo Go / build, iOS / Android) → JUnit + JSON summary; --start-server uses .maestro/dev-server.env
     check-flows.sh       # syntax and conventions; which R# of a ticket have no flow
   references/
     flows.md             # what a flow covers, testIDs, layout, commands, targets, data and sign-in, troubleshooting

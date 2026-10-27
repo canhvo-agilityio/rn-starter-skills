@@ -25,6 +25,7 @@ Each flow is independent: the open subflow stops the app and deep-links to the f
 - Names: kebab-case `<screen>-<element>` (`orders-list`, `orders-tab-shipping`, `login-email`, `login-submit`, `login-error`); rows `<screen>-item-<id>` with the item's id from the data, so a flow can pick a known mock item.
 - Shared components take `testID?: string` and put it on their root or their pressable, the same way they pass `style`. Screens set the id; components don't invent it.
 - Pressables keep their `accessibilityLabel` and `accessibilityRole`: a testID doesn't replace accessibility.
+- **Maestro reads a `Text`'s `accessibilityLabel`, not its children.** A quantity `Text` labelled "Quantity 2" doesn't match `text: "2"`; assert the label (`text: "Quantity 2"`) or drop the label when the visible text says it all.
 - **A pressable hides its children on iOS.** A `Pressable` card with `accessible` (the default for pressables) is one element to VoiceOver and to Maestro: the `testID`s of the texts inside it aren't found. Give the pressable an `accessibilityLabel` that reads its content (`"DH1044, 24/09/2026, 948.000 ₫, Đang giao"`) and assert on that with `text:` (a regex), or put the testID on the pressable and assert its label. This improves VoiceOver too, so it's a fair change to the app; nothing else is.
 - Text components spread their props (`{...rest}`), so `testID` usually passes through already: check before editing.
 
@@ -61,12 +62,14 @@ tags:
 # Start from a fresh launch, so a flow doesn't depend on where the previous one left the app.
 - stopApp
 - openLink: ${APP_URL}${ROUTE}
-# With native tabs, a cold start from a deep link lands on the first tab: wait until the app is up,
-# then open the route again on the running app. Drop these two steps for an app without native tabs.
+# A cold start in Expo Go can ignore the path and land on the first screen (seen with native tabs
+# and with a JS tab bar): wait until the app is up, then open the route again on the running app.
+# Wait for something every launch shows: the tab bar's testID, or "Tab Bar" for native tabs on iOS.
 - extendedWaitUntil:
     visible:
-      text: "Tab Bar"
+      id: "tab-home"
     timeout: 60000
+    optional: true
 - openLink: ${APP_URL}${ROUTE}
 ```
 
@@ -135,6 +138,8 @@ The scheme is `expo.scheme` in `app.json` (Expo) or the URL scheme registered in
 
 ## Data and sign-in
 
+**Resetting storage.** A flow that needs an empty start (a persisted cart, a first-run screen) uses `clearState`. In Expo Go that clears Expo Go's own storage, so Expo Go shows its one-time developer-menu introduction afterwards: dismiss it in the same subflow (`tapOn: { text: "Continue", optional: true }` after an optional wait). On a build, `clearState` just resets the app.
+
 - Run against mocks: `EXPO_PUBLIC_USE_MOCKS=1` (rn-api-connect's flag) on the dev server. Flows can then rely on known items (`orders-item-1003`), and an empty or error state can be a dedicated mock the flow switches to through a route parameter or a mock flag the app already has. Don't add test-only branches to screens to make a flow pass.
 - Signed-in screens: `EXPO_PUBLIC_MOCK_SIGNED_IN=1` (rn-ui's mock session, kept by rn-api-connect's `auth.md` in mock mode) starts the app signed in. Only flows about signing in itself go through the login screen, with the mock credentials from `src/mocks/`.
 - Flows that need the real backend are tagged `api` and excluded by default (`--exclude-tags api` in the scripts); run them only on a dev server, with a test account the dev types in when asked, never with credentials written into a flow.
@@ -153,3 +158,5 @@ The scheme is `expo.scheme` in `app.json` (Expo) or the URL scheme registered in
 | Every flow fails at its first wait, on the first tab | Native tabs: the cold start ignored the deep link; use the subflow's wait and second `openLink` |
 | An id inside a card isn't found on iOS | The pressable card is one accessibility element: assert its `accessibilityLabel` |
 | `back` does nothing on iOS | It's the Android back button; on iOS tap the header's back button by its label |
+| Every flow fails at its first wait | The setup, not the flows: dev server without `dev-server.env`, app on its sign-in screen, an Expo Go sheet. Look at one screenshot first |
+| A tap seems ignored right after navigation | Expo Go lags about a second after a transition: wait for the new screen's element before tapping or taking a screenshot |

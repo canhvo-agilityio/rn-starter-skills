@@ -58,11 +58,14 @@ Asset URLs returned by Figma expire — download them right away:
 curl -fsSL "<url>" -o assets/images/<meaningful-name>.png
 ```
 
-**Images** (photos, illustrations, map backgrounds) → PNG/JPEG in `assets/images/`.
+**Images** (photos, illustrations, map backgrounds) → PNG/JPEG in `assets/images/`. Figma hands them over at export size (product photos came back as 2–5 MB PNGs around 1800 px): resize to at most twice the largest size they're shown at (about 960 px for a full-width card) and save photos as JPEG (`sips -Z 960 -s format jpeg in.png --out out.jpg` on macOS). Keep PNG only for images with transparency.
 
 **Icons → SVG, always — including standard glyphs** (home, heart, bag, search, chevron). The design's own icon set (Iconly, a custom set) is what the screens should show; an icon font only approximates it. Export every distinct icon once as SVG into `docs/design/icons/<name>.svg`, named after what it shows (`bag.svg`, `bean.svg`), not the layer id. Then generate components with `scripts/svg-icons.sh` (SKILL.md, Phase 4 step 3). Never put icons in `assets/` as PNG.
 
-- **Figma MCP:** download the icon assets `get_design_context` lists, to `docs/design/icons/<name>.svg` when the asset is SVG (check the first bytes: `<svg`). If an icon only comes back as a raster image, export it through the browser route below or ask the dev.
+- **Figma MCP:** download the icon assets `get_design_context` lists, to `docs/design/icons/<name>.svg` when the asset is SVG (check the first bytes: `<svg`). If an icon only comes back as a raster image, export it through the browser route below or ask the dev. Three things the MCP's assets do that the icon frame doesn't:
+  - They're the **inner vectors**, positioned by CSS insets in the reference code, not the 24 px icon frame: wrap each in an `<svg viewBox="0 0 24 24">` with a `<g transform="translate(x y)">` from those insets, and assemble icons made of several vectors (a phone with two parts) into one file.
+  - **Rotation and flips live in CSS** (`rotate(90deg)`, `scaleX(-1)`): a chevron drawn once pointing down is used as left, right and up. Apply the transform in the SVG (or rotate the component) so each file points the way it's used, and check them in a screenshot.
+  - Some "icons" are **raster masks** (a PNG shape filled with a color). There's no vector to export: ask the dev for SVGs (or the designer), and until then use the PNG tinted with `tintColor` from the theme, listed under Open points as the one exception to "icons are SVG".
 - **Browser, file you can edit** (your own file, or the dev's duplicate of a Community file): Figma's Plugin API is available in the page as the global `figma`. Export each icon's top node (the instance or frame that is the whole icon, usually 16–32 px; not its inner vectors):
   ```js
   const node = await figma.getNodeByIdAsync('<node id>');

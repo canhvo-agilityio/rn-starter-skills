@@ -89,7 +89,7 @@ Then compare the Scope sections: tickets that touch the same screen, shared comp
 
 Tell the dev briefly: how many requirements, how many fully covered by design and API, the blocking concerns, and the questions per owner (offer to copy each group as a message). In analyze mode, stop here: no branch, no code.
 
-Next steps to mention: once the answers are in, run this skill again on the same ticket to update the file; then ask it to build the ticket. Offer to commit the ticket file (`docs(tickets): analyze <id>`); don't commit without a yes.
+Next steps to mention: once the answers are in, run this skill again on the same ticket to update the file; then ask it to build the ticket. Don't commit the analysis on `main` or another protected branch: when the ticket is built next, it goes into the plan's first commit on the feature branch; if the team reviews analyses on their own, offer a `docs/<id>-analysis` branch (`docs(tickets): analyze <id>`). Nothing is committed without a yes.
 
 ## Building
 

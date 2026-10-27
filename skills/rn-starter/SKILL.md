@@ -108,7 +108,7 @@ Then a second call:
 - **Lint & format** — ESLint + Prettier (Recommended) / Biome / none
 - **Folder structure** — Layered team structure from `references/structure.md`: `screens/`, `components/`, `hooks/`, `services/` with ESLint-enforced rules (Recommended) / keep the template as is. Ask this even with a design input: the structure is set up here during scaffolding, and rn-ui then builds the screens inside it.
 - **UI component library** — only when styling is StyleSheet (that's why it's in this second call): None — our own components on the theme (Recommended) / React Native Paper (Material 3). With NativeWind or Unistyles don't ask; no library is verified for them yet (`references/libraries.md` → "UI component library" says why).
-- **Code quality** (`multiSelect: true`) — Unit tests: Jest + React Native Testing Library (Recommended) / Git hooks: Husky + lint-staged (Recommended) / Commit message rules: Conventional Commits via commitlint (Recommended) / Claude Code setup: `CLAUDE.md`, a format-on-edit hook and a `code-reviewer` subagent (Recommended).
+- **Code quality** (`multiSelect: true`) — Unit tests: Jest + React Native Testing Library (Recommended) / Git hooks: Husky + lint-staged (Recommended) / Commit message rules: Conventional Commits via commitlint (Recommended) / Claude Code setup: `CLAUDE.md`, a format-on-edit hook, a guard hook (no pushes to the protected branches, no `.env` or credential files) and the `code-reviewer` and `verifier` subagents (Recommended).
 
 If git hooks or commit rules were chosen, one more call (`references/quality.md` lists what each option runs):
 

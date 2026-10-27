@@ -57,27 +57,23 @@ Exit 3 lists problems (syntax, a missing `${APP_ID}`, a hard-coded URL, a coordi
 
 ## Phase 4: Run them
 
-Start the dev server on mock data, so runs are repeatable, in the background:
+Flows run against mock data, so runs are repeatable. Write the dev-server variables they rely on into `.maestro/dev-server.env` (one `EXPO_PUBLIC_…=value` per line, never a secret), e.g. `EXPO_PUBLIC_MOCK_SIGNED_IN=1` when the screens need a session; an app whose services return mocks without a flag may need none. Prefer flows that don't depend on it at all: a flow that needs a session can sign in through a subflow with the mock credentials. Then:
 
 ```bash
-EXPO_NO_DOTENV=1 EXPO_PUBLIC_USE_MOCKS=1 EXPO_PUBLIC_MOCK_SIGNED_IN=1 npx expo start --port 8081
+bash "<skill-dir>/scripts/run-flows.sh" <project-dir> --platform ios --start-server [--tags SHOP-27] [--out <dir>]
 ```
 
-(Only the variables the app reads: an app whose services return mocks without a flag needs none of them. Flows that need the real API are tagged `api` and run only when asked.) Then:
-
-```bash
-bash "<skill-dir>/scripts/run-flows.sh" <project-dir> --platform ios [--tags SHOP-27] [--out <dir>]
-```
+With `--start-server` and nothing on port 8081, it starts the dev server with `EXPO_NO_DOTENV=1` and those variables, and stops it after; a server already running is used as is (the JSON lists the variables it should have been started with). Flows that need the real API are tagged `api` and run only when asked.
 
 It picks `APP_ID` and `APP_URL` for the target (Expo Go on the iOS Simulator, Expo Go on the Android emulator after `adb reverse`, or a development build with `--build`), runs Maestro with a JUnit report, and prints JSON: each flow with its tags, pass / fail, the failure message and its screenshots folder.
 
-A failing flow: read the failure and the screenshot. A wrong selector or a missing wait is the flow's fault; fix the flow. Wrong app behavior is a finding: report it (or, building a ticket, it goes back to the step that owns the R#). Don't loosen an assertion to get green.
+A failing flow: read the failure and the screenshot. When every flow fails at its first wait, suspect the setup before the flows (the JSON's `hint`): a dev server without the variables, the app on its sign-in screen, an Expo Go sheet over the app. A wrong selector or a missing wait is the flow's fault; fix the flow. Wrong app behavior is a finding: report it (or, building a ticket, it goes back to the step that owns the R#). Don't loosen an assertion to get green.
 
 Run on every target in `runTargets` that Maestro supports (iOS Simulator, Android emulator); a phone through Expo Go isn't one of them, so list it as not covered.
 
 ## Phase 5: Ready for CI
 
-Read `references/ci.md`. Add `package.json` scripts so anyone runs the flows with one command (`e2e:ios`, `e2e:android`), and a short `.maestro/README.md` (how to run, what the env variables mean, which tags exist). CI runs the same flows on an installable build, not Expo Go; `rn-pipeline` wires it.
+Read `references/ci.md`. Add `package.json` scripts so anyone runs the flows with one command (`e2e:ios`, `e2e:android`), and a short `.maestro/README.md` (how to run, the dev-server variables from `dev-server.env`, what `APP_ID` / `APP_URL` mean, which tags exist). CI builds the e2e app with the same `dev-server.env` values. CI runs the same flows on an installable build, not Expo Go; `rn-pipeline` wires it.
 
 ## Phase 6: Hand-off
 

@@ -103,7 +103,9 @@ export const ${variables.componentName} = (${variables.props}) => (
         replaceAttrValues,
         svgoConfig: {
           plugins: [
-            { name: 'preset-default', params: { overrides: { removeViewBox: false } } },
+            // convertColors would rewrite white → #fff, #808080 → gray before replaceAttrValues runs,
+            // so the single color wouldn't match and the icon would ignore its `color` prop.
+            { name: 'preset-default', params: { overrides: { removeViewBox: false, convertColors: false } } },
             'removeXMLNS',
             // Icons sit side by side on one screen: keep gradient / clip-path ids unique per icon.
             { name: 'prefixIds', params: { prefix: base } },

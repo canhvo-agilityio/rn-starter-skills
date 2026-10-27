@@ -72,7 +72,9 @@ const notVerified = reqs.filter((r) => /^not verified/i.test(evidence[r['#']]?.r
 
 const id = fm.ticket || '';
 const bare = `${title.replace(new RegExp(`^${id}:?\\s*`), '')} (${id})`;
-const prTitle = prefix === '1' ? `${fm.type === 'bug' ? 'fix' : 'feat'}: ${bare}` : bare;
+// commitlint's subject-case rejects a capitalized subject (and a squash commit takes the PR title).
+const lowerFirst = (t) => t.charAt(0).toLocaleLowerCase() + t.slice(1);
+const prTitle = prefix === '1' ? `${fm.type === 'bug' ? 'fix' : 'feat'}: ${lowerFirst(bare)}` : bare;
 const source = fm.source && /^https?:/.test(fm.source) ? `[${id}](${fm.source})` : id;
 const summary = prose('summary').split('\n').filter((l) => l.trim()).join('\n');
 

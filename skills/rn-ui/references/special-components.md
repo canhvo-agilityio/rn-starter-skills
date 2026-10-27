@@ -85,6 +85,8 @@ Write real, specific permission texts — App Store review rejects vague ones.
 - **App Store rule**: an iOS app whose sign-in uses a third-party service (Google, Facebook…) must also offer an equivalent option that limits data to name and email, lets users hide their email and doesn't track them for ads. Sign in with Apple meets it, so iOS designs with Google or Facebook buttons usually need an Apple button too. Check the current guideline text (App Review Guidelines 4.8) when the design leaves it out, and put it under Open points.
 - **Expo Go**: Google and Facebook sign-in need a development build (`devBuild: true`). Apple sign-in opens in Expo Go on iOS, but the token it returns is issued to Expo Go's bundle id, so a backend checking it for your app rejects it: the full flow needs a development build too. When the project runs in Expo Go only, offer a placeholder button for now, or the switch to a development build. Confirm both with `lib-info.sh` (Expo Go flag) before promising either.
 
+**Overlays over every screen** (a toast, a snackbar, an in-app banner): an absolutely positioned view placed after `<Stack>` in the root layout renders *under* native-stack screens on iOS. Wrap it in `FullWindowOverlay` from `react-native-screens` on iOS (a plain `View` on Android), or show it inside the screen that triggers it. Check it on the screen with the highest stack depth.
+
 ## 5. Wrap the library in a component
 
 Screens never import the library directly. A wrapper component adapts it to the app's data:
