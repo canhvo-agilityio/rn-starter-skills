@@ -164,7 +164,7 @@ skills/rn-starter/
     setup-ios.sh         # Xcode/license/iOS runtime/simulator (+ CocoaPods); exit 2 = waiting on the developer
     start-simulator.sh   # boots the iOS Simulator and waits for it
     setup-quality.sh     # Jest + RNTL, Husky (pre-commit / pre-push, protected branches), lint-staged, commitlint
-    setup-claude.sh      # CLAUDE.md, format + guard hooks, code-reviewer + verifier subagents
+    setup-claude.sh      # CLAUDE.md, format + guard hooks, code-reviewer + verifier subagents; --update-agents for older projects
     lib.sh               # shared helpers
     windows/             # PowerShell twins of the scripts above (doctor, env, install-node, install-android, start-emulator), used automatically on Windows
   references/
