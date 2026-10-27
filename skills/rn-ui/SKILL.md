@@ -90,7 +90,7 @@ Order matters — each step builds on the previous:
 7. **Screens** — `screens/<name>/index.tsx` exporting `<Name>Screen`, composed from shared components and its own `components/`, getting data only through hooks (never importing services or mocks). The route file in `app/` is a one-line re-export. Keep each screen readable: if it grows past ~150 lines, split sections into the screen's `components/` and move state and handlers into its `hooks.ts`.
 8. **Navigation** — `references/navigation.md`. Every screen reachable by tapping through the app, and by deep link for verification.
 
-After each step, run the type checker (`npx tsc --noEmit`) and fix what you introduced before moving on. Before Phase 5, run the structure self-check at the end of `references/conventions.md` (ESLint rules, no service or mock imports in UI files, thin route files). If the project has git hooks (`.husky/`), your code must pass them too: run `npx lint-staged` on your changes before offering a commit.
+After each step, run the type checker (`npx tsc --noEmit`) and fix what you introduced before moving on. With expo-router's typed routes, new routes only type-check after the dev server has run once and regenerated `.expo/types/router.d.ts`: start it (briefly is enough) after adding routes, before calling a `href` error yours. Before Phase 5, run the structure self-check at the end of `references/conventions.md` (ESLint rules, no service or mock imports in UI files, thin route files). If the project has git hooks (`.husky/`), your code must pass them too: run `npx lint-staged` on your changes before offering a commit.
 
 ## Phase 5 — Verify against the design
 

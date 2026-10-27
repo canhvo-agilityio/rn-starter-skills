@@ -66,6 +66,10 @@ if [ "$want_test" -eq 1 ]; then
     mkdir -p jest
     [ -f jest/style-stub.js ] || printf '// Jest can'"'"'t parse CSS; the theme imports global.css for web only.\nmodule.exports = {};\n' > jest/style-stub.js
     pkg_set "p.jest.moduleNameMapper=Object.assign({'\\\\.css\$':'<rootDir>/jest/style-stub.js'},p.jest.moduleNameMapper||{})"
+    # The template maps @/assets/* to the root assets/ folder; jest-expo's @/* → src/* would win.
+    if grep -q '"@/assets/\*"' tsconfig.json 2>/dev/null; then
+      pkg_set "p.jest.moduleNameMapper=Object.assign({'^@/assets/(.*)\$':'<rootDir>/assets/\$1'},p.jest.moduleNameMapper)"
+    fi
   else
     # The RN CLI template already ships Jest with the react-native preset.
     add_dev @testing-library/react-native test-renderer

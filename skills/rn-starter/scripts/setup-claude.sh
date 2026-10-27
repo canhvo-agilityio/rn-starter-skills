@@ -141,6 +141,10 @@ const verify = [
 let protectedList = ['main', 'master'];
 if (Array.isArray(starter.protectedBranches) && starter.protectedBranches.length) protectedList = starter.protectedBranches;
 
+// Only mention helpers the project has: the scaffold has a theme hook, rn-ui adds createThemedStyles later.
+const themedStyles = ['ts', 'tsx'].some((x) => fs.existsSync(`src/theme/create-themed-styles.${x}`))
+  || (fs.existsSync('src/theme/index.ts') && /createThemedStyles/.test(fs.readFileSync('src/theme/index.ts', 'utf8')));
+
 const layered = (starter.structure || (fs.existsSync('src/screens') ? 'layered' : 'template')) === 'layered';
 const commitlint = fs.readdirSync('.').some((f) => /^commitlint\.config\./.test(f));
 const husky = fs.existsSync('.husky');
@@ -161,7 +165,9 @@ let md = fs.readFileSync(process.argv[2], 'utf8')
   })[['react-native-paper', 'tamagui', '@gluestack-ui/core'].find((d) => deps[d])]
     || (deps.nativewind ? 'Style with `className`; colors are CSS variables per scheme (`theme.md` in rn-ui).'
     : deps['react-native-unistyles'] ? 'Style with `StyleSheet.create((theme) => …)` from react-native-unistyles at the bottom of the file; avoid `useUnistyles()`.'
-    : 'Styles go at the bottom of the file: a module-level `StyleSheet.create` for layout and tokens, and `createThemedStyles` from `src/theme` for colors (built once per scheme, shared by every instance).'))
+    : themedStyles
+      ? 'Styles go at the bottom of the file: a module-level `StyleSheet.create` for layout and tokens, and `createThemedStyles` from `src/theme` for colors (built once per scheme, shared by every instance).'
+      : 'Styles go at the bottom of the file in a module-level `StyleSheet.create`; colors come from the theme hook (`useTheme()` in `src/theme`). rn-ui adds a themed-styles helper when the design needs one.'))
   .replace('{{INSTALL_RULE}}', isExpo
     ? 'Add packages with `npx expo install <pkg>` so versions match the SDK.'
     : `Add packages with \`${pm} add <pkg>\`; after a native dependency, run \`cd ios && pod install\` and rebuild.`)

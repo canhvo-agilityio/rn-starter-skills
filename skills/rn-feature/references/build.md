@@ -57,11 +57,11 @@ Without plan mode (a non-interactive run): write the plan into the ticket file a
 
 For each step, in order:
 
-1. Set its Status to `doing`.
+1. Set its Status to `doing` with `bash "<skill-dir>/scripts/set-step.sh" <ticket file> <step> doing` (Prettier pads the table, so editing the row by text misses it).
 2. Do it: invoke rn-ui or rn-api-connect with the handoff arguments (`handoff.md`), or do a `direct` step here following `CLAUDE.md` and rn-ui's `conventions.md`.
 3. Read the skill's report. `blocked`, or something needed outside the step's scope → stop and go to When things change.
 4. Run the project's checks (`CLAUDE.md` → Verifying your work). Only new errors count, against the baseline you took before step 1.
-5. Commit. Set Status to `done` and note the evidence the step produced (tests, screenshots) for the Evidence table.
+5. Set Status to `done` (`set-step.sh … <step> done`), note the evidence the step produced (tests, screenshots) for the Evidence table, and commit the step with its status.
 
 Keep the dev posted in one line per step (step 2 of 5 done: orders screens on mocks).
 
