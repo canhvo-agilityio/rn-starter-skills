@@ -58,7 +58,7 @@ A project created with an older version gets the new hooks and subagents with `s
 
 Verified 2026-10: Expo SDK 58, React Native 0.88, Node 24 LTS, JDK 17, Android API 35, Xcode 26.6 / iOS 26.5. App defaults: TypeScript, expo-router, Zustand, TanStack Query, NativeWind, ESLint + Prettier, Jest + React Native Testing Library, Maestro, EAS (a dev app and a production app). Details and alternatives: [`compatibility.md`](skills/rn-starter/references/compatibility.md), [`libraries.md`](skills/rn-starter/references/libraries.md).
 
-`rn-starter` is tested end to end on the iOS Simulator and the Android emulator. The ticket loop (`rn-ui`, `rn-feature`, `rn-e2e`) has run on a real project on the iOS Simulator with Expo Go; on Android, real devices and CI it isn't verified yet. The release gate is covered by tests (`node --test tests/release-gate.test.mjs`); `rn-release` against a real EAS project and the store submits aren't verified yet.
+`rn-starter` is tested end to end on the iOS Simulator and the Android emulator. The ticket loop (`rn-ui`, `rn-feature`, `rn-e2e`) has run on a real project on the iOS Simulator with Expo Go; on Android, real devices and CI it isn't verified yet. The release gate is covered by tests (`node --test skills/rn-starter/assets/claude/release-gate.test.mjs`); `rn-release` against a real EAS project and the store submits aren't verified yet.
 
 ## Layout
 
@@ -68,8 +68,7 @@ skills/<skill>/
   SKILL.md               the skill's flow
   scripts/               helpers the skill runs (print JSON; exit 2 = waiting on you, 3 = a decision needed)
   references/            details the skill reads when it needs them
-skills/rn-starter/assets/claude/   CLAUDE.md template, guard, release-gate and format hooks, code-reviewer and verifier subagents
-tests/                   tests for the hooks
+skills/rn-starter/assets/claude/   CLAUDE.md template, guard, release-gate (with its test) and format hooks, code-reviewer and verifier subagents
 ```
 
 Quick machine check: `bash skills/rn-starter/scripts/doctor.sh --android --ios --cocoapods`. When upgrading versions, update `compatibility.md` first, then rerun `rn-starter` on a clean machine.
