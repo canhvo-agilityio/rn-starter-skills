@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1000 540" width="1000" height="540" role="img" aria-labelledby="t d">
+  <title id="t">rn-starter skill map</title>
+  <desc id="d">Three loops. Set up once: rn-starter, then rn-release-setup, which configures the release gate. Every ticket: rn-feature hands screens to rn-ui, data to rn-api-connect and flows to rn-e2e. Every release: rn-release opens a release PR, a release manager approves it, then the approved commit ships and is tagged; the release gate checks every ship.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#7ea2ff"/>
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#f0b45c"/>
+    </marker>
+    <style>
+      .bg { fill: #0f141a; }
+      .group { fill: #131a22; stroke: #2b3744; stroke-width: 1; }
+      .glabel { fill: #9aa7b5; font: 600 11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: 0.12em; }
+      .node { fill: #161d25; stroke: #7ea2ff; stroke-width: 1.5; }
+      .node.person { stroke: #f0b45c; stroke-dasharray: 5 4; }
+      .node.hook { stroke: #e87979; }
+      .node.done { stroke: #5fd39a; }
+      .name { fill: #e6ebf1; font: 600 15px ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+      .sub { fill: #9aa7b5; font: 12px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+      .edge { fill: none; stroke: #7ea2ff; stroke-width: 1.6; stroke-dasharray: 6 6; animation: flow 1.2s linear infinite; }
+      .edge.amber { stroke: #f0b45c; }
+      .elabel { fill: #c6d0db; font: 11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+      .elabel-bg { fill: #0f141a; }
+      .dot { fill: #e6ebf1; }
+      .dot.amber { fill: #f0b45c; }
+      .pop { opacity: 0; animation: pop 0.5s ease-out forwards; }
+      @keyframes flow { to { stroke-dashoffset: -12; } }
+      @keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      @media (prefers-reduced-motion: reduce) {
+        .edge { animation: none; }
+        .pop { animation: none; opacity: 1; }
+        .dot { display: none; }
+      }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1000" height="540" rx="16"/>
+
+  <!-- groups -->
+  <rect class="group" x="20" y="60" width="260" height="410" rx="12"/>
+  <text class="glabel" x="36" y="84">SET UP · ONCE PER APP</text>
+  <rect class="group" x="310" y="60" width="380" height="410" rx="12"/>
+  <text class="glabel" x="326" y="84">EVERY TICKET</text>
+  <rect class="group" x="720" y="60" width="260" height="410" rx="12"/>
+  <text class="glabel" x="736" y="84">EVERY RELEASE</text>
+
+  <!-- edges (drawn first so nodes sit on top) -->
+  <path id="p-starter-setup" class="edge" d="M150 174 L150 213" marker-end="url(#arrow)"/>
+  <path id="p-setup-gate" class="edge" d="M150 279 L150 318" marker-end="url(#arrow)"/>
+  <path id="p-starter-feature" class="edge" d="M260 142 C 300 142, 290 250, 328 250" marker-end="url(#arrow)"/>
+  <path id="p-feature-ui" class="edge" d="M480 250 C 500 250, 498 140, 516 140" marker-end="url(#arrow)"/>
+  <path id="p-feature-api" class="edge" d="M480 250 L516 250" marker-end="url(#arrow)"/>
+  <path id="p-feature-e2e" class="edge" d="M480 250 C 500 250, 498 360, 516 360" marker-end="url(#arrow)"/>
+  <path id="p-feature-release" class="edge" d="M405 215 L405 36 L850 36 L850 108" marker-end="url(#arrow)"/>
+  <path id="p-release-approve" class="edge amber" d="M850 174 L850 213" marker-end="url(#arrow-amber)"/>
+  <path id="p-approve-ship" class="edge amber" d="M850 279 L850 318" marker-end="url(#arrow-amber)"/>
+  <path id="p-gate-ship" class="edge amber" d="M150 384 L150 500 L850 500 L850 386" marker-end="url(#arrow-amber)"/>
+
+  <!-- edge labels -->
+  <rect class="elabel-bg" x="560" y="27" width="84" height="18" rx="4"/>
+  <text class="elabel" x="602" y="40" text-anchor="middle">merged work</text>
+  <rect class="elabel-bg" x="440" y="491" width="120" height="18" rx="4"/>
+  <text class="elabel" x="500" y="504" text-anchor="middle">checks every ship</text>
+  <text class="elabel" x="160" y="200">then</text>
+  <text class="elabel" x="160" y="304">configures</text>
+
+  <!-- set up once -->
+  <g class="pop" style="animation-delay: 0.05s">
+    <rect class="node" x="40" y="110" width="220" height="64" rx="10"/>
+    <text class="name" x="56" y="137">/rn-starter</text>
+    <text class="sub" x="56" y="158">empty machine → running app</text>
+  </g>
+  <g class="pop" style="animation-delay: 0.2s">
+    <rect class="node" x="40" y="215" width="220" height="64" rx="10"/>
+    <text class="name" x="56" y="242">/rn-release-setup</text>
+    <text class="sub" x="56" y="263">dev + production apps on EAS</text>
+  </g>
+  <g class="pop" style="animation-delay: 0.35s">
+    <rect class="node hook" x="40" y="320" width="220" height="64" rx="10"/>
+    <text class="name" x="56" y="347">release gate</text>
+    <text class="sub" x="56" y="368">hook: approved PR or blocked</text>
+  </g>
+
+  <!-- every ticket -->
+  <g class="pop" style="animation-delay: 0.5s">
+    <rect class="node" x="330" y="215" width="150" height="70" rx="10"/>
+    <text class="name" x="346" y="244">/rn-feature</text>
+    <text class="sub" x="346" y="266">ticket → verified</text>
+  </g>
+  <g class="pop" style="animation-delay: 0.65s">
+    <rect class="node" x="518" y="110" width="164" height="60" rx="10"/>
+    <text class="name" x="532" y="136">/rn-ui</text>
+    <text class="sub" x="532" y="156">screens from Figma</text>
+  </g>
+  <g class="pop" style="animation-delay: 0.75s">
+    <rect class="node" x="518" y="220" width="164" height="60" rx="10"/>
+    <text class="name" x="532" y="246">/rn-api-connect</text>
+    <text class="sub" x="532" y="266">mocks → real API</text>
+  </g>
+  <g class="pop" style="animation-delay: 0.85s">
+    <rect class="node" x="518" y="330" width="164" height="60" rx="10"/>
+    <text class="name" x="532" y="356">/rn-e2e</text>
+    <text class="sub" x="532" y="376">a Maestro flow per R#</text>
+  </g>
+
+  <!-- every release -->
+  <g class="pop" style="animation-delay: 1s">
+    <rect class="node" x="740" y="110" width="220" height="64" rx="10"/>
+    <text class="name" x="756" y="137">/rn-release</text>
+    <text class="sub" x="756" y="158">notes, checklist, release PR</text>
+  </g>
+  <g class="pop" style="animation-delay: 1.15s">
+    <rect class="node person" x="740" y="215" width="220" height="64" rx="10"/>
+    <text class="name" x="756" y="242">release manager</text>
+    <text class="sub" x="756" y="263">approves the PR on GitHub</text>
+  </g>
+  <g class="pop" style="animation-delay: 1.3s">
+    <rect class="node done" x="740" y="320" width="220" height="64" rx="10"/>
+    <text class="name" x="756" y="347">ship + tag v1.4.0</text>
+    <text class="sub" x="756" y="368">exactly the approved commit</text>
+  </g>
+
+  <!-- moving dots along the main routes -->
+  <circle class="dot" r="4">
+    <animateMotion dur="2.4s" repeatCount="indefinite" rotate="auto"><mpath href="#p-starter-feature" xlink:href="#p-starter-feature"/></animateMotion>
+  </circle>
+  <circle class="dot" r="4">
+    <animateMotion dur="1.6s" begin="0.4s" repeatCount="indefinite"><mpath href="#p-feature-api" xlink:href="#p-feature-api"/></animateMotion>
+  </circle>
+  <circle class="dot" r="4">
+    <animateMotion dur="4s" begin="0.8s" repeatCount="indefinite"><mpath href="#p-feature-release" xlink:href="#p-feature-release"/></animateMotion>
+  </circle>
+  <circle class="dot amber" r="4">
+    <animateMotion dur="1.6s" begin="1.2s" repeatCount="indefinite"><mpath href="#p-release-approve" xlink:href="#p-release-approve"/></animateMotion>
+  </circle>
+  <circle class="dot amber" r="4">
+    <animateMotion dur="1.6s" begin="2s" repeatCount="indefinite"><mpath href="#p-approve-ship" xlink:href="#p-approve-ship"/></animateMotion>
+  </circle>
+  <circle class="dot amber" r="4">
+    <animateMotion dur="4.5s" begin="0.3s" repeatCount="indefinite"><mpath href="#p-gate-ship" xlink:href="#p-gate-ship"/></animateMotion>
+  </circle>
+</svg>
