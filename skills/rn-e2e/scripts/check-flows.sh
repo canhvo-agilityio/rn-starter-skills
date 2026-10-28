@@ -73,7 +73,8 @@ for (const f of walk(root)) {
   const folder = rel.split('/')[1];
   const inTicketFolder = rel.split('/').length === 3 && !['subflows'].includes(folder);
   const rTags = tags.filter((t) => /^R\d+$/.test(t));
-  if (!subflow && inTicketFolder && /^[A-Za-z][\w-]*-\d+$|^\d+$/.test(folder)) {
+  // A requirement flow (r<n>-<slug>.yaml) sits in its ticket's folder, whatever the ticket id looks like.
+  if (!subflow && inTicketFolder && /^r\d+-/.test(path.basename(rel))) {
     if (!tags.includes(folder)) problems.push(`${rel}: missing the ticket tag "${folder}"`);
     if (!rTags.length) problems.push(`${rel}: missing its R<n> tag`);
   }

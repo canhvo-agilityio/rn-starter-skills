@@ -1,6 +1,6 @@
 ---
 name: rn-feature
-description: Takes a ticket for a React Native / Expo app from analysis to a pull request. Analyze - numbers the acceptance criteria (R1, R2…), matches each to a screen in the design and an endpoint in the API, and writes docs/tickets/<id>.md with the gaps, the concerns (each with who decides) and questions ready to send. Build - a plan the dev accepts in plan mode, a branch, each step handed to rn-ui (screens), rn-api-connect (data, sign-in) or rn-e2e (Maestro flows per R#) and committed, bugs fixed test-first, every R# verified in the app, and a PR that maps each R# to its evidence. Use when someone says "analyze this ticket", "build / implement / fix this ticket", pastes a user story or a link to a Jira, Linear or GitHub issue, or wants a ticket checked against Figma / screenshots and Swagger. Several tickets can be analyzed in parallel. For screens or an API without a ticket, use rn-ui or rn-api-connect directly.
+description: Takes a ticket for a React Native / Expo app from analysis to a pull request. Analyze - numbers the acceptance criteria (R1, R2…), matches each to a screen in the design and an endpoint in the API, and writes docs/tickets/<id>.md with the gaps, the concerns (each with who decides) and questions ready to send. Build - a plan the dev accepts in plan mode, a branch, each step handed to rn-ui, rn-api-connect or rn-e2e and committed, bugs fixed test-first, every R# verified in the app, and a PR mapping each R# to its evidence. Use when someone says "analyze / build / implement / fix this ticket", pastes a user story or a link to a ticket on any board (Jira, Linear, GitHub, GitLab, Azure DevOps, Trello, Asana, ClickUp, Notion…), describes a feature to build, or wants a ticket checked against Figma / screenshots and Swagger. Several tickets can be analyzed in parallel. For screens or an API without a ticket, use rn-ui or rn-api-connect directly.
 ---
 
 # Ticket → analysis → pull request
@@ -14,7 +14,7 @@ Talk to the dev in their language. Write the ticket file in the ticket's languag
 **Which mode.** "Analyze", "what does this ticket need", "check it against the design": the analysis (Phases 0–7), then stop. "Build", "implement", "fix", "làm ticket này": the analysis first if there's no ticket file yet, then Building (Phases 8–13).
 
 **Invoked as a slash command.** The text after `/rn-feature` is the dev's request, read like any message. Take three things from it:
-- **The ticket**: an id (`SHOP-12`), a GitHub / Jira link, or ticket text pasted after the command.
+- **The ticket**: an id (`SHOP-12`), a link to it on any board, or ticket text pasted after the command.
 - **The mode**: "analyze", "build", "fix", "continue", "update with the answers". When the request names a ticket and no mode, the ticket file's status decides (below).
 - **Instructions that steer the work**: a scope ("only R1–R3", "the badge first"), an input ("use the Figma frame Order", "the Swagger is at …"), a constraint ("no new library", "from the dev branch"). Record them: scope and inputs in the ticket file (Scope, frontmatter), build instructions in the plan. One that contradicts the ticket or a decision is asked about, never applied silently.
 
@@ -51,7 +51,7 @@ Read `references/ticket-sources.md`. In short:
 | Source | How |
 |---|---|
 | GitHub issue (URL, `owner/repo#12`, `#12`) | `bash "<skill-dir>/scripts/fetch-ticket.sh" <ref>` |
-| A ticket on a board (Jira, Linear, Azure DevOps, Trello, ClickUp, Notion, a GitHub Projects draft) | In order: the board's connector if one is connected; else open the link the dev gave in **Claude in Chrome** (their own browser, already signed in) or the built-in browser (the dev signs in) and read the page; else ask the dev to paste it. Read only |
+| A ticket on a board (Jira, Linear, GitLab, Azure DevOps, Trello, Asana, ClickUp, Notion, a GitHub Projects draft) | In order: the board's connector if one is connected; else open the link the dev gave in **Claude in Chrome** (their own browser, already signed in) or the built-in browser (the dev signs in) and read the page; else ask the dev to paste it. Read only |
 | A requirement in the dev's words, typed or said | The words are the ticket: short id, `source: dev request`, requirements confirmed with the dev (`references/ticket-sources.md`) |
 | Pasted text, a file | Save it in your scratchpad, then `bash "<skill-dir>/scripts/fetch-ticket.sh" --text-file <file> --id <id>` |
 

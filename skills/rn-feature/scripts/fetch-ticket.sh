@@ -3,7 +3,7 @@
 # Read-only: never comments on, edits or transitions the ticket.
 #
 # Usage: fetch-ticket.sh <github-issue-url | owner/repo#N | #N>
-#        fetch-ticket.sh --text-file <file> --id <id>     (Jira text, a pasted ticket, a document)
+#        fetch-ticket.sh --text-file <file> --id <id>     (a board ticket read in the browser, a pasted ticket, a document)
 #
 # Prints: id, source, title, state, labels, type (feature | bug), body, comments, acceptanceCriteria,
 # links { figma, images, api, other }.
@@ -50,7 +50,7 @@ elif [ -n "$ref" ]; then
   elif [[ "$ref" =~ ^#?([0-9]+)$ ]]; then
     num="${BASH_REMATCH[1]}"
   else
-    echo "{\"error\":\"not a GitHub issue reference: $ref (use a URL, owner/repo#N or #N; Jira: --text-file)\"}"; exit 1
+    echo "{\"error\":\"not a GitHub issue reference: $ref (use a URL, owner/repo#N or #N; any other board: save the ticket text and use --text-file <file> --id <id>)\"}"; exit 1
   fi
   args=(issue view "$num" --json number,title,body,state,labels,url,comments)
   [ -n "$repo" ] && args+=(--repo "$repo")
@@ -62,7 +62,7 @@ elif [ -n "$ref" ]; then
     const fs = require("fs");
     const g = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
     fs.writeFileSync(process.argv[2], JSON.stringify({
-      id: String(g.number), source: g.url, title: g.title, state: g.state,
+      id: `gh-${g.number}`, source: g.url, title: g.title, state: g.state,
       labels: (g.labels || []).map((l) => l.name), body: g.body || "",
       comments: (g.comments || []).map((c) => ({ author: c.author?.login ?? null, createdAt: c.createdAt, body: c.body })),
     }));
