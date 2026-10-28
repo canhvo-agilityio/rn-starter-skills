@@ -34,7 +34,7 @@ eas build -p android --profile dev --non-interactive --auto-submit
 eas build -p ios --profile dev --non-interactive --auto-submit
 ```
 
-- Android, app never uploaded: the submit fails until the first manual upload — download the `.aab` from the build page, the dev uploads it in Play Console, then `eas submit -p android --latest`.
+- Android, app never uploaded: the submit fails until the first manual upload — download the `.aab` from the build page, the dev uploads it in Play Console, then `eas submit -p android --profile dev --latest` (always name the profile: without it EAS uses `production`, which the release gate blocks).
 - The build page shows the signing step; for Android, `keytool -printcert -jarfile app.aab` prints the signer's SHA-1/SHA-256 (public) to compare with the plan.
 - Failed attempts consume build numbers too (`autoIncrement`); stores only need them to grow.
 - Network errors while Gradle downloads dependencies (`bad_record_mac`, Maven timeouts) are transient: retry before suspecting the configuration.
