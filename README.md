@@ -16,25 +16,9 @@ A Claude Code plugin that takes a React Native / Expo app from an empty machine 
 | `rn-release-setup` | Two store apps from one codebase (a dev app and the production app), EAS and every credential for TestFlight and Google Play, from the files you or the client provide, plus the release gate | *"Set up EAS so we can ship to TestFlight"* |
 | `rn-release` | Release day: release notes and CHANGELOG, version, store build or OTA update, checklist, a release PR the release manager approves, then the approved commit ships and the version is locked | `/rn-release` |
 
-```mermaid
-flowchart LR
-  subgraph once["Set up once"]
-    starter["rn-starter<br/>machine → running app"] --> setup["rn-release-setup<br/>dev + production apps, EAS"]
-  end
-  subgraph ticket["Every ticket"]
-    feature["rn-feature<br/>ticket → verified code"] --> ui["rn-ui<br/>screens"]
-    feature --> api["rn-api-connect<br/>real API"]
-    feature --> e2e["rn-e2e<br/>Maestro flows"]
-  end
-  subgraph release["Every release"]
-    rel["rn-release<br/>notes, checklist, release PR"] --> approve{{"release manager<br/>approves the PR"}} --> ship["ship + tag v1.4.0"]
-  end
-  starter --> feature
-  feature -. "merged work" .-> rel
-  setup -. "release gate" .-> rel
-```
+<a href="https://claude.ai/artifact/CQMGK2v5CvvagkQQBUWEEk"><img src="assets/skill-map.svg" alt="Skill map: set up once (rn-starter, rn-release-setup, release gate), every ticket (rn-feature with rn-ui, rn-api-connect, rn-e2e), every release (rn-release, the release manager approves, ship and tag)" width="100%"></a>
 
-The full interactive map, with every step inside each skill, is in the [guide](https://claude.ai/artifact/CQMGK2v5CvvagkQQBUWEEk).
+Click the map for the interactive version in the [guide](https://claude.ai/artifact/CQMGK2v5CvvagkQQBUWEEk), with every step inside each skill.
 
 Text after a slash command is read as your request (`/rn-feature add a share button on Detail`). With nothing after it, the skill asks what it's missing.
 
