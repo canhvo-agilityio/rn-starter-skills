@@ -135,7 +135,7 @@ test('a closed release PR does not count', () => {
 
 test('no GitHub CLI or not signed in: denied, and says how to sign in', () => {
   const p = project({ gh: false });
-  const r = gate(p, 'eas submit --profile production -p ios');
+  const r = gate(p, 'eas submit --profile production -p ios --id abc');
   assert.equal(r.decision, 'deny');
   assert.match(r.reason, /gh auth login/);
 });
@@ -208,6 +208,14 @@ test('rollbacks and rollouts on the production channel ask', () => {
   assert.equal(gate(p, 'eas channel:rollout production --percent 10').decision, 'ask');
   assert.equal(gate(p, 'eas update:rollback --channel production').decision, 'ask');
   assert.equal(gate(p, 'eas channel:rollout dev --percent 10').decision, 'allow');
+  assert.match(gate(p, 'eas update:edit --rollout-percentage 50 --group abc').reason, /an update channel serves/);
+});
+
+test('a production submit must name the build', () => {
+  const p = project(approved());
+  assert.match(gate(p, 'eas submit --profile production --platform ios --latest').reason, /by build id/);
+  assert.match(gate(p, 'eas submit --profile production --platform ios').reason, /by build id/);
+  assert.equal(gate(p, 'eas submit --profile dev --platform ios --latest').decision, 'ask');
 });
 
 // ---------------------------------------------------------------- tags, approvals, other commands

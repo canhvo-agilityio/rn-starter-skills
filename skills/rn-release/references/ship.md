@@ -1,0 +1,54 @@
+# Shipping, locking, rolling back
+
+Every command here that reaches the production app passes through the release gate. If it denies, relay its reason and stop: the reason names what's missing (approval, a commit added after approval, a version mismatch). Never retry with another profile, channel or `APP_VARIANT` to get past it.
+
+Ship from the PR's approved head commit (`git switch release/<version>` and `git status` clean), or from its merge commit once a person merged it.
+
+## Store build
+
+Where builds run is in `docs/release-plan.md` (EAS cloud or local).
+
+```bash
+eas build --profile production --platform all --non-interactive --json > <scratchpad>/builds.json
+```
+
+- Read the build ids and their status from the JSON (or `eas build:list -e production --limit 2 --json`). A failed build: read its logs (`eas build:view <id>`), fix on the base branch, and the release goes through a new approval. Don't patch the release branch past its approval.
+- Then submit each build by id, never `--latest` (the latest build may not be this release's):
+
+```bash
+eas submit --profile production --platform ios --id <ios build id> --non-interactive
+eas submit --profile production --platform android --id <android build id> --non-interactive
+```
+
+EAS submit puts the build in **TestFlight** and the **Play internal testing** track (or the track in `eas.json`). Going live is a person's step in the store consoles, listed for them in the hand-off:
+- App Store Connect: the build on the version 1.4.0 page → *Add for Review* → *Submit*; choose manual or automatic release, and phased release over 7 days if wanted.
+- Play Console: *Testing → Internal testing* → promote the release to *Production* with a staged rollout (e.g. 10 %), then raise it.
+
+## OTA update
+
+```bash
+APP_VARIANT=production eas update --channel production --environment production \
+  --message "1.4.1: <one-line summary>" --rollout-percentage 10 --non-interactive
+```
+
+- Only when `runtime.nativeChanged` is false: the update reaches only builds with the same runtime version, so after a native change it would reach nobody.
+- `--rollout-percentage`: start small when the dev wants it; raising it later (`eas update:edit --rollout-percentage 50`) is a channel change the gate asks about.
+- The update is live as soon as the command finishes. There's no review step.
+
+## Lock the version
+
+Right after shipping, on the commit that shipped:
+
+```bash
+git tag -a v<version> -m "Release <version>" <sha>
+git push origin v<version>
+```
+
+The gate allows the tag only when it matches the approved release on that commit. Once the tag exists, the gate refuses to ship that version from any other commit, so a later change needs a new version and a new approval. Merging the release PR into the base branch is a person's step; remind them so `CHANGELOG.md` and the version reach the base branch.
+
+## Rolling back
+
+Say these plainly in the hand-off; run them only when the dev asks, and the gate asks the person for each.
+
+- **OTA**: republish the previous update group to production (`eas update:list --branch production`, then `eas update:republish --group <previous group id>`), or `eas update:roll-back-to-embedded --channel production` to send users back to the code inside their store build.
+- **Store build**: Apple has no rollback; pause a phased release in App Store Connect and ship a fixed version. Play: halt the staged rollout in Play Console, then ship a fixed version with a higher build number. A fixed version is a new release through this skill.
