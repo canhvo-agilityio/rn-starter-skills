@@ -1,5 +1,7 @@
 # Identity: ids, name, version, encryption flag
 
+Two apps (`variants.md`): the production app's ids below, and the dev app's the same plus `.dev`. Everything here applies to each.
+
 ## Bundle id and package
 
 | | Where (Expo) | Where (RN CLI) | Can change later? |

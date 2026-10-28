@@ -7,28 +7,32 @@ Written in Phase 3, approved by the dev, updated at the end. Every release reads
 
 EAS: @<owner>/<slug> (project <id>) — <organization of the client / personal account>
 Builds: <EAS cloud / local on <dev's OS>>
-Identity: iOS <bundle id> · Android <package> · name "<name>" · version <x.y.z> (build numbers on EAS, auto-increment)
+Apps (one codebase, APP_VARIANT): dev "<name> Dev" <id>.dev · production "<name>" <id> · version <x.y.z> (build numbers per app on EAS, auto-increment)
+Release managers (production releases need their approval on a release PR): <@user, @user / anyone but the author>
 
 ## Profiles
 
-| Profile | Distribution | Environment | Update channel | API |
-|---|---|---|---|---|
-| production | store | production | production | https://api.example.com/v1 |
-| staging | store | preview | staging | https://staging-api.example.com/v1 |
-| production-simulator | internal (simulator / APK, checks only) | production | production | — |
+| Profile | App | Distribution | Environment | Update channel | API |
+|---|---|---|---|---|---|
+| dev | dev | store | preview | dev | https://staging-api.example.com/v1 |
+| production | production | store | production | production | https://api.example.com/v1 |
+| dev-simulator / production-simulator | each | internal (simulator / APK, checks only) | as above | as above | — |
 
-Runtime version: fingerprint. Testers: TestFlight internal + Google Play internal testing.
+Runtime version: fingerprint. Testers: the dev app on TestFlight + Google Play internal testing. Production: through `rn-release` and the release gate.
 
 ## Credentials
 
-| Round | Item | Platform | Where it lives | Status |
-|---|---|---|---|---|
-| Build | Distribution certificate + App Store profile (created from the API key) | iOS | EAS | on EAS — profile expires 2027-10-20 |
-| Build | Upload keystore (generated, SHA-1 87:1E:…:AF:B3) | Android | EAS — backup in the team vault | on EAS |
-| Submit | App Store Connect API key (Key ID ABC123DEF4, App Manager) | iOS | EAS | on EAS |
-| Submit | Google service account key | Android | EAS | needed — asked the client on <date> |
-| Push | APNs key (Key ID XYZ987) | iOS | EAS | provided |
-| Push | FCM V1 key + google-services.json | Android | EAS / repo | needed |
+| Round | Item | App | Platform | Where it lives | Status |
+|---|---|---|---|---|---|
+| Build | Distribution certificate (shared, created from the API key) | both | iOS | EAS | on EAS — expires 2027-10-20 |
+| Build | App Store profile | dev | iOS | EAS | on EAS |
+| Build | App Store profile | production | iOS | EAS | on EAS |
+| Build | Upload keystore (generated, SHA-1 87:1E:…:AF:B3) | dev | Android | EAS — backup in the team vault | on EAS |
+| Build | Upload keystore (generated, SHA-1 4C:02:…:9D:11) | production | Android | EAS — backup in the team vault | on EAS |
+| Submit | App Store Connect API key (Key ID ABC123DEF4, App Manager) | both | iOS | EAS | on EAS |
+| Submit | Google service account key | both | Android | EAS | needed — asked the client on <date> |
+| Push | APNs key (Key ID XYZ987) | both | iOS | EAS | provided |
+| Push | FCM V1 key + google-services.json (both packages) | both | Android | EAS / repo | needed |
 
 Push sent by: <Expo push service / the backend (keys handed to <team>) / Firebase / —>
 
@@ -36,9 +40,9 @@ Push sent by: <Expo push service / the backend (keys handed to <team>) / Firebas
 
 | Item | Owner | Status |
 |---|---|---|
-| App Store Connect app record (Apple ID 1234567890 in eas.json) | client | done |
-| Play Console app + first .aab uploaded by hand to internal testing | dev | needed |
-| Service account invited in Play Console (Release to testing tracks) | client | needed |
+| App Store Connect app records: "<name> Dev" (Apple ID 1234567890) and "<name>" (Apple ID 1234567891), in eas.json | client | done |
+| Play Console apps (dev, production) + first .aab of each uploaded by hand to internal testing | dev | needed |
+| Service account invited on both Play apps (Release to testing tracks) | client | needed |
 
 ## Checked
 

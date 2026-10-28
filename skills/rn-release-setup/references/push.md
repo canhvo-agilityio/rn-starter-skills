@@ -15,12 +15,12 @@ The rest of this file is the Expo push service path; for the others, list the ke
 ## iOS: APNs key
 
 - File: an APNs key `.p8` + its Key ID (+ the Team ID). Not the App Store Connect API key, even though both are `AuthKey_<KEYID>.p8` — ask which key id is which.
-- The dev runs `npx eas-cli credentials -p ios` → `production` → *Push Notifications: Manage your Apple Push Notifications Key* → use an existing key → path + Key ID. With an App Store Connect API key or Apple ID login, EAS can also create one — but a team has **at most two** APNs keys: reuse the client's existing one when they have it.
+- For each app, the dev runs `npx eas-cli credentials -p ios` → `dev`, then `production` → *Push Notifications: Manage your Apple Push Notifications Key* → use an existing key → path + Key ID. With an App Store Connect API key or Apple ID login, EAS can also create one — but a team has **at most two** APNs keys: reuse the client's existing one when they have it.
 - App side: `expo-notifications` adds the `aps-environment` entitlement; EAS turns on the Push capability for the bundle id when it creates the provisioning profile. If the profile was uploaded from a file (`credentials-ios.md` → certificate and profile), it must include push — the scan shows `push: true/false` for a `.mobileprovision`.
 
 ## Android: FCM V1 key and google-services.json
 
-- **`google-services.json`** from the Firebase project, with a client for the app's package (the scan lists its packages). In the app config: `"android": { "googleServicesFile": "./google-services.json" }`. It's configuration, not a secret: commit it, or keep it out of git and pass it as a `file` EAS environment variable.
+- **`google-services.json`** from the Firebase project, with a client for each app's package — register both packages in one Firebase project and the one file serves both builds (the scan lists its packages). In the app config: `"android": { "googleServicesFile": "./google-services.json" }`. It's configuration, not a secret: commit it, or keep it out of git and pass it as a `file` EAS environment variable.
 - **FCM V1 service account key** (`.json`) from the same Firebase project: Firebase console → *Project settings → Service accounts → Generate new private key*. Usually not the same service account as the Play submit one — ask which file is which.
 - The dev uploads it: `npx eas-cli credentials -p android` → `production` → *Push Notifications (FCM V1)* → upload the key; or *Add a service account key* under *FCM V1 service account key* on the Credentials page.
 

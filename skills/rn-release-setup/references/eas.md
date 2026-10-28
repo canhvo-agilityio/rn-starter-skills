@@ -29,51 +29,18 @@ Already linked to another owner (`project.owner` differs from the choice): stop 
 
 ## eas.json
 
-```json
-{
-  "cli": { "version": ">= 25.0.0", "appVersionSource": "remote" },
-  "build": {
-    "production": {
-      "distribution": "store",
-      "environment": "production",
-      "channel": "production",
-      "autoIncrement": true
-    },
-    "production-simulator": {
-      "extends": "production",
-      "distribution": "internal",
-      "channel": "production",
-      "autoIncrement": false,
-      "ios": { "simulator": true },
-      "android": { "buildType": "apk" }
-    }
-  },
-  "submit": {
-    "production": {
-      "ios": { "ascAppId": "<from App Store Connect>", "appleTeamId": "<TEAMID>" },
-      "android": { "track": "internal", "releaseStatus": "draft" }
-    }
-  }
-}
-```
+The profiles for the two apps (`dev`, `production`, their `*-simulator` checks, a submit profile per app) are in `variants.md` → eas.json. What each setting means:
 
 - `cli.version`: the major the skill ran with, as a floor (`>= 25.0.0`), so teammates on an older CLI get a clear error.
-- `appVersionSource: "remote"` + `autoIncrement: true`: EAS keeps the build number (iOS `buildNumber`, Android `versionCode`) and raises it on every store build — TestFlight and Play reject a number they've seen, and two devs building from different machines would otherwise collide. The first remote value is taken from the project; set it explicitly with `eas build:version:set` when the store already has higher numbers. The marketing `version` (`1.2.0`) stays in `app.json`; releases bump it.
-- `production-simulator`: the same configuration (environment, channel) built for the iOS Simulator and as an Android APK, used only for checking before a store build. `autoIncrement: false` so checks don't consume build numbers. Set its `channel` explicitly: `eas update:configure` otherwise writes a channel named after the profile into every profile that has none.
-- `submit.production.android.releaseStatus: "draft"`: Google Play refuses non-draft releases for an app that has never been published ("Only releases with status draft may be created on draft app"). Change it to `completed` once the app has had its first rollout.
-- `submit.production.ios`: `ascAppId` is the App Store Connect app's Apple ID (a number on the app's App Information page) — the app record must exist (`credentials-ios.md`). The API key for submit is configured on EAS (`credentials-ios.md`), so no key path sits in `eas.json`.
-
-**A `staging` profile** — only when test builds use another API than production (Phase 2 answer):
-
-```json
-"staging": { "extends": "production", "environment": "preview", "channel": "staging" }
-```
-
-It ships to the same TestFlight / internal testing app as production, so testers see one app; its builds talk to the staging API and get staging OTA updates. When the dev wants staging and production installed side by side, that's a second app (`com.x.app.staging`) with its own store records and credentials — a bigger setup; confirm before doing it.
+- `appVersionSource: "remote"` + `autoIncrement: true`: EAS keeps the build number (iOS `buildNumber`, Android `versionCode`) per app and raises it on every store build — TestFlight and Play reject a number they've seen, and two devs building from different machines would otherwise collide. The first remote value is taken from the project; set it explicitly with `eas build:version:set` when the store already has higher numbers. The marketing `version` (`1.2.0`) stays in `app.json`; releases bump it.
+- `env.APP_VARIANT`: which app the profile builds (`variants.md`).
+- `*-simulator`: the same configuration (environment, channel, variant) built for the iOS Simulator and as an Android APK, used only for checking before a store build. `autoIncrement: false` so checks don't consume build numbers. Set its `channel` explicitly: `eas update:configure` otherwise writes a channel named after the profile into every profile that has none.
+- `submit.<profile>.android.releaseStatus: "draft"`: Google Play refuses non-draft releases for an app that has never been published ("Only releases with status draft may be created on draft app"). Change it to `completed` once that app has had its first rollout.
+- `submit.<profile>.ios`: `ascAppId` is that App Store Connect app's Apple ID (a number on the app's App Information page) — the app record must exist (`credentials-ios.md`). The API key for submit is configured on EAS (`credentials-ios.md`), so no key path sits in `eas.json`.
 
 ## Environment variables
 
-`EXPO_PUBLIC_*` values (API URL, keys meant to be public) are EAS environment variables, picked by the profile's `environment` (`production`, `preview`, `development` — the three EAS provides):
+`EXPO_PUBLIC_*` values (API URL, keys meant to be public) are EAS environment variables, picked by the profile's `environment` (`production`, `preview`, `development` — the three EAS provides; the dev app uses `preview`, the production app `production`):
 
 ```bash
 eas env:set production --name EXPO_PUBLIC_API_URL --value https://api.example.com/v1 --visibility plaintext --non-interactive
@@ -102,16 +69,16 @@ eas update:configure --non-interactive
 
 With `fingerprint`, the runtime version is a hash of the native side (dependencies, config plugins, native files): an OTA update only reaches builds whose native code it matches, so a JS update that needs a new native module can't break installed apps. `appVersion` would let it through as long as `version` wasn't bumped.
 
-Each build profile's `channel` decides which updates its builds receive; OTA updates are published to those channels (`eas update --channel <name>`).
+Each build profile's `channel` decides which updates its builds receive; OTA updates are published to those channels with the app's variant (`variants.md` → OTA updates per app).
 
 React Native CLI: `expo-updates` needs `npx install-expo-modules` first and native setup — follow Expo's "Install expo-updates in bare React Native" guide, then build once to check it.
 
 ## Builds
 
 ```bash
-eas build -p android --profile production --non-interactive            # cloud
-eas build -p android --profile production --local --output build/app.aab   # this computer
-eas build -p ios --profile production-simulator --local --output build/sim.tar.gz
+eas build -p android --profile dev --non-interactive                    # cloud, dev app
+eas build -p android --profile dev --local --output build/app-dev.aab   # this computer
+eas build -p ios --profile dev-simulator --local --output build/sim.tar.gz
 ```
 
 - Cloud: waits in EAS's queue (free plan: limited builds per month, slower queue).

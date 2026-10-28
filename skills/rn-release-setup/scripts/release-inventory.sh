@@ -8,7 +8,8 @@
 # package, build numbers, EAS project id, updates/runtime version, encryption flag, icon/splash;
 # for RN CLI the native ids from android/ and ios/; eas.json profiles; Fastlane; the release
 # features the app uses (from its dependencies and config plugins); credential files that git
-# tracks or doesn't ignore; signs that the app was already released (releaseSigns — empty for a new
+# tracks or doesn't ignore; the two apps (variants: dev / production ids, when app.config reads
+# APP_VARIANT) and the release block of .rn-starter.json; signs that the app was already released (releaseSigns — empty for a new
 # project); and whether docs/release-plan.md exists.
 #
 # Never opens .env files or credential files.
@@ -26,9 +27,15 @@ command -v node >/dev/null 2>&1 || { echo '{"error":"node not found — source r
 expo_config=""
 if node -e "const p=require('$dir/package.json');process.exit({...p.dependencies,...p.devDependencies}.expo?0:1)" 2>/dev/null; then
   expo_config="$(cd "$dir" && EXPO_NO_DOTENV=1 npx expo config --json --type public 2>/dev/null || true)"
+  # Two apps from one codebase (references/variants.md): resolve each variant when the config reads APP_VARIANT.
+  dyn="$(ls "$dir"/app.config.* 2>/dev/null | head -1 || true)"
+  if [ -n "$dyn" ] && grep -q APP_VARIANT "$dyn"; then
+    variant_dev="$(cd "$dir" && APP_VARIANT=dev EXPO_NO_DOTENV=1 npx expo config --json --type public 2>/dev/null || true)"
+    variant_prod="$(cd "$dir" && APP_VARIANT=production EXPO_NO_DOTENV=1 npx expo config --json --type public 2>/dev/null || true)"
+  fi
 fi
 
-EXPO_CONFIG="$expo_config" node - "$dir" <<'EOF'
+EXPO_CONFIG="$expo_config" VARIANT_DEV="${variant_dev:-}" VARIANT_PROD="${variant_prod:-}" node - "$dir" <<'EOF'
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
@@ -168,6 +175,13 @@ const result = {
     plugins,
   } : null,
   dynamicConfig,
+  variants: (() => {
+    const ids = (raw) => { try { const v = JSON.parse(raw); return { name: v.name, ios: v.ios?.bundleIdentifier ?? null, android: v.android?.package ?? null, scheme: v.scheme ?? null }; } catch { return null; } };
+    const dev = process.env.VARIANT_DEV ? ids(process.env.VARIANT_DEV) : null;
+    const production = process.env.VARIANT_PROD ? ids(process.env.VARIANT_PROD) : null;
+    return dev || production ? { dev, production } : null;
+  })(),
+  release: (() => { try { return JSON.parse(read('.rn-starter.json')).release ?? null; } catch { return null; } })(),
   native,
   eas,
   installed: {

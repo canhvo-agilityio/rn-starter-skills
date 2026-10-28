@@ -1,5 +1,7 @@
 # iOS credentials
 
+Menu paths below show the `production` profile: run each upload for `dev` too, since credentials live per app (`variants.md` → Credentials per app).
+
 > These iOS steps follow Expo's documentation and eas-cli's source. Until a step has succeeded for this app, report it as "set up, not proven" in the hand-off.
 
 EAS stores iOS credentials per project and bundle id. The Credentials page shows them under the bundle id: **Distribution certificate**, **Provisioning profile** (build), **App Store Connect API key** (submit), **Push key** (push).

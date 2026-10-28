@@ -78,7 +78,7 @@ A credential file already tracked by git: `git rm --cached <file>`, commit, and 
 
 Only the platforms being uploaded. Check git ignores it (`git check-ignore -q credentials.json`), then ask the dev to replace each `TYPE-IT-HERE` and say "done". Run `build-from-json` per platform; then `rm credentials.json` — never open it once the dev has filled it.
 
-Credentials are stored per bundle id / package: upload once per id, with a `store` profile that builds it (usually `production`).
+Credentials are stored per bundle id / package: upload once per app, with the profile that builds it (`dev`, then `production`). Shared items (the API key, the service account, the APNs key) are uploaded for each app too: EAS keeps an assignment per bundle id / package.
 
 On Windows (Git Bash has no `expect`) or when the script exits 2, give the dev the printed `npx eas-cli@25.3.0 credentials -p …` command and the menu path from the platform reference.
 
