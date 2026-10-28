@@ -95,6 +95,10 @@ const flag = (args, ...names) => {
   return null;
 };
 const has = (args, ...names) => args.some((a) => names.includes(a));
+// Arguments that aren't flags or flag values (`--percent 10` → neither is positional).
+const BOOLEAN_FLAGS = ['--non-interactive', '--json', '--auto', '--latest', '--wait', '--no-wait', '--local', '--clear-cache', '--force-end-active-rollout'];
+const positionals = (args) => args.filter((a, i) => !a.startsWith('-')
+  && !(i > 0 && args[i - 1].startsWith('-') && !args[i - 1].includes('=') && !BOOLEAN_FLAGS.includes(args[i - 1])));
 
 // eas invoked directly, through npx / pnpm dlx / yarn dlx / bunx, or as eas-cli@<version>.
 const easArgs = (tokens) => {
@@ -256,6 +260,11 @@ const checkEas = (args, env) => {
       if (sub === 'submit') decide('ask', `This submits the ${app.name} app to TestFlight / Google Play for testers. Approve only if it's the build you mean to send.`);
       return;
     }
+    if (sub === 'submit' && (has(rest, '--latest') || !flag(rest, '--id', '--path', '--url'))) {
+      decide('deny', 'Submit the production app by build id (eas submit --profile production --platform <p> --id <build id>), '
+        + 'using the build made from the approved commit. --latest may pick another build, so the release gate can\'t tell it was approved.');
+      return;
+    }
     if (sub === 'build') {
       const cfg = profileConfig(profile);
       if (cfg?.ios?.simulator === true || cfg?.distribution === 'internal') return; // a check build: reaches no user
@@ -295,10 +304,11 @@ const checkEas = (args, env) => {
   }
 
   if (PROD_CHANNEL_COMMANDS.includes(sub)) {
-    const target = flag(rest, '--channel') || flag(rest, '--branch') || rest.find((a) => !a.startsWith('-'));
+    const named = flag(rest, '--channel') || flag(rest, '--branch');
+    const target = named || (sub.startsWith('channel:') || sub === 'branch:delete' ? positionals(rest)[0] : null);
     const app = target ? appByChannel(target) : null;
     if (!target || !app || app.production) {
-      decide('ask', `This changes what ${target ? `the "${target}" channel` : 'a channel'} serves${app?.production ? ' to production users' : ''} (${sub}). Approve only if you own this release.`);
+      decide('ask', `This changes what ${target ? `the "${target}" channel` : 'an update channel'} serves${app?.production ? ' to production users' : ''} (${sub}). Approve only if you own this release.`);
     }
   }
 };
