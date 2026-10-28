@@ -6,8 +6,8 @@ EAS's CLI can't print the credential state without a terminal (`eas credentials`
 
 | Section | Expected |
 |---|---|
-| iOS — bundle id `<id>` | Distribution certificate (expiry > 30 days) · Provisioning profile, App Store, same bundle id · App Store Connect API key (key id) · Push key (if push) |
-| Android — package `<name>` | Upload keystore (SHA-1 = Play Console's upload key for an app already on Play) · Google service account key for EAS Submit · FCM V1 service account key (if push) |
+| iOS — each bundle id (`<id>.dev`, `<id>`) | Distribution certificate (expiry > 30 days) · Provisioning profile, App Store, same bundle id · App Store Connect API key (key id) · Push key (if push) |
+| Android — each package (`<id>.dev`, `<id>`) | Upload keystore (SHA-1 = Play Console's upload key for an app already on Play) · Google service account key for EAS Submit · FCM V1 service account key (if push) |
 
 Mark each item `on EAS` in the plan, or what's still missing and who provides it. A platform with missing items is **not set up** — say what's missing, never imply it's done.
 
@@ -17,7 +17,7 @@ Mark each item `on EAS` in the plan, or what's still missing and who provides it
 
 Not on the Credentials page, but each one blocks the first submit. List them with an owner:
 
-- App Store Connect **app record** for the bundle id; its Apple ID in `eas.json` → `submit.production.ios.ascAppId`.
+- App Store Connect **app record** for each bundle id; their Apple IDs in `eas.json` → `submit.dev.ios.ascAppId` and `submit.production.ios.ascAppId`.
 - The App Store Connect API key's **role** (App Manager or Admin).
 - Google Play Console **app** created; **first `.aab` uploaded by hand** to internal testing.
 - The service account **invited in Play Console** with *Release to testing tracks* for this app.
@@ -27,11 +27,11 @@ Not on the Credentials page, but each one blocks the first submit. List them wit
 
 Ask the dev (Phase 8): a test proves what the Credentials page can't — that the keystore is the published app's, the service account has its permissions, the profile matches. It uses their build quota (cloud) or ~15 GB of disk (local — check `df -h ~` first, `eas.md` → Builds).
 
-If yes, where they chose to build:
+If yes, where they chose to build, with the **dev app** (it proves the shared credentials and needs no release approval; the production app's own profile and keystore are proven by its first release through `rn-release`):
 
 ```bash
-eas build -p android --profile production --non-interactive --auto-submit
-eas build -p ios --profile production --non-interactive --auto-submit
+eas build -p android --profile dev --non-interactive --auto-submit
+eas build -p ios --profile dev --non-interactive --auto-submit
 ```
 
 - Android, app never uploaded: the submit fails until the first manual upload — download the `.aab` from the build page, the dev uploads it in Play Console, then `eas submit -p android --latest`.

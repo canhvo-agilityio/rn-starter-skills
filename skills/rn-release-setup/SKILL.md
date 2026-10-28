@@ -1,11 +1,13 @@
 ---
 name: rn-release-setup
-description: Sets up an app once for TestFlight and Google Play with EAS: Expo project, bundle id / package, build profiles, and every credential on EAS — build (certificate, profile, keystore), submit (App Store Connect API key, Google service account) and push (APNs, FCM) — from files the developer or client provides, without secrets in the chat. Use when someone wants to set up EAS, prepare an app for TestFlight or the Play Store, configure signing or push keys, or use credentials a client sent (.p8, .p12, .jks, service account JSON).
+description: Sets up an app once for TestFlight and Google Play with EAS, as two store apps from one codebase (a dev app and the production app, side by side on one phone): Expo project, bundle ids / packages, build profiles, and every credential on EAS — build (certificate, profile, keystore), submit (App Store Connect API key, Google service account) and push (APNs, FCM) — from files the developer or client provides, without secrets in the chat. Use when someone wants to set up EAS, prepare an app for TestFlight or the Play Store, configure signing or push keys, or use credentials a client sent (.p8, .p12, .jks, service account JSON).
 ---
 
 # Release setup (EAS)
 
-Goal: when the developer opens the project's **Credentials** page on expo.dev, everything the app needs is there — build, submit and (if the app uses push) push credentials, for iOS and Android — and they know exactly what's left outside EAS. Nothing is built here unless the developer asks for a test build at the end; releasing comes after.
+Goal: when the developer opens the project's **Credentials** page on expo.dev, everything both apps need is there — build, submit and (if the app uses push) push credentials, for iOS and Android — and they know exactly what's left outside EAS.
+
+**Two apps, always.** One codebase ships as a **dev app** (`com.acme.coffeeshop.dev`) that testers get often and the **production app** (`com.acme.coffeeshop`) that users get through a release, selected by `APP_VARIANT`. Read `references/variants.md` before Phase 2: it has the app config, the profiles, what's shared and what's per app. Nothing is built here unless the developer asks for a test build at the end; releasing comes after.
 
 Talk to the dev in their language. **Invoked as a slash command**, the text after the skill's name is the dev's request: read it like any message, use what it gives (links, names, files, constraints) and ask only for what it leaves out. Say early how this works: **the developer provides the files (and types passwords into one local file); you do the rest** — scanning, uploading to EAS (`scripts/eas-credentials.sh` drives EAS's interactive credential menus without reading or typing any secret) and checking.
 
@@ -17,7 +19,7 @@ Talk to the dev in their language. **Invoked as a slash command**, the text afte
 source "<skill-dir>/../rn-starter/scripts/env.sh"; bash "<skill-dir>/scripts/release-inventory.sh" <project-dir>
 ```
 
-JSON: Expo or React Native CLI, the resolved app config (name, slug, owner, version, bundle id, package, EAS project id, updates, encryption flag, icon/splash, plugins), native ids from `ios/` `android/`, `eas.json`, Fastlane, **whether the app uses push** (`features.push`) and other features, credential files in the project and whether git tracks or ignores them, and `docs/release-plan.md`.
+JSON: Expo or React Native CLI, the resolved app config (name, slug, owner, version, bundle id, package, EAS project id, updates, encryption flag, icon/splash, plugins), native ids from `ios/` `android/`, `eas.json`, Fastlane, **whether the app uses push** (`features.push`) and other features, the two apps' ids when the config already has variants (`variants`) and the gate's `release` block, credential files in the project and whether git tracks or ignores them, and `docs/release-plan.md`.
 
 - **Exit 3 — credential files tracked by git or not ignored**: stop and tell the dev first (`references/credentials.md` → Git).
 - `ignoreRulesMissing`: add those patterns to `.gitignore` now, before any file arrives.
@@ -41,21 +43,23 @@ Then `eas init --account <owner> --non-interactive` and `eas.json` from `referen
 
 Read `references/identity.md`. One `AskUserQuestion` round (max 4):
 - **Files already in hand?** *Yes — give the folder (Recommended when a client sent them)* / *Not yet*. With a folder, run the scan (Phase 5 step 3) now: a `.mobileprovision` and `google-services.json` name the bundle id / package the files were made for, so propose **those** ids instead of inventing new ones.
-- iOS bundle id and Android package (`com.<company>.<app>`, or the ids from the files), stating that **they can't change once the app is on a store**; an app already on a store keeps its ids.
-- Whether test builds use the production API or a staging one (a `staging` profile, `references/eas.md` → Profiles) — skip it when the app reads no API URL (`grep -rn "process.env.EXPO_PUBLIC_" src` finds none): one `production` profile.
-- The API URL per environment, if the app reads one (names from `.env.example`, values from the dev).
+- The production app's bundle id and package (`com.<company>.<app>`, or the ids from the files) and its name; the dev app gets the same id plus `.dev` and the name plus " Dev" unless the dev says otherwise. State that **ids can't change once an app is on a store**; an app already on a store keeps its ids for the production app.
+- The release managers: GitHub usernames whose approval lets a production release ship (`variants.md` → The release block). *Anyone but the author (Recommended to start)* / *These people: …*.
+- The API URL per app, if the app reads one (names from `.env.example`, values from the dev): the dev app's (dev or staging API) and the production app's. Skip when the app reads no API URL (`grep -rn "process.env.EXPO_PUBLIC_" src` finds none).
 
 ## Phase 3 — Plan → dev approval
 
-Write `docs/release-plan.md` from `references/plan-template.md`: owner, build location, identity, profiles and environments, and the credential checklist — **build**, **submit**, **push** (if used), per platform — with what each item needs from the dev and its status, plus what's needed outside EAS. Ask: "Set up EAS and the credentials from this plan?" → *Yes (Recommended)* / *Change something*. Nothing changes before a yes.
+Write `docs/release-plan.md` from `references/plan-template.md`: owner, build location, both apps' identity, profiles and environments, and the credential checklist — **build**, **submit**, **push** (if used), per app and platform — with what each item needs from the dev and its status, plus what's needed outside EAS. Ask: "Set up EAS and the credentials from this plan?" → *Yes (Recommended)* / *Change something*. Nothing changes before a yes.
 
 ## Phase 4 — Profiles and environments
 
-From `references/eas.md`: `eas.json` (`appVersionSource: "remote"`, `production` + optional `staging`, `production-simulator`, submit profiles), EAS environment variables per environment (`eas env:set`; never read `.env`), `expo-updates` with a `fingerprint` runtime version, identity and `ITSAppUsesNonExemptEncryption` in the app config. Run `npx expo-doctor` (Expo) and `npx tsc --noEmit`; fix what you introduced.
+From `references/variants.md` and `references/eas.md`: `app.config.js` with the two variants, `eas.json` (`appVersionSource: "remote"`, `dev` and `production` profiles with `APP_VARIANT`, their `*-simulator` check profiles, submit profiles per app), EAS environment variables (`preview` for the dev app, `production` for the production app; `eas env:set`, never read `.env`), `expo-updates` with a `fingerprint` runtime version, `ITSAppUsesNonExemptEncryption` in the app config. Check both variants resolve (`variants.md` → app.config.js), run `npx expo-doctor` (Expo) and `npx tsc --noEmit`; fix what you introduced.
+
+Then the release gate: write the `release` block into `.rn-starter.json` (`variants.md`), and make sure `.claude/hooks/release-gate.mjs` is installed and registered — if it isn't (a project set up before the gate existed), run rn-starter's `scripts/setup-claude.sh --update-agents`. From now on, production builds, submits, OTA updates and release tags need an approved release PR (`rn-release`); dev builds don't.
 
 ## Phases 5–7 — Credentials, in three rounds
 
-Read `references/credentials.md` once, then for each round:
+Read `references/credentials.md` once, then for each round, **for both apps** (`variants.md` → Credentials per app: the certificate, the API key, the service account and the APNs key are shared; profiles, keystores and store records are per app):
 
 1. **List what this round needs**, in the dev's language, one line per item on what it's for.
 2. The dev puts the files in **one folder** (outside the project is best) and gives you its path; ask for the non-secret ids in the chat now — key ids, issuer id, team id, **keystore alias** — so they never have to be typed into a file.
@@ -78,7 +82,7 @@ Follow `references/verify.md`:
 2. **Outside EAS**: the list of what isn't on the Credentials page but blocks the first submit (App Store Connect app record, Play Console app and its first manual upload, the service account's Play Console permissions, the API key's role). Mark each as done / for the dev / for the client.
 3. **Optional test build** — ask: *Run a test build and submit now to prove the credentials work (Recommended)* / *Leave it for the first release*. A present credential can still be wrong (a service account without Play permissions, a keystore that isn't the published app's). If skipped, the hand-off says "set up, not proven by a build".
 
-Update `docs/release-plan.md`, tell the dev briefly what's on EAS, what's left outside, and the next step: the first TestFlight / internal testing release (`eas build --profile production` then `eas submit`). Offer to commit (`chore(release): set up EAS and store credentials`; body wrapped at 72 columns; follow the project's own pre-commit rules). Don't commit without a yes.
+Update `docs/release-plan.md`, tell the dev briefly what's on EAS per app, what's left outside, and the next steps: dev builds whenever testers need one (`eas build --profile dev`, `eas submit --profile dev`), and production releases through `rn-release`, which the release gate requires. Offer to commit (`chore(release): set up EAS and store credentials`; body wrapped at 72 columns; follow the project's own pre-commit rules). Don't commit without a yes.
 
 ## Principles
 
