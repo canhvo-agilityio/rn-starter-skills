@@ -1,4 +1,4 @@
-// Tests for skills/rn-starter/assets/claude/release-gate.mjs. Run: node --test tests/
+// Tests for release-gate.mjs, next to it. Run: node --test skills/rn-starter/assets/claude/release-gate.test.mjs
 // Each case builds a throwaway project (git repo, app.json, eas.json, the release block) and a fake
 // `gh` that prints the release PRs a case describes, then feeds the hook a Bash command.
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -8,7 +8,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const HOOK = path.resolve(import.meta.dirname, '../skills/rn-starter/assets/claude/release-gate.mjs');
+const HOOK = path.resolve(import.meta.dirname, 'release-gate.mjs');
 
 const EAS = {
   cli: { version: '>= 25.0.0', appVersionSource: 'remote' },
