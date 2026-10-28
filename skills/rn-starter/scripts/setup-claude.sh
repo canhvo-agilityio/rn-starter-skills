@@ -4,7 +4,9 @@
 #   .claude/hooks/format.mjs         PostToolUse hook: Prettier/ESLint (or Biome) on every edited file
 #   .claude/hooks/guard.mjs          PreToolUse hook: blocks pushes to protected branches, secret files,
 #                                    hand edits to generated files
-#   .claude/settings.json            registers both hooks (merged into an existing file)
+#   .claude/hooks/release-gate.mjs   PreToolUse hook: production builds, submits, OTA updates and release
+#                                    tags need an approved release PR (configured by rn-release-setup)
+#   .claude/settings.json            registers the hooks (merged into an existing file)
 #   .claude/agents/code-reviewer.md  read-only review subagent
 #   .claude/agents/verifier.md       runs the app and checks the change, report only
 #
@@ -45,9 +47,10 @@ log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 mkdir -p .claude/hooks .claude/agents
 written=(.claude/settings.json)
 
-log "Format and guard hooks"
+log "Format, guard and release-gate hooks"
 cp "$assets/format.mjs" .claude/hooks/format.mjs
 cp "$assets/guard.mjs" .claude/hooks/guard.mjs
+cp "$assets/release-gate.mjs" .claude/hooks/release-gate.mjs
 node - <<'EOF'
 const fs = require('fs');
 const file = '.claude/settings.json';
@@ -64,12 +67,16 @@ const register = (event, matcher, script, timeout) => {
 };
 register('PostToolUse', 'Edit|MultiEdit|Write', 'format.mjs', 60);
 register('PreToolUse', 'Bash|Read|Edit|MultiEdit|Write|NotebookEdit|Grep|Glob', 'guard.mjs', 10);
+register('PreToolUse', 'Bash', 'release-gate.mjs', 30);
 fs.writeFileSync(file, JSON.stringify(settings, null, 2) + '\n');
 EOF
 
 # Personal overrides stay out of git; the shared settings, hook, agent and CLAUDE.md go in.
 if [ -f .gitignore ] && ! grep -qx '.claude/settings.local.json' .gitignore; then
   printf '\n# Claude Code personal settings\n.claude/settings.local.json\n' >> .gitignore
+fi
+if [ -f .gitignore ] && ! grep -qx '.claude/release-gate.log' .gitignore; then
+  printf '.claude/release-gate.log\n' >> .gitignore
 fi
 
 log "Subagents"
@@ -206,6 +213,8 @@ echo ".claude/settings.json             PostToolUse (Edit|MultiEdit|Write) → n
 echo ".claude/hooks/format.mjs          $( [ -f biome.json ] || [ -f biome.jsonc ] && echo 'biome check --write' || echo 'prettier --write, eslint --fix') on the edited file"
 echo ".claude/settings.json             PreToolUse (Bash|Read|Edit|Write|…) → node .claude/hooks/guard.mjs"
 echo ".claude/hooks/guard.mjs           blocks pushes to: $(node -e "try{const b=require('./.rn-starter.json').protectedBranches;if(b&&b.length){console.log(b.join(', '));process.exit(0)}}catch{}console.log('main, master')"); secret files; edits to *.gen.ts"
+echo ".claude/settings.json             PreToolUse (Bash) → node .claude/hooks/release-gate.mjs"
+echo ".claude/hooks/release-gate.mjs    production releases need an approved release PR; dev builds pass"
 echo ".claude/agents/code-reviewer.md   subagent 'code-reviewer' (read-only)"
 echo ".claude/agents/verifier.md        subagent 'verifier' (runs the app, reports only)"
 [ "$kept" -eq 1 ] && [ "$update_agents" -eq 0 ] && exit 3
