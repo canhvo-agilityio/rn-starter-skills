@@ -2,6 +2,7 @@
 # Shared helpers for rn-starter scripts. Source it; don't execute it.
 
 RN_STARTER_HOME="${RN_STARTER_HOME:-$HOME/.local/share/rn-starter}"
+# shellcheck disable=SC2034 # used by the scripts that source this file
 FNM_DIR_DEFAULT="$HOME/.local/share/fnm"
 
 log()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -22,6 +23,7 @@ os_name() {
 # Usage (right after sourcing lib.sh): delegate_to_windows <name>.ps1 "$@"
 delegate_to_windows() {
   [ "$(os_name)" = windows ] || return 0
+  # shellcheck disable=SC2154 # $here is set by the script that sources this file
   local ps1="$here/windows/$1"; shift
   exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$ps1")" "$@"
 }

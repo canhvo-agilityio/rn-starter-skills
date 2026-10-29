@@ -8,7 +8,7 @@ A Claude Code plugin that takes a React Native / Expo app from an empty machine 
 
 | Skill | Use it for | Try |
 |---|---|---|
-| `rn-starter` | A fresh machine (macOS, Windows, Linux) to a running app: toolchain, Expo or RN CLI, libraries, layered structure, tests, git hooks, Claude Code guard rails | *"Create a new React Native app called coffee-shop"* |
+| `rn-starter` | A fresh machine (macOS, Windows, Linux) to a running app: toolchain, a standard stack in one question (or choose each part), layered structure, tests, git hooks, AGENTS.md and Claude Code guard rails | *"Create a new React Native app called coffee-shop"* |
 | `rn-feature` | A ticket (Jira / Asana / Trello / GitHub link, pasted text, or your own words): numbered requirements, gaps as questions for PO / design / backend, then a step-by-step build with every requirement proven in the app | `/rn-feature SHOP-12` |
 | `rn-ui` | Themed, navigable screens from a description, screenshots or Figma, checked against the design on the simulator | *"Build the screens from this Figma: …"* |
 | `rn-api-connect` | Mocks to the real backend from its Swagger / OpenAPI spec: generated types, a typed client, one domain at a time, loading / error / empty states | *"Connect the app to the API, Swagger is here: …"* |
@@ -58,17 +58,18 @@ A project created with an older version gets the new hooks and subagents with `s
 
 Verified 2026-10: Expo SDK 58, React Native 0.88, Node 24 LTS, JDK 17, Android API 35, Xcode 26.6 / iOS 26.5. App defaults: TypeScript, expo-router, Zustand, TanStack Query, NativeWind, ESLint + Prettier, Jest + React Native Testing Library, Maestro, EAS (a dev app and a production app). Details and alternatives: [`compatibility.md`](skills/rn-starter/references/compatibility.md), [`libraries.md`](skills/rn-starter/references/libraries.md).
 
-`rn-starter` is tested end to end on the iOS Simulator and the Android emulator. The ticket loop (`rn-ui`, `rn-feature`, `rn-e2e`) has run on a real project on the iOS Simulator with Expo Go; on Android, real devices and CI it isn't verified yet. The release gate is covered by tests (`node --test skills/rn-starter/assets/claude/release-gate.test.mjs`); `rn-release` against a real EAS project and the store submits aren't verified yet.
+`rn-starter` is tested end to end on the iOS Simulator and the Android emulator. The ticket loop (`rn-ui`, `rn-feature`, `rn-e2e`) has run on a real project on the iOS Simulator with Expo Go; on Android, real devices and CI it isn't verified yet. The guard and the release gate are covered by tests, run with shellcheck in CI on GitHub and GitLab (`node --test skills/rn-starter/assets/claude/*.test.mjs`); `rn-release` against a real EAS project and the store submits aren't verified yet.
 
 ## Layout
 
 ```
 .claude-plugin/          plugin.json, marketplace.json
+.github/, .gitlab-ci.yml  CI: hook tests and shellcheck
 skills/<skill>/
   SKILL.md               the skill's flow
   scripts/               helpers the skill runs (print JSON; exit 2 = waiting on you, 3 = a decision needed)
   references/            details the skill reads when it needs them
-skills/rn-starter/assets/claude/   CLAUDE.md template, guard, release-gate (with its test) and format hooks, code-reviewer and verifier subagents
+skills/rn-starter/assets/claude/   CLAUDE.md template, guard, release-gate and format hooks with their tests, AGENTS.md and CLAUDE.md templates, code-reviewer and verifier subagents
 ```
 
 Quick machine check: `bash skills/rn-starter/scripts/doctor.sh --android --ios --cocoapods`. When upgrading versions, update `compatibility.md` first, then rerun `rn-starter` on a clean machine.

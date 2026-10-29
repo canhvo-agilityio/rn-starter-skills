@@ -52,6 +52,7 @@ elif [ -n "$ref" ]; then
   else
     echo "{\"error\":\"not a GitHub issue reference: $ref (use a URL, owner/repo#N or #N; any other board: save the ticket text and use --text-file <file> --id <id>)\"}"; exit 1
   fi
+  # shellcheck disable=SC2054 # the commas are gh's --json field list, not array separators
   args=(issue view "$num" --json number,title,body,state,labels,url,comments)
   [ -n "$repo" ] && args+=(--repo "$repo")
   if ! gh "${args[@]}" > "$tmp/gh.json" 2> "$tmp/gh.err"; then

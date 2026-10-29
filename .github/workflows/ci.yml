@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Hook tests (guard, release gate)
+        run: node --test skills/rn-starter/assets/claude/*.test.mjs
+      - name: Shell scripts
+        run: shellcheck -S warning skills/*/scripts/*.sh
