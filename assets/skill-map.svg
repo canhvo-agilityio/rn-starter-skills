@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1000 540" width="1000" height="540" role="img" aria-labelledby="t d">
   <title id="t">rn-starter skill map</title>
-  <desc id="d">Three loops. Set up once: rn-starter, then rn-release-setup, which configures the release gate. Every ticket: rn-feature hands screens to rn-ui, data to rn-api-connect and flows to rn-e2e. Every release: rn-release opens a release PR, a release manager approves it, then the approved commit ships and is tagged; the release gate checks every ship.</desc>
+  <desc id="d">Three loops. Set up once: rn-starter, then rn-release-setup, which configures the release gate. Every ticket: rn-feature hands screens to rn-ui, data to rn-api-connect and flows to rn-e2e. Every release: rn-release opens a release PR or MR, a release manager merges it into the production branch, then the merged commit ships and is tagged; the release gate checks every ship.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#7ea2ff"/>
@@ -79,7 +79,7 @@
   <g class="pop" style="animation-delay: 0.35s">
     <rect class="node hook" x="40" y="320" width="220" height="64" rx="10"/>
     <text class="name" x="56" y="347">release gate</text>
-    <text class="sub" x="56" y="368">hook: approved PR or blocked</text>
+    <text class="sub" x="56" y="368">hook: merged or blocked</text>
   </g>
 
   <!-- every ticket -->
@@ -113,12 +113,12 @@
   <g class="pop" style="animation-delay: 1.15s">
     <rect class="node person" x="740" y="215" width="220" height="64" rx="10"/>
     <text class="name" x="756" y="242">release manager</text>
-    <text class="sub" x="756" y="263">approves the PR on GitHub</text>
+    <text class="sub" x="756" y="263">merges the release PR / MR</text>
   </g>
   <g class="pop" style="animation-delay: 1.3s">
     <rect class="node done" x="740" y="320" width="220" height="64" rx="10"/>
-    <text class="name" x="756" y="347">ship + tag v1.4.0</text>
-    <text class="sub" x="756" y="368">exactly the approved commit</text>
+    <text class="name" x="756" y="347">ship + tag version</text>
+    <text class="sub" x="756" y="368">exactly the merged commit</text>
   </g>
 
   <!-- moving dots along the main routes -->
