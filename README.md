@@ -14,9 +14,9 @@ A Claude Code plugin that takes a React Native / Expo app from an empty machine 
 | `rn-api-connect` | Mocks to the real backend from its Swagger / OpenAPI spec: generated types, a typed client, one domain at a time, loading / error / empty states | *"Connect the app to the API, Swagger is here: …"* |
 | `rn-e2e` | One Maestro flow per requirement, run on the simulator against mocks, ready for CI | *"Write E2E tests for the cart flow"* |
 | `rn-release-setup` | Two store apps from one codebase (a dev app and the production app), EAS and every credential for TestFlight and Google Play, from the files you or the client provide, plus the release gate | *"Set up EAS so we can ship to TestFlight"* |
-| `rn-release` | Release day: release notes and CHANGELOG, version, store build or OTA update, checklist, a release PR the release manager approves, then the approved commit ships and the version is locked | `/rn-release` |
+| `rn-release` | Release day: release notes and CHANGELOG, version, store build or OTA update, checklist, a release PR / MR that a release manager merges into the production branch, then the merged commit ships and the version is locked | `/rn-release` |
 
-<a href="https://claude.ai/artifact/CQMGK2v5CvvagkQQBUWEEk"><img src="assets/skill-map.svg" alt="Skill map: set up once (rn-starter, rn-release-setup, release gate), every ticket (rn-feature with rn-ui, rn-api-connect, rn-e2e), every release (rn-release, the release manager approves, ship and tag)" width="100%"></a>
+<a href="https://claude.ai/artifact/CQMGK2v5CvvagkQQBUWEEk"><img src="assets/skill-map.svg" alt="Skill map: set up once (rn-starter, rn-release-setup, release gate), every ticket (rn-feature with rn-ui, rn-api-connect, rn-e2e), every release (rn-release, a release manager merges the release PR, ship and tag)" width="100%"></a>
 
 Click the map for the interactive version in the [guide](https://claude.ai/artifact/CQMGK2v5CvvagkQQBUWEEk), with every step inside each skill.
 
@@ -25,7 +25,7 @@ Text after a slash command is read as your request (`/rn-feature add a share but
 ## Prerequisites
 
 - **Computer:** macOS, Windows or Linux. The iOS Simulator needs macOS with Xcode installed from the App Store (a free Apple ID is enough); `rn-starter` installs everything else (Node, JDK, Android SDK and emulator, CocoaPods).
-- **Claude Code**, signed in. Optional: the Figma MCP or Claude in Chrome for designs, the GitHub CLI (`gh`) for issues, PRs and release approvals.
+- **Claude Code**, signed in. Optional: the Figma MCP or Claude in Chrome for designs, the GitHub or GitLab CLI (`gh`, `glab`) to open PRs / MRs for you.
 - **For releases:** a free Expo account (EAS), and from you or the client an Apple Developer account and a Google Play Console account (`rn-release-setup` lists exactly which files it needs).
 
 ## Install
@@ -50,7 +50,7 @@ A project created with an older version gets the new hooks and subagents with `s
 
 - Never reads `.env` or credential files; it asks you for the values it needs.
 - Stops for a person at the design spec, the ticket's answers, the plan and the push. Pushes to protected branches are blocked.
-- The production app ships only from a commit a release manager approved on a `release/<version>` PR; the release gate blocks EAS builds, submits, OTA updates and release tags otherwise.
+- The production app ships only from a commit a release manager merged into the protected production branch (the release PR / MR); the release gate checks it with git and blocks EAS builds, submits, OTA updates and release tags otherwise. Works on GitHub and GitLab.
 - Nothing is reported done without evidence; what wasn't checked is listed as not verified.
 - You do what needs your password or account: installing Xcode, `sudo` commands, signing in to Expo, the board or Figma.
 
