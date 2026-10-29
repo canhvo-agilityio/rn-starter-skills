@@ -70,7 +70,7 @@ Show the dev the exact config before applying a custom rule — free-text rules 
 
 ## Code rules (ESLint)
 
-Whenever ESLint is the linter, add these rules too. They reject the shortcuts that make code look finished while hiding a problem: `any`, casts through `unknown`, `@ts-ignore`, leftover `console.log`, empty `catch`, color literals in UI files, and untyped service functions. They use only rules that ship with ESLint and typescript-eslint (`eslint-config-expo` already registers the plugin), so nothing new is installed. The same rules run in three places: the format hook on every file Claude edits, lint-staged on commit, and CI once `rn-pipeline` sets it up.
+Whenever ESLint is the linter, add these rules too. They reject the shortcuts that make code look finished while hiding a problem: `any`, casts through `unknown`, `@ts-ignore`, leftover `console.log`, empty `catch`, color literals in UI files, and untyped service functions. They use only rules that ship with ESLint and typescript-eslint (`eslint-config-expo` already registers the plugin), so nothing new is installed. The same rules run in three places: the format hook on every file Claude edits, lint-staged on commit, and CI when the team adds a job that runs the project's `lint` script (no skill sets CI up yet).
 
 Add to `eslint.config.js` after the existing entries (and after the structure rules from `structure.md`, if any). `no-restricted-syntax` is one rule, so the UI block repeats the double-cast selector rather than losing it:
 
@@ -146,15 +146,16 @@ bash "<skill-dir>/scripts/setup-claude.sh" <project-dir>
 
 | File | What it does |
 |---|---|
-| `CLAUDE.md` | Stack, commands for this package manager, the structure rules and code style (`references/structure.md`, rn-ui `conventions.md`), a **Verifying your work** table (each check with its healthy output; nothing is done until they've run, fix the code not the test, `verifier` for visible changes), and the working rules: fix what the hooks report, run `code-reviewer` before committing, add a correction here when a mistake repeats |
+| `AGENTS.md` | For any coding agent, written from `.rn-starter.json` (replacing the generic one Expo's template ships): stack, commands for this package manager, the structure rules and code style (`references/structure.md`, rn-ui `conventions.md`), a **Verifying your work** table (each check with its healthy output; nothing is done until they've run, fix the code not the test, `verifier` for visible changes), and the working rules: fix what the hooks report, run `code-reviewer` before committing, add a correction here when a mistake repeats |
+| `CLAUDE.md` | `@AGENTS.md`, then what's specific to Claude Code: the hooks below, the `verifier` and `code-reviewer` subagents, and the release gate line once `rn-release-setup` installs it (`--release-gate`) |
 | `.claude/hooks/format.mjs` + `.claude/settings.json` | `PostToolUse` hook on `Edit`/`MultiEdit`/`Write`: runs the project's Prettier then `eslint --fix` (or `biome check --write`) on the edited file. Errors that `--fix` can't solve go back to Claude (exit 2), so it fixes them in the same turn. Plain Node, so it works on Windows too |
-| `.claude/hooks/guard.mjs` + `.claude/settings.json` | `PreToolUse` hook that denies three things before they happen, with a reason that tells Claude what to do instead: a `git push` to a protected branch (`protectedBranches` in `.rn-starter.json`, default `main`, `master`; also catches `feature:main`, `HEAD`, `--all`, `-C dir`), reading or editing secret files (`.env*` except the committed templates, `.p8`, `.p12`, `.jks`, `.keystore`, `credentials.json`, service-account keys), hand edits to `*.gen.ts`, and, while rn-feature fixes a bug, changes to the locked test that reproduces it (`.claude/fix-task.json`, written by its `lock-tests.sh`). It guards against mistakes; the real push protection is branch protection on the server (`rn-pipeline`). Anything it can't parse is allowed, so it never blocks normal work by accident |
+| `.claude/hooks/guard.mjs` + `.claude/settings.json` | `PreToolUse` hook that denies three things before they happen, with a reason that tells Claude what to do instead: a `git push` to a protected branch (`protectedBranches` in `.rn-starter.json`, default `main`, `master`; also catches `feature:main`, `HEAD`, `--all`, `-C dir`), reading or editing secret files (`.env*` except the committed templates, `.p8`, `.p12`, `.jks`, `.keystore`, `credentials.json`, service-account keys), hand edits to `*.gen.ts`, and, while rn-feature fixes a bug, changes to the locked test that reproduces it (`.claude/fix-task.json`, written by its `lock-tests.sh`). It guards against mistakes; the real push protection is branch protection on the server (GitHub: *Settings → Branches*; GitLab: *Settings → Repository → Protected branches*), set up by a repository admin. Anything it can't parse is allowed, so it never blocks normal work by accident |
 | `.claude/agents/code-reviewer.md` | Read-only subagent: reviews uncommitted changes (or a branch), runs ESLint, `tsc` and related tests, and reports bugs, broken structure rules and React Native pitfalls with `file:line` and a fix |
 | `.claude/agents/verifier.md` | Subagent that runs the app on the main target, opens each changed screen by deep link, exercises the change and the neighboring flows, and reports per requirement (pass / fail / not verified) with screenshots. Never edits |
 
-A project made with an older plugin version gets the current hooks and agents with `--update-agents` (CLAUDE.md is kept; `git diff` shows what changed in the agents). Exit code 3 means the project already had a `CLAUDE.md` and it was kept. Show the dev what the generated one would add and offer to merge it in, or rerun with `--force` if they want it replaced.
+A project made with an older plugin version gets the current hooks and agents with `--update-agents` (CLAUDE.md is kept, and AGENTS.md too once it's ours; `git diff` shows what changed in the agents). Exit code 3 means the project already had a `CLAUDE.md` and it was kept. Show the dev what the generated one would add and offer to merge it in, or rerun with `--force` if they want it replaced.
 
-The structure section follows `structure` in `.rn-starter.json`: the layered rules, or "follow the layout already in `src/`" when the template was kept. When the dev changes a convention later, they edit `CLAUDE.md`. It's theirs from now on.
+The structure section follows `structure` in `.rn-starter.json`: the layered rules, or "follow the layout already in `src/`" when the template was kept. When the dev changes a convention later, they edit `AGENTS.md`. It's theirs from now on.
 
 Verify without creating commits:
 
@@ -174,14 +175,14 @@ guard Read "$PWD/.env.example"                # must print nothing
 guard Edit "$PWD/src/types/api.gen.ts"        # must print a deny
 ```
 
-Check that `.claude/agents/code-reviewer.md` and `.claude/agents/verifier.md` exist and `CLAUDE.md` lists the right commands for the package manager. Commit all of it with the scaffold. Only `.claude/settings.local.json` stays out of git, and the script adds it to `.gitignore`.
+Check that `.claude/agents/code-reviewer.md` and `.claude/agents/verifier.md` exist and `AGENTS.md` lists the right stack and commands for the package manager. Commit all of it with the scaffold. Only `.claude/settings.local.json` stays out of git, and the script adds it to `.gitignore`.
 
 README section (in the dev's language), e.g.:
 
 ```markdown
 ## Working with Claude Code
 
-- `CLAUDE.md` holds the project rules Claude follows. Edit it when a convention changes.
+- `AGENTS.md` holds the project rules every coding agent follows; `CLAUDE.md` imports it and adds the Claude Code hooks. Edit `AGENTS.md` when a convention changes.
 - Every file Claude edits is formatted and lint-fixed automatically (`.claude/hooks/format.mjs`).
 - Claude can't push to the protected branches, open `.env` or credential files, or hand-edit generated files (`.claude/hooks/guard.mjs`).
 - Ask Claude to "review my changes" before committing: it runs the `code-reviewer` subagent. "Verify it in the app" runs the `verifier` subagent.

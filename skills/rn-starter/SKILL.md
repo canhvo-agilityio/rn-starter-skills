@@ -1,6 +1,6 @@
 ---
 name: rn-starter
-description: Step-by-step wizard from a machine with nothing installed (macOS, Windows or Linux) to a running React Native app: installs missing tooling, asks which framework, bundler, template, libraries and run targets, scaffolds a layered project with quality tooling, and runs it on the chosen targets. Use when someone wants to start, create, bootstrap or scaffold a React Native / Expo app, set up a machine for React Native, onboard a new mobile developer, or asks how to get an RN app running. Not for adding screens to an existing app (rn-ui).
+description: Step-by-step wizard from a machine with nothing installed (macOS, Windows or Linux) to a running React Native app: installs missing tooling, uses a standard stack (or asks for each part when the dev wants to choose), scaffolds a layered project with quality tooling, and runs it on the chosen targets. Use when someone wants to start, create, bootstrap or scaffold a React Native / Expo app, set up a machine for React Native, onboard a new mobile developer, or asks how to get an RN app running. Not for adding screens to an existing app (rn-ui).
 ---
 
 # React Native starter wizard
@@ -53,13 +53,26 @@ It prints one line per tool: `ok`, `warn` or `missing`, plus a summary. It only 
 
 Show the dev a short table of the result (tool → status → version). On Windows this runs `scripts/windows/doctor.ps1` automatically; the run targets there are Expo Go on a phone, the Android emulator and web — the iOS Simulator needs macOS, so mention that once instead of offering it. (WSL is a Linux environment and follows the Linux path, but it can't run the Android emulator with graphics — recommend native Windows.)
 
+## Phase 0b — Standard setup, or choose each part
+
+Right after the doctor table, one question: "How do you want to set it up?" → *Standard setup (Recommended)* / *Choose each part*. Put the standard stack in the first option's description, in one line: Expo (default template: expo-router, TypeScript), pnpm, NativeWind, Zustand, TanStack Query, ESLint + Prettier with the code rules, layered structure, Jest + React Native Testing Library, Husky + lint-staged (lint, format and related tests on commit; type check and all tests on push), Conventional Commits, pushes to `main` blocked, Claude Code files.
+
+**Standard setup** asks only what has no safe default:
+1. **Run targets** (Phase 2, question 2, the Expo options; one call).
+2. **App name and location** (plain text).
+3. **Design input**, only if the request doesn't already say (Phase 2, question 6).
+
+Everything else takes the standard answer, without a question: the package manager in Phase 1 (pnpm; install it if missing, and update it if `doctor.sh` warns about pnpm 11), Round 1 and the bundler and template questions in Phase 2, and all of Phase 3 (libraries, structure, code quality, hook rules; protected branches: `main`). The dev's own words override one part (*"standard, but with StyleSheet"*): apply that part, keep the rest. Phase 5 still shows every choice before anything is created. Record `"preset": "standard"` in `.rn-starter.json`.
+
+**Choose each part** runs every question below as written.
+
 ## Phase 1 — Base tools (Node + package manager)
 
 Required for every path: **git**, **Node LTS** (current React Native / Expo need `^22.13 || ^24.3 || >=26`; odd-numbered Node versions are not supported), and a package manager.
 
 - **git missing on macOS** → run `xcode-select --install`. This opens a system dialog: tell the dev to click *Install* (it is the small Command Line Tools package, ~1 GB, not Xcode and no Apple ID). Wait for them to confirm, then re-check with `git --version`. On Linux, ask the dev to install git with their distro package manager (needs sudo, so they run it themselves). On Windows, Claude Code itself needs Git for Windows, so git is normally there; if not, the dev runs `winget install --id Git.Git -e` (or the installer from git-scm.com) and restarts the Claude app.
 - **Node missing or too old** → ask before installing (one question: "Install Node LTS? (Recommended)" / "I'll install Node myself"), then install it right away with `bash "<skill-dir>/scripts/install-node.sh"` and continue. macOS/Linux: [fnm](https://github.com/Schniz/fnm) in the home directory plus Node LTS, and a marked block in the shell rc file. Windows: the official Node LTS zip into `%LOCALAPPDATA%\rn-starter\node` plus the user PATH — no installer, no admin. Either way no Homebrew/sudo/admin. Then `source env.sh` so the rest of this session sees it.
-- **Package manager** → ask which one, offering only those that make sense:
+- **Package manager** (Choose each part only; the standard setup uses pnpm) → ask which one, offering only those that make sense:
   - `npm` — already comes with Node, zero extra setup.
   - `pnpm` (Recommended if the dev has no preference) — faster, less disk. Install with `source env.sh && npm install -g pnpm`. If `doctor.sh` warns about pnpm 11, offer to update it first (installs hang on 11.x); if the dev declines, recommend npm instead.
   - `yarn` / `bun` — offer only if already installed.
@@ -110,7 +123,7 @@ Then a second call:
 - **Lint & format** — ESLint + Prettier (Recommended) / Biome / none
 - **Folder structure** — Layered team structure from `references/structure.md`: `screens/`, `components/`, `hooks/`, `services/` with ESLint-enforced rules (Recommended) / keep the template as is. Ask this even with a design input: the structure is set up here during scaffolding, and rn-ui then builds the screens inside it.
 - **UI component library** — only when styling is StyleSheet (that's why it's in this second call): None — our own components on the theme (Recommended) / React Native Paper (Material 3). With NativeWind or Unistyles don't ask; no library is verified for them yet (`references/libraries.md` → "UI component library" says why).
-- **Code quality** (`multiSelect: true`) — Unit tests: Jest + React Native Testing Library (Recommended) / Git hooks: Husky + lint-staged (Recommended) / Commit message rules: Conventional Commits via commitlint (Recommended) / Claude Code setup: `CLAUDE.md`, a format-on-edit hook, a guard hook (no pushes to the protected branches, no `.env` or credential files) and the `code-reviewer` and `verifier` subagents (Recommended).
+- **Code quality** (`multiSelect: true`) — Unit tests: Jest + React Native Testing Library (Recommended) / Git hooks: Husky + lint-staged (Recommended) / Commit message rules: Conventional Commits via commitlint (Recommended) / Claude Code setup: `AGENTS.md` (the project rules, for any agent) and `CLAUDE.md`, a format-on-edit hook, a guard hook (no pushes to the protected branches, no `.env` or credential files) and the `code-reviewer` and `verifier` subagents (Recommended).
 
 If git hooks or commit rules were chosen, one more call (`references/quality.md` lists what each option runs):
 
@@ -204,7 +217,7 @@ Write `.rn-starter.json` at the project root with the recorded choices, so later
 
 `structure` is `layered` or `template` (kept as is). `protectedBranches` lists the branches nobody pushes to directly (only when the dev chose to block pushes; omit it otherwise). `uiLibrary` is `none` or `react-native-paper`. `devBuild` is `true` when an Expo project needs a development build instead of Expo Go (Unistyles, or another library with native code Expo Go lacks).
 
-Make sure the project is a git repo (Expo already ran `git init`; for CLI, created with `--skip-git-init`, run `git init` now). Then, if any code-quality option was chosen, set it up with `scripts/setup-quality.sh` and run the checks in "Verify" — both in `references/quality.md`. Apply any custom ("Other") rules on top of the generated files before verifying. If Claude Code setup was chosen, run `scripts/setup-claude.sh` **after** `.rn-starter.json` and the quality tooling exist (it reads both) and check it as in `references/quality.md` → "Claude Code files".
+Make sure the project is a git repo: run `git -C <project> rev-parse --is-inside-work-tree`, and if it isn't one (CLI is created with `--skip-git-init`; Expo skips `git init` in some cases, e.g. with `--no-install` or inside a folder that's already a repo's subfolder), run `git init` in the project now. Every later step (hooks, the first commit) needs it. Then, if any code-quality option was chosen, set it up with `scripts/setup-quality.sh` and run the checks in "Verify" — both in `references/quality.md`. Apply any custom ("Other") rules on top of the generated files before verifying. If Claude Code setup was chosen, run `scripts/setup-claude.sh` **after** `.rn-starter.json` and the quality tooling exist (it reads both) and check it as in `references/quality.md` → "Claude Code files".
 
 Commit the scaffold as the first commit with the message `chore: scaffold app with rn-starter`. With hooks installed, this commit runs through them — it is the end-to-end check that they work.
 
@@ -234,7 +247,7 @@ The run is done when the app's first screen is visible **on every selected targe
 
 ## Phase 7b — Build the screens (only with a design input)
 
-The empty app now runs, so the toolchain is proven. Hand over to the **rn-ui** skill with the recorded design input (screen list, image paths, or Figma link) and the project path. It reads `.rn-starter.json`, writes `docs/design-spec.md` for the dev to approve, generates theme, fonts, components, screens and navigation, and verifies each screen on the already-running simulator/emulator. Continue with Phase 8 when it reports back.
+The empty app now runs, so the toolchain is proven. **rn-starter never builds design screens itself**, not even a landing screen: invoke the **rn-ui** skill (the Skill tool) with the recorded design input (screen list, image paths, or Figma link) and the project path, so the design spec is written and approved before any screen code. The template's demo screen moved into `src/screens/home/` in Phase 6 is a placeholder that rn-ui replaces. It reads `.rn-starter.json`, writes `docs/design-spec.md` for the dev to approve, generates theme, fonts, components, screens and navigation, and verifies each screen on the already-running simulator/emulator. Continue with Phase 8 when it reports back.
 
 If the skill isn't available, tell the dev the screens weren't generated and finish the hand-off with the empty app.
 
