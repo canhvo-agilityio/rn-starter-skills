@@ -1,8 +1,8 @@
 # Shipping, locking, rolling back
 
-Every command here that reaches the production app passes through the release gate. If it denies, relay its reason and stop: the reason names what's missing (approval, a commit added after approval, a version mismatch). Never retry with another profile, channel or `APP_VARIANT` to get past it.
+Every command here that reaches the production app passes through the release gate. If it denies, relay its reason and stop: the reason names what's missing (the merge, a commit added after approval, a version mismatch). Never retry with another profile, channel or `APP_VARIANT` to get past it.
 
-Ship from the PR's approved head commit (`git switch release/<version>` and `git status` clean), or from its merge commit once a person merged it.
+Ship from the production branch as the release manager merged it: `git switch <production branch> && git pull --ff-only`, `git status` clean.
 
 ## Store build
 
@@ -12,7 +12,7 @@ Where builds run is in `docs/release-plan.md` (EAS cloud or local).
 eas build --profile production --platform all --non-interactive --json > <scratchpad>/builds.json
 ```
 
-- Read the build ids and their status from the JSON (or `eas build:list -e production --limit 2 --json`). A failed build: read its logs (`eas build:view <id>`), fix on the base branch, and the release goes through a new approval. Don't patch the release branch past its approval.
+- Read the build ids and their status from the JSON (or `eas build:list -e production --limit 2 --json`). A failed build: read its logs (`eas build:view <id>`), fix on the base branch, and the fix goes through a new release PR / MR. Never patch the production branch.
 - Then submit each build by id, never `--latest` (the latest build may not be this release's):
 
 ```bash
@@ -44,7 +44,7 @@ git tag -a v<version> -m "Release <version>" <sha>
 git push origin v<version>
 ```
 
-The gate allows the tag only when it matches the approved release on that commit. Once the tag exists, the gate refuses to ship that version from any other commit, so a later change needs a new version and a new approval. Merging the release PR into the base branch is a person's step; remind them so `CHANGELOG.md` and the version reach the base branch.
+The gate allows the tag only on a commit that's on the production branch. Once the tag exists, the gate refuses to ship that version from any other commit, so a later change needs a new version and a new approval. Merging the production branch back into the base branch is a person's step (a PR / MR); remind them so `CHANGELOG.md` and the version reach it.
 
 ## Rolling back
 

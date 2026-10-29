@@ -8,7 +8,7 @@ Written in Phase 3, approved by the dev, updated at the end. Every release reads
 EAS: @<owner>/<slug> (project <id>) — <organization of the client / personal account>
 Builds: <EAS cloud / local on <dev's OS>>
 Apps (one codebase, APP_VARIANT): dev "<name> Dev" <id>.dev · production "<name>" <id> · version <x.y.z> (build numbers per app on EAS, auto-increment)
-Release managers (production releases need their approval on a release PR): <@user, @user / anyone but the author>
+Production branch: `prod` on origin, protected so only the release managers (<@user, @user>) can merge into it. A merged release PR / MR is the approval; protection set up on <date> / not yet
 
 ## Profiles
 

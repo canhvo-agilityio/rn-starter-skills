@@ -4,7 +4,7 @@ Two texts from the same list of changes, for two readers. The dev owns the wordi
 
 ## Where the changes come from
 
-`release-status.sh` → `changes`: commits since the last `v*` tag with the ticket ids in their subjects, and the pull requests merged since then (titles, ticket ids). Ticket files are gone by now (rn-feature removes them when a ticket is done), so read a merged PR's description when a title isn't enough to say what changed for the user (`gh pr view <n> --json body`). The board stays the source for what a ticket asked; don't invent features from commit names.
+`release-status.sh` → `changes`: commits since the last `v*` tag, with the ticket ids in their subjects. Ticket files are gone by now (rn-feature removes them when a ticket is done), so when a commit subject isn't enough to say what changed for the user, read the merged PR / MR's description (`gh pr view <n>`, `glab mr view <n>`, or ask the dev). The board stays the source for what a ticket asked; don't invent features from commit names.
 
 Leave out what users never see (refactors, tests, CI, dependency bumps without a visible effect), unless it fixes something they noticed.
 
@@ -30,7 +30,7 @@ The team's record, newest first, one section per release, written in English lik
 ```markdown
 ## 1.4.0 — 2026-11-03
 
-Store build · runtime 3f9c2a1 · release PR #57
+Store build · runtime 3f9c2a1 · release PR / MR #57
 
 ### Added
 - Favorites: heart on every drink, Favorites tab (SHOP-15)

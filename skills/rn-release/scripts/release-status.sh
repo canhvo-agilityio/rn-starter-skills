@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Where the next production release stands. Read-only. Prints JSON.
+# Where the next production release stands. Read-only (it fetches the remote). Prints JSON.
 #
 # Usage: release-status.sh [project-dir] [--runtime]
 #   --runtime   also compare the production app's runtime version (fingerprint) at HEAD with the last
@@ -8,20 +8,22 @@
 #
 # Reports:
 #   gate        whether .claude/hooks/release-gate.mjs is installed and .rn-starter.json has its
-#               release block (apps, branch prefix, approvers, base branch)
-#   git         current branch, HEAD, clean or not, the base branch, the last v* tag and its date
+#               release block (apps, branch prefix, production branch, remote)
+#   git         current branch, HEAD, clean or not, the last v* tag and its date, and whether HEAD is
+#               already on the remote's production branch
 #   version     app.json's version and the last released version
-#   changes     commits since the last tag (subject, author, ticket ids found in it) and the merged
-#               pull requests since then, from GitHub when gh is signed in
-#   releasePrs  open release/<version> pull requests (url, head, approved by whom)
+#   changes     commits on HEAD since the last release tag (subject, author, ticket ids): what a
+#               release cut from here would ship
+#   releaseBranches  release/<version> branches on the remote not merged into the production branch yet
 #   approval    what the release gate would say right now about shipping the production app from
 #               HEAD (the gate itself, run with a dry command; nothing is shipped)
 #   runtime     with --runtime: HEAD's production runtime version, the last production build's, and
 #               whether they differ (native change → store build)
-# Never opens .env files.
+# Uses git only (no GitHub or GitLab CLI). Never opens .env files.
 #
-# Exit codes: 0 done · 1 error · 2 waiting on the dev (gh not signed in) · 3 a decision needed
-#             (no release gate or release block: run rn-release-setup first)
+# Exit codes: 0 done · 1 error · 2 waiting on the dev (the remote can't be fetched: offline, or git
+#             isn't signed in) · 3 a decision needed (no release gate or release block: run
+#             rn-release-setup first)
 
 set -uo pipefail
 dir="."; runtime=0
@@ -33,17 +35,14 @@ cd "$dir"
 
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 
+remote="$(node -e "try{console.log(require('./.rn-starter.json').release.remote||'origin')}catch{console.log('origin')}")"
+fetched=0
+git fetch --quiet --tags "$remote" >/dev/null 2>&1 && fetched=1
+
 # What the gate would decide for a production submit from HEAD.
 if [ -f .claude/hooks/release-gate.mjs ]; then
   printf '{"tool_name":"Bash","tool_input":{"command":"eas submit --profile production --platform all --id release-status-check"}}' \
     | CLAUDE_PROJECT_DIR="$dir" node .claude/hooks/release-gate.mjs > "$tmp/gate.json" 2>/dev/null || true
-fi
-
-gh_ok=0
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-  gh_ok=1
-  gh pr list --state all --limit 100 --json number,url,state,title,headRefName,headRefOid,mergedAt,author,reviews \
-    > "$tmp/prs.json" 2>/dev/null || echo '[]' > "$tmp/prs.json"
 fi
 
 if [ "$runtime" -eq 1 ]; then
@@ -53,7 +52,7 @@ if [ "$runtime" -eq 1 ]; then
     > "$tmp/builds.json" 2>/dev/null || true
 fi
 
-GH_OK="$gh_ok" node - "$dir" "$tmp" <<'EOF'
+FETCHED="$fetched" REMOTE="$remote" node - "$dir" "$tmp" <<'EOF'
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
@@ -62,58 +61,59 @@ const readJson = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); }
 const git = (...args) => { try { return execFileSync('git', args, { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { return null; } };
 
 const release = readJson(path.join(dir, '.rn-starter.json'))?.release ?? null;
+const remote = process.env.REMOTE;
 const prefix = release?.releaseBranchPrefix || 'release/';
+const prodBranch = release?.productionBranch || 'main';
+const prodRef = `${remote}/${prodBranch}`;
 const gate = {
   installed: fs.existsSync(path.join(dir, '.claude/hooks/release-gate.mjs')),
   releaseBlock: Boolean(release),
   apps: (release?.apps || []).map((a) => ({ name: a.name, production: a.production, ios: a.ios, android: a.android })),
-  prefix, approvers: release?.approvers ?? [], baseBranch: release?.baseBranch ?? 'main',
+  prefix, productionBranch: prodBranch, remote,
 };
 
-const lastTag = git('describe', '--tags', '--abbrev=0', '--match', 'v[0-9]*');
-const status = git('status', '--porcelain', '--untracked-files=no');
+const hasProd = git('rev-parse', '--verify', '-q', `refs/remotes/${prodRef}`) !== null;
+const lastTag = hasProd ? git('describe', '--tags', '--abbrev=0', '--match', 'v[0-9]*', prodRef) : null;
+const head = git('rev-parse', 'HEAD');
 const gitInfo = {
-  branch: git('rev-parse', '--abbrev-ref', 'HEAD'), head: git('rev-parse', 'HEAD'),
-  clean: status === '', lastTag, lastTagDate: lastTag ? git('log', '-1', '--format=%cI', lastTag) : null,
+  branch: git('rev-parse', '--abbrev-ref', 'HEAD'), head,
+  clean: git('status', '--porcelain', '--untracked-files=no') === '',
+  fetched: process.env.FETCHED === '1', productionBranch: hasProd ? prodRef : `${prodRef} (not found on the remote)`,
+  headOnProduction: hasProd && head ? git('merge-base', '--is-ancestor', head, prodRef) !== null : false,
+  lastTag, lastTagDate: lastTag ? git('log', '-1', '--format=%cI', lastTag) : null,
 };
 
 const appVersion = readJson(path.join(dir, 'app.json'))?.expo?.version ?? readJson(path.join(dir, 'package.json'))?.version ?? null;
-const TICKET = /\b[A-Z][A-Z0-9]+-\d+\b|#\d+\b/g;
-const log = git('log', ...(lastTag ? [`${lastTag}..HEAD`] : []), '--no-merges', '--format=%H%x1f%s%x1f%an') || '';
+const TICKET = /\b[A-Z][A-Z0-9]+-\d+\b|\b(?:gh|gl|ado|trello|clickup|asana|notion)-[\w]+\b|#\d+\b/g;
+// What this release would ship: HEAD (the base branch, or the release branch cut from it) since the last release.
+const range = lastTag ? `${lastTag}..HEAD` : 'HEAD';
+const log = git('log', range, '--no-merges', '--format=%H%x1f%s%x1f%an') || '';
 const commits = log.split('\n').filter(Boolean).map((l) => {
   const [sha, subject, author] = l.split('\x1f');
   return { sha: sha.slice(0, 7), subject, author, tickets: [...new Set(subject.match(TICKET) || [])] };
 });
 
-const prs = process.env.GH_OK === '1' ? readJson(path.join(tmp, 'prs.json')) || [] : null;
-const since = gitInfo.lastTagDate ? new Date(gitInfo.lastTagDate) : null;
-const merged = prs ? prs.filter((p) => p.mergedAt && !p.headRefName.startsWith(prefix) && (!since || new Date(p.mergedAt) > since))
-  .map((p) => ({ number: p.number, title: p.title, url: p.url, tickets: [...new Set((p.title.match(TICKET) || []))] })) : null;
-const releasePrs = prs ? prs.filter((p) => p.state === 'OPEN' && p.headRefName.startsWith(prefix)).map((p) => ({
-  number: p.number, url: p.url, version: p.headRefName.slice(prefix.length), head: p.headRefOid.slice(0, 7),
-  approvedBy: [...new Set((p.reviews || []).filter((r) => r.state === 'APPROVED' && r.commit?.oid === p.headRefOid).map((r) => r.author?.login))],
-})) : null;
+const releaseBranches = hasProd ? (git('branch', '-r', '--list', `${remote}/${prefix}*`, '--no-merged', prodRef) || '')
+  .split('\n').map((b) => b.trim()).filter(Boolean)
+  .map((b) => ({ branch: b.replace(`${remote}/`, ''), version: b.replace(`${remote}/${prefix}`, ''), head: (git('rev-parse', '--short', b) || '') })) : [];
 
 const g = readJson(path.join(tmp, 'gate.json'))?.hookSpecificOutput;
-const approval = gate.installed ? { decision: g?.permissionDecision ?? 'allow', reason: g?.permissionDecisionReason ?? 'approved' } : null;
+const approval = gate.installed ? { decision: g?.permissionDecision ?? 'allow', reason: g?.permissionDecisionReason ?? `HEAD is on ${prodRef}` } : null;
 
 let runtime = null;
 const rt = readJson(path.join(tmp, 'runtime.json'));
 const builds = readJson(path.join(tmp, 'builds.json'));
 if (rt || builds) {
   const last = Array.isArray(builds) ? builds[0] : null;
-  const head = rt?.runtimeVersion ?? null;
-  runtime = { head, lastBuild: last ? { id: last.id, runtimeVersion: last.runtimeVersion, appVersion: last.appVersion, commit: last.gitCommitHash } : null,
-    nativeChanged: head && last?.runtimeVersion ? head !== last.runtimeVersion : null };
+  const headRt = rt?.runtimeVersion ?? null;
+  runtime = { head: headRt, lastBuild: last ? { id: last.id, runtimeVersion: last.runtimeVersion, appVersion: last.appVersion, commit: last.gitCommitHash } : null,
+    nativeChanged: headRt && last?.runtimeVersion ? headRt !== last.runtimeVersion : null };
 }
 
-const out = {
+console.log(JSON.stringify({
   dir, gate, git: gitInfo,
   version: { app: appVersion, lastReleased: lastTag ? lastTag.replace(/^v/, '') : null },
-  changes: { commits, mergedPrs: merged },
-  releasePrs, approval, runtime,
-  gh: process.env.GH_OK === '1' ? 'signed in' : 'not available — the dev runs `gh auth login`',
-};
-console.log(JSON.stringify(out, null, 2));
-process.exitCode = !gate.installed || !gate.releaseBlock ? 3 : process.env.GH_OK !== '1' ? 2 : 0;
+  changes: { range, commits }, releaseBranches, approval, runtime,
+}, null, 2));
+process.exitCode = !gate.installed || !gate.releaseBlock ? 3 : process.env.FETCHED !== '1' ? 2 : 0;
 EOF

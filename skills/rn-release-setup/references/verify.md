@@ -13,6 +13,8 @@ Mark each item `on EAS` in the plan, or what's still missing and who provides it
 
 `eas env:list production` (and `preview`) — you can run it — for the environment variables.
 
+The production branch: the dev confirms its protection on GitHub or GitLab (`variants.md` → Protect the production branch): only release managers can merge, nobody can push or force push. Until then, the release gate checks a branch anyone could push to; say so in the hand-off.
+
 ## 2. Outside EAS
 
 Not on the Credentials page, but each one blocks the first submit. List them with an owner:

@@ -4,16 +4,19 @@
 //   dev app (eas build / update):              allow
 //   dev app (eas submit to TestFlight / Play):  ask the person running the session
 //   production app (eas build / submit / update to its channel, pushing a v* tag):
-//     deny unless an approved release PR on GitHub covers exactly this commit
+//     deny unless the commit is on the production branch of the remote
 //   production channel changes (rollback, republish, rollout): ask
-//   approving a PR from this session (gh pr review --approve): always deny
-// Which profile and channel reach which app comes from the `release` block of .rn-starter.json
-// (rn-release-setup writes it). Approval = a PR from `release/<version>` with an APPROVED review on
-// its head commit by someone other than its author (and in `approvers`, when set), whose head or
-// merge commit is the commit being shipped, and no tag v<version> on another commit.
+//   pushing to the production branch, merging or approving a PR / MR from this session: always deny
+// The approval is a merge: a release manager merges the release/<version> PR or MR into the
+// production branch (`productionBranch` in the release block of .rn-starter.json, protected on the
+// server so only release managers can merge). The gate checks it with git alone: it fetches that
+// branch and asks whether the commit being shipped is on it, so it needs no GitHub or GitLab CLI and
+// never takes Claude's word for it. Which profile and channel reach which app also comes from the
+// release block (rn-release-setup writes it).
 // It stops mistakes in this session, not someone determined to get around it: the real protection
-// is who may build, submit and publish on EAS and the stores. Commands that aren't releases are
-// always allowed; a release to production it can't check is denied. Plain Node, no dependencies.
+// is the branch protection on the server and who may build, submit and publish on EAS and the stores.
+// Commands that aren't releases are always allowed; a release to production it can't check is
+// denied. Plain Node, no dependencies.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -117,7 +120,8 @@ const easJson = readJson('eas.json');
 const release = readJson('.rn-starter.json')?.release ?? null;
 const apps = release?.apps ?? [];
 const prefix = release?.releaseBranchPrefix || 'release/';
-const approvers = release?.approvers ?? [];
+const remote = release?.remote || 'origin';
+const prodBranch = release?.productionBranch || 'main';
 
 const profileConfig = (name, seen = new Set()) => {
   const p = easJson?.build?.[name];
@@ -145,7 +149,7 @@ function appByChannel(channel) {
   return apps.length ? null : fallbackApp(looksProduction(channel));
 }
 
-// ---------------------------------------------------------------- git and GitHub
+// ---------------------------------------------------------------- git
 const run = (cmd, args, timeout = 15000) => {
   try {
     return execFileSync(cmd, args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout }).trim();
@@ -153,57 +157,31 @@ const run = (cmd, args, timeout = 15000) => {
     return null;
   }
 };
-const ROUTE = (what) => `To release ${what}, run the rn-release skill: it opens a ${prefix}<version> pull request with the release notes and checklist. `
-  + `Once a release manager${approvers.length ? ` (${approvers.join(', ')})` : ''} approves it on GitHub, run the command again. Never approve the PR from this session.`;
+const ROUTE = (what) => `To release ${what}, run the rn-release skill: it opens a ${prefix}<version> pull request (or merge request) into ${prodBranch}. `
+  + `Once a release manager merges it, ship from ${prodBranch} and run the command again. Never merge it or push to ${prodBranch} from this session.`;
 
-let prCache;
-const releasePrs = () => {
-  if (prCache !== undefined) return prCache;
-  const out = run('gh', ['pr', 'list', '--state', 'all', '--limit', '100', '--json',
-    'number,url,state,headRefName,headRefOid,mergeCommit,author,reviews'], 20000);
-  try { prCache = out === null ? null : JSON.parse(out).filter((p) => (p.headRefName || '').startsWith(prefix)); } catch { prCache = null; }
-  return prCache;
+// The production branch as the remote has it now (fetched once per command).
+let fetched;
+const prodRef = `refs/remotes/${remote}/${prodBranch}`;
+const fetchProd = () => {
+  if (fetched === undefined) {
+    fetched = run('git', ['fetch', '--quiet', '--no-tags', remote, `+refs/heads/${prodBranch}:${prodRef}`], 20000) !== null;
+  }
+  return fetched;
 };
-const isBot = (login = '') => /\[bot\]$|^app\/|copilot/i.test(login);
-const approvedBy = (pr) => {
-  const latest = new Map();
-  for (const r of pr.reviews || []) {
-    const login = r.author?.login;
-    if (!login || isBot(login) || login === pr.author?.login) continue;
-    if (!['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(r.state)) continue;
-    latest.set(login, r);
+// Null when `sha` is on the production branch (a release manager merged it); else the reason.
+const notApproved = (sha, what) => {
+  if (!sha) return `Can't read the commit to ship (not a git repository?). ${ROUTE(what)}`;
+  if (!fetchProd()) {
+    return `Can't fetch ${prodBranch} from ${remote} to check the approval (offline, no such branch, or git isn't signed in to the remote). Run again once it's reachable.`;
   }
-  const ok = [...latest.values()].filter((r) => r.state === 'APPROVED' && r.commit?.oid === pr.headRefOid
-    && (!approvers.length || approvers.includes(r.author.login)));
-  const blocked = [...latest.values()].some((r) => r.state === 'CHANGES_REQUESTED');
-  return blocked ? [] : ok.map((r) => r.author.login);
-};
-
-// The approved release that covers `sha`, or the reason there isn't one.
-const approvedRelease = (sha, what) => {
-  if (!sha) return { reason: `Can't read the commit to ship (not a git repository?). ${ROUTE(what)}` };
-  const prs = releasePrs();
-  if (prs === null) {
-    return { reason: `Can't check the release approval: the GitHub CLI isn't installed or signed in (gh auth status). `
-      + `The developer signs in with \`gh auth login\` themselves, then run the command again.` };
+  if (run('git', ['merge-base', '--is-ancestor', sha, prodRef]) === null) {
+    return `Commit ${sha.slice(0, 7)} isn't on ${remote}/${prodBranch}, so no release manager has merged it. ${ROUTE(what)}`;
   }
-  const short = sha.slice(0, 7);
-  const covering = prs.filter((p) => p.state !== 'CLOSED' && (p.headRefOid === sha || p.mergeCommit?.oid === sha));
-  if (!covering.length) {
-    const open = prs.filter((p) => p.state === 'OPEN');
-    const hint = open.length ? ` Open release PRs point at other commits (${open.map((p) => `#${p.number} at ${p.headRefOid.slice(0, 7)}`).join(', ')}): `
-      + 'commits added after the approval need a new approval.' : '';
-    return { reason: `No release PR covers commit ${short}.${hint} ${ROUTE(what)}` };
-  }
-  for (const pr of covering) {
-    const by = approvedBy(pr);
-    if (by.length) return { pr, by, version: pr.headRefName.slice(prefix.length) };
-  }
-  return { reason: `${covering.map((p) => p.url).join(', ')} covers commit ${short} but has no approval on that commit `
-    + `from ${approvers.length ? approvers.join(', ') : 'someone other than its author'}. ${ROUTE(what)}` };
+  return null;
 };
 const tagCommit = (tag) => run('git', ['rev-parse', '-q', '--verify', `refs/tags/${tag}^{commit}`])
-  || (run('git', ['ls-remote', '--tags', 'origin', `refs/tags/${tag}`, `refs/tags/${tag}^{}`], 10000) || '')
+  || (run('git', ['ls-remote', '--tags', remote, `refs/tags/${tag}`, `refs/tags/${tag}^{}`], 10000) || '')
     .split('\n').filter(Boolean).map((l) => l.split(/\s+/)[0]).pop() || null;
 const appVersion = () => readJson('app.json')?.expo?.version ?? readJson('package.json')?.version ?? null;
 const dirtyTracked = () => {
@@ -211,22 +189,24 @@ const dirtyTracked = () => {
   return s === null ? false : s.length > 0;
 };
 
-// Checks for shipping the production app from HEAD; null when it may go.
-const productionCheck = (what, { needsVersion }) => {
+// Checks for shipping the production app from HEAD; null when it may go. A store build carries the
+// version in app.json, so its tag mustn't already mark another commit; an OTA update keeps the store
+// build's version and is labelled by its own tag.
+const productionCheck = (what, { storeBuild }) => {
   if (dirtyTracked()) {
-    return `Uncommitted changes would ship with this build but aren't part of any approved release. Commit or stash them first. ${ROUTE(what)}`;
+    return `Uncommitted changes would ship with this build but aren't part of any merged release. Commit or stash them first. ${ROUTE(what)}`;
   }
   const sha = run('git', ['rev-parse', 'HEAD']);
-  const rel = approvedRelease(sha, what);
-  if (!rel.pr) return rel.reason;
-  if (needsVersion && appVersion() !== rel.version) {
-    return `app.json's version is ${appVersion()}, but ${rel.pr.url} releases ${rel.version}. Set the version in the release PR, get it approved, then run again.`;
+  const why = notApproved(sha, what);
+  if (why) return why;
+  const version = appVersion();
+  if (storeBuild && version) {
+    const tagged = tagCommit(`v${version}`);
+    if (tagged && tagged !== sha) {
+      return `v${version} was already released from commit ${tagged.slice(0, 7)}. A new store build needs a new version: run the rn-release skill.`;
+    }
   }
-  const tagged = tagCommit(`v${rel.version}`);
-  if (tagged && tagged !== sha) {
-    return `v${rel.version} was already released from commit ${tagged.slice(0, 7)}. A new release needs a new version: run the rn-release skill.`;
-  }
-  verdict.reason ||= `${rel.pr.url} (${rel.version}) approved by ${rel.by.join(', ')}`;
+  verdict.reason ||= `commit ${sha.slice(0, 7)} is on ${remote}/${prodBranch}`;
   return null;
 };
 
@@ -262,14 +242,14 @@ const checkEas = (args, env) => {
     }
     if (sub === 'submit' && (has(rest, '--latest') || !flag(rest, '--id', '--path', '--url'))) {
       decide('deny', 'Submit the production app by build id (eas submit --profile production --platform <p> --id <build id>), '
-        + 'using the build made from the approved commit. --latest may pick another build, so the release gate can\'t tell it was approved.');
+        + 'using the build made from the merged release commit. --latest may pick another build, so the release gate can\'t tell it was approved.');
       return;
     }
     if (sub === 'build') {
       const cfg = profileConfig(profile);
       if (cfg?.ios?.simulator === true || cfg?.distribution === 'internal') return; // a check build: reaches no user
     }
-    const why = productionCheck('the production app', { needsVersion: sub === 'build' });
+    const why = productionCheck('the production app', { storeBuild: true });
     if (why) decide('deny', `Shipping the production app needs an approved release. ${why}`);
     return;
   }
@@ -298,7 +278,7 @@ const checkEas = (args, env) => {
       decide('deny', `Pass the app: APP_VARIANT=${app.variant || 'production'} eas update --channel ${channel} … Without it the update is computed for the dev app.`);
       return;
     }
-    const why = productionCheck('an update to the production app', { needsVersion: false });
+    const why = productionCheck('an update to the production app', { storeBuild: false });
     if (why) decide('deny', `An OTA update reaches production users at once, with no store review, so it needs an approved release. ${why}`);
     return;
   }
@@ -314,34 +294,50 @@ const checkEas = (args, env) => {
 };
 
 const checkGitPush = (args) => {
-  if (has(args, '--tags', '--follow-tags', '--mirror')) {
+  const PUSH_REASON = `Merging into ${prodBranch} is the release approval, so only a release manager does it, through the release pull request or merge request. `
+    + 'Push a release/<version> branch and open the PR / MR instead.';
+  if (has(args, '--all', '--mirror')) {
+    decide('deny', `Pushing every branch would push ${prodBranch} too. ${PUSH_REASON}`);
+    return;
+  }
+  if (has(args, '--tags', '--follow-tags')) {
     const vtags = (run('git', ['tag', '--list', 'v*']) || '').split('\n').filter(Boolean);
-    if (vtags.length) decide('deny', 'Pushing every tag could publish a release tag that was never approved. Push the release tag by name (git push origin v<version>) as the rn-release skill does.');
+    if (vtags.length) decide('deny', 'Pushing every tag could publish a release tag that was never merged. Push the release tag by name (git push origin v<version>) as the rn-release skill does.');
     return;
   }
   const refs = args.filter((a) => !a.startsWith('-')).slice(1); // after the remote
+  const current = run('git', ['rev-parse', '--abbrev-ref', 'HEAD']);
+  if (!refs.length && current === prodBranch) { decide('deny', PUSH_REASON); return; }
   for (const ref of refs) {
-    const name = ref.split(':').pop().replace(/^refs\/tags\//, '');
+    const dst = ref.split(':').pop().replace(/^\+/, '');
+    if (dst === prodBranch || dst === `refs/heads/${prodBranch}` || (dst === 'HEAD' && current === prodBranch)) {
+      decide('deny', PUSH_REASON);
+      continue;
+    }
+    const name = dst.replace(/^refs\/tags\//, '');
     if (!/^v\d/.test(name) || ref.startsWith(':')) continue;
     const sha = run('git', ['rev-parse', '-q', '--verify', `refs/tags/${name}^{commit}`]);
     if (!sha) continue; // not a tag here: nothing to push
-    const rel = approvedRelease(sha, `tag ${name}`);
-    if (!rel.pr) { decide('deny', `${name} marks a production release. ${rel.reason}`); continue; }
-    if (`v${rel.version}` !== name) {
-      decide('deny', `${name} doesn't match the approved release on that commit (${rel.pr.url} releases ${rel.version}). Tag it v${rel.version}.`);
-    }
+    const why = notApproved(sha, `tag ${name}`);
+    if (why) decide('deny', `${name} marks a production release. ${why}`);
   }
 };
 
-const checkGh = (tokens) => {
-  const i = tokens.indexOf('gh');
-  if (i < 0) return;
-  const args = tokens.slice(i + 1);
-  if (args[0] === 'pr' && args[1] === 'review' && has(args, '--approve', '-a')) {
-    decide('deny', 'Approving a pull request is a person\'s decision; this session never approves one. Ask the reviewer or release manager to approve it on GitHub.');
+// Approving or merging a PR / MR is a person's decision; with the dev's credentials this session
+// could otherwise approve its own release.
+const checkReviewTools = (tokens) => {
+  const gh = tokens.indexOf('gh');
+  if (gh >= 0) {
+    const a = tokens.slice(gh + 1);
+    if (a[0] === 'pr' && a[1] === 'review' && has(a, '--approve', '-a')) decide('deny', 'Approving a pull request is a person\'s decision; this session never approves one.');
+    if (a[0] === 'pr' && a[1] === 'merge') decide('deny', 'Merging a pull request is a person\'s decision; this session never merges one.');
+    if (a[0] === 'api' && a.some((x) => /\/(reviews|merge)\b/.test(x))) decide('deny', 'Approving or merging a pull request through the API is a person\'s decision.');
   }
-  if (args[0] === 'api' && args.some((a) => /\/reviews\b/.test(a)) && args.some((a) => /APPROVE/.test(a))) {
-    decide('deny', 'Approving a pull request through the API is a person\'s decision; this session never approves one.');
+  const gl = tokens.indexOf('glab');
+  if (gl >= 0) {
+    const a = tokens.slice(gl + 1);
+    if (a[0] === 'mr' && ['approve', 'merge'].includes(a[1])) decide('deny', `${a[1] === 'merge' ? 'Merging' : 'Approving'} a merge request is a person's decision; this session never does it.`);
+    if (a[0] === 'api' && a.some((x) => /\/(approve|merge)\b/.test(x))) decide('deny', 'Approving or merging a merge request through the API is a person\'s decision.');
   }
 };
 
@@ -352,6 +348,6 @@ for (const seg of segments(command)) {
   if (eas) { checkEas(eas, env); continue; }
   const g = rest.indexOf('git');
   if (g >= 0 && rest[g + 1] === 'push') { checkGitPush(rest.slice(g + 2)); continue; }
-  if (rest.includes('gh')) checkGh(rest);
+  if (rest.includes('gh') || rest.includes('glab')) checkReviewTools(rest);
 }
 finish();
