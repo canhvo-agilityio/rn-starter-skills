@@ -75,7 +75,7 @@ Run on every target in `runTargets` that Maestro supports (iOS Simulator, Androi
 
 ## Phase 5: Ready for CI
 
-Read `references/ci.md`. Add `package.json` scripts so anyone runs the flows with one command (`e2e:ios`, `e2e:android`), and a short `.maestro/README.md` (how to run, the dev-server variables from `dev-server.env`, what `APP_ID` / `APP_URL` mean, which tags exist). CI builds the e2e app with the same `dev-server.env` values. CI runs the same flows on an installable build, not Expo Go; `rn-pipeline` wires it.
+Read `references/ci.md`. Add `package.json` scripts so anyone runs the flows with one command (`e2e:ios`, `e2e:android`), and a short `.maestro/README.md` (how to run, the dev-server variables from `dev-server.env`, what `APP_ID` / `APP_URL` mean, which tags exist). CI builds the e2e app with the same `dev-server.env` values. CI runs the same flows on an installable build, not Expo Go; no skill sets the CI job up yet, so tell the dev what `references/ci.md` lists and offer to write the job for their CI (GitHub Actions or GitLab CI) on request.
 
 ## Phase 6: Hand-off
 

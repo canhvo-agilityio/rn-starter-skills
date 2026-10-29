@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Source this before commands that need tools installed by rn-starter:
 #   source scripts/env.sh && node -v
 # Safe to source many times; skips anything that is not installed.
@@ -63,7 +64,7 @@ if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME:-/nonexistent}/bin/java" ]; th
   elif [ -x "$_rn_home/jdk-17/bin/java" ]; then
     export JAVA_HOME="$_rn_home/jdk-17"
   elif [ -x /usr/libexec/java_home ] && /usr/libexec/java_home -v 17 >/dev/null 2>&1; then
-    export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+    JAVA_HOME="$(/usr/libexec/java_home -v 17)"; export JAVA_HOME
   fi
 fi
 [ -n "${JAVA_HOME:-}" ] && case ":$PATH:" in *":$JAVA_HOME/bin:"*) ;; *) export PATH="$JAVA_HOME/bin:$PATH" ;; esac

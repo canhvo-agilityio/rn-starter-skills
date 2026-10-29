@@ -31,7 +31,7 @@ for a in "$@"; do case "$a" in --runtime) runtime=1 ;; *) dir="$a" ;; esac; done
 dir="$(cd "$dir" && pwd)" || exit 1
 [ -f "$dir/package.json" ] || { echo "{\"error\":\"no package.json in $dir\"}"; exit 1; }
 command -v node >/dev/null 2>&1 || { echo '{"error":"node not found — source rn-starter/scripts/env.sh first"}'; exit 1; }
-cd "$dir"
+cd "$dir" || exit 1
 
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 

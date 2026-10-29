@@ -1,6 +1,6 @@
 # Flows in CI
 
-The flows written here run unchanged in CI; only the environment differs. `rn-pipeline` sets up the workflow; this file is what it needs from the flows, and what to tell the dev about the choices.
+The flows written here run unchanged in CI; only the environment differs. No skill sets the CI job up yet: this file is what a job needs from the flows, the usual options, and what to tell the dev, so the dev (or Claude, on request) can write it for GitHub Actions or GitLab CI.
 
 ## What CI needs
 
@@ -18,7 +18,7 @@ The flows written here run unchanged in CI; only the environment differs. `rn-pi
 | GitHub Actions, iOS | a macOS runner, a simulator build, the simulator booted with `xcrun simctl` | when iOS must be covered in CI; macOS minutes cost more |
 | Maestro Cloud | `maestro cloud <app> .maestro/` | parallel devices without running them yourself; paid |
 
-Check each option's current docs when `rn-pipeline` sets it up: job names and parameters change.
+Check each option's current docs when writing the job: job names and parameters change.
 
 ## What to keep in the repo
 

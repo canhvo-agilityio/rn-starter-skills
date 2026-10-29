@@ -28,7 +28,6 @@ version="$("${eas_cmd[@]}" --version 2>/dev/null | grep -o 'eas-cli/[0-9.]*' | h
 [ -n "$version" ] || { echo "could not run eas-cli ($how)" >&2; exit 1; }
 set +e
 who="$("${eas_cmd[@]}" whoami 2>/dev/null)"
-who_status=$?
 set -e
 
 WHO="$who" VERSION="$version" HOW="$how" node - "$dir" <<'EOF'

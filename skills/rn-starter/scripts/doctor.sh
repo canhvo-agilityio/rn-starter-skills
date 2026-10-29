@@ -130,7 +130,7 @@ if [ "$check_android" -eq 1 ]; then
     [ -x "$ANDROID_HOME/emulator/emulator" ] \
       && row ok emulator "installed" \
       || row missing emulator "emulator not installed"
-    if ls "$ANDROID_HOME/platforms" 2>/dev/null | grep -q android-; then
+    if compgen -G "$ANDROID_HOME/platforms/android-*" >/dev/null; then
       row ok platforms "$(ls "$ANDROID_HOME/platforms" | tr '\n' ' ')"
     else
       row missing platforms "no Android platform installed"
