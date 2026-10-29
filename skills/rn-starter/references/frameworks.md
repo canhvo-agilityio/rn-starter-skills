@@ -42,7 +42,7 @@ cd <name> && printf 'nodeLinker: hoisted\nstrictDepBuilds: false\n' > pnpm-works
 
 `strictDepBuilds: false`: pnpm 11+ refuses to run dependencies' install scripts unless approved, and by default **fails the install** over it (`ERR_PNPM_IGNORED_BUILDS` — seen with `unrs-resolver` from Expo's ESLint config and `@parcel/watcher` from Jest). With this setting it keeps skipping them (safe default; these packages ship prebuilt binaries) and only warns. pnpm then adds `allowBuilds:` entries with the value "set this to true or false"; `setup-quality.sh` turns them into `false`. Only switch one to `true` if a package actually doesn't work, and tell the dev — that lets it run its install script.
 
-`create-expo-app` also writes an `AGENTS.md` and `.claude/settings.json` into the project (helpful for working with Claude later) — leave them unless the dev asks otherwise (`--no-agents-md`).
+`create-expo-app` also writes a generic `AGENTS.md` (it assumes the template's defaults, e.g. expo-router) and `.claude/settings.json`. With the Claude Code files chosen, `setup-claude.sh` replaces that `AGENTS.md` with one written from `.rn-starter.json` (the real stack, commands, structure and conventions). Without them, create the project with `--no-agents-md`, so no agent reads wrong defaults.
 
 ### Ignite
 

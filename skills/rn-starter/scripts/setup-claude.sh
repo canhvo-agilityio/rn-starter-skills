@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
-# Add Claude Code project files to a React Native / Expo project:
-#   CLAUDE.md                        stack, commands, structure and code-style rules for Claude
+# Add agent and Claude Code project files to a React Native / Expo project:
+#   AGENTS.md                        stack, commands, structure and code-style rules, for any coding agent
+#                                    (replaces the generic AGENTS.md Expo's templates ship)
+#   CLAUDE.md                        imports AGENTS.md and adds the Claude Code hooks and subagents
 #   .claude/hooks/format.mjs         PostToolUse hook: Prettier/ESLint (or Biome) on every edited file
 #   .claude/hooks/guard.mjs          PreToolUse hook: blocks pushes to protected branches, secret files,
 #                                    hand edits to generated files
-#   .claude/hooks/release-gate.mjs   PreToolUse hook: production builds, submits, OTA updates and release
-#                                    tags need a commit merged into the production branch (configured by rn-release-setup)
+#   .claude/hooks/release-gate.mjs   only with --release-gate (rn-release-setup passes it): production builds,
+#                                    submits, OTA updates and release tags need a commit merged into the
+#                                    production branch
 #   .claude/settings.json            registers the hooks (merged into an existing file)
 #   .claude/agents/code-reviewer.md  read-only review subagent
 #   .claude/agents/verifier.md       runs the app and checks the change, report only
 #
-# Usage: setup-claude.sh [--force | --update-agents] [project-dir]
+# Usage: setup-claude.sh [--force | --update-agents] [--release-gate] [project-dir]
 #   --force           overwrite an existing CLAUDE.md and the two agent files
 #   --update-agents   bring a project made with an older plugin up to date: refresh the hooks and
 #                     the two agent files, keep CLAUDE.md (git diff shows what changed; re-apply any
 #                     edits the team had made to the agents)
+#   --release-gate    also install the release gate (rn-release-setup does this once the app has a
+#                     production app and branch); a project that already has it keeps it on updates
 #
 # Idempotent: the hook scripts are always refreshed, each hook is registered once, and files the
 # team may have edited (CLAUDE.md, the agents) are only created when missing unless --force.
@@ -28,11 +33,12 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 assets="$here/../assets/claude"
 
-force=0; update_agents=0; dir="."
+force=0; update_agents=0; release_gate=0; dir="."
 while [ $# -gt 0 ]; do
   case "$1" in
     --force) force=1 ;;
     --update-agents) update_agents=1 ;;
+    --release-gate) release_gate=1 ;;
     -*) echo "unknown option: $1" >&2; exit 64 ;;
     *) dir="$1" ;;
   esac
@@ -47,11 +53,14 @@ log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 mkdir -p .claude/hooks .claude/agents
 written=(.claude/settings.json)
 
-log "Format, guard and release-gate hooks"
+# The release gate only belongs to apps set up for releases (rn-release-setup); keep it where it already is.
+[ -f .claude/hooks/release-gate.mjs ] && release_gate=1
+
+log "Format and guard hooks$([ "$release_gate" -eq 1 ] && echo ', release gate')"
 cp "$assets/format.mjs" .claude/hooks/format.mjs
 cp "$assets/guard.mjs" .claude/hooks/guard.mjs
-cp "$assets/release-gate.mjs" .claude/hooks/release-gate.mjs
-node - <<'EOF'
+[ "$release_gate" -eq 1 ] && cp "$assets/release-gate.mjs" .claude/hooks/release-gate.mjs
+RELEASE_GATE="$release_gate" node - <<'EOF'
 const fs = require('fs');
 const file = '.claude/settings.json';
 let settings = {};
@@ -67,7 +76,7 @@ const register = (event, matcher, script, timeout) => {
 };
 register('PostToolUse', 'Edit|MultiEdit|Write', 'format.mjs', 60);
 register('PreToolUse', 'Bash|Read|Edit|MultiEdit|Write|NotebookEdit|Grep|Glob', 'guard.mjs', 10);
-register('PreToolUse', 'Bash', 'release-gate.mjs', 30);
+if (process.env.RELEASE_GATE === '1') register('PreToolUse', 'Bash', 'release-gate.mjs', 30);
 fs.writeFileSync(file, JSON.stringify(settings, null, 2) + '\n');
 EOF
 
@@ -75,7 +84,7 @@ EOF
 if [ -f .gitignore ] && ! grep -qx '.claude/settings.local.json' .gitignore; then
   printf '\n# Claude Code personal settings\n.claude/settings.local.json\n' >> .gitignore
 fi
-if [ -f .gitignore ] && ! grep -qx '.claude/release-gate.log' .gitignore; then
+if [ "$release_gate" -eq 1 ] && [ -f .gitignore ] && ! grep -qx '.claude/release-gate.log' .gitignore; then
   printf '.claude/release-gate.log\n' >> .gitignore
 fi
 
@@ -90,10 +99,10 @@ for agent in code-reviewer verifier; do
   fi
 done
 
-log "CLAUDE.md"
+log "AGENTS.md and CLAUDE.md"
 kept=0
-if [ "$force" -eq 1 ] || [ ! -f CLAUDE.md ]; then
-  node - "$assets/CLAUDE.md" <<'EOF'
+[ "$force" -eq 0 ] && [ -f CLAUDE.md ] && kept=1
+FORCE="$force" KEPT="$kept" RELEASE_GATE="$release_gate" node - "$assets" <<'EOF'
 const fs = require('fs');
 const path = require('path');
 const read = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
@@ -160,11 +169,12 @@ const layered = (starter.structure || (fs.existsSync('src/screens') ? 'layered' 
 const commitlint = fs.readdirSync('.').some((f) => /^commitlint\.config\./.test(f));
 const husky = fs.existsSync('.husky');
 
-let md = fs.readFileSync(process.argv[2], 'utf8')
+const render = (template) => fs.readFileSync(path.join(process.argv[2], template), 'utf8')
   .replace('{{APP_NAME}}', pkg.name || path.basename(process.cwd()))
   .replace('{{FRAMEWORK}}', isExpo ? 'Expo' : 'React Native CLI')
-  // Expo templates ship AGENTS.md (versioned-docs and EAS guidance); Claude Code reads it through an import.
-  .replace('{{AGENTS}}', fs.existsSync('AGENTS.md') ? 'Framework guidance from the template: @AGENTS.md' : '')
+  .replace('{{DOCS}}', isExpo
+    ? `Framework docs for agents: https://docs.expo.dev/llms.txt (match the project's SDK, ${String(deps.expo).replace(/^[~^]/, '')}).`
+    : 'Framework docs: https://reactnative.dev/docs/getting-started.')
   .replace('{{STACK}}', stack)
   .replace('{{COMMANDS}}', ['| | |', '|---|---|', ...commands].join('\n'))
   .replace('{{VERIFY}}', ['| Check | Command | Healthy output |', '|---|---|---|', ...verify].join('\n'))
@@ -187,18 +197,34 @@ let md = fs.readFileSync(process.argv[2], 'utf8')
     commitlint && '- Commit messages follow Conventional Commits (`feat: …`, `fix: …`, `chore: …`); commitlint checks them.',
   ].filter(Boolean).join('\n'));
 
-// Keep the structure section that applies, drop the other one and the markers.
-const keep = layered ? 'layered' : 'template';
-md = md.replace(/<!-- structure:(\w+) -->\n([\s\S]*?)<!-- \/structure:\1 -->\n/g,
-  (_, name, body) => (name === keep ? body : ''));
-fs.writeFileSync('CLAUDE.md', md.replace(/\n{3,}/g, '\n\n').trimEnd() + '\n');
-console.log(`wrote CLAUDE.md (${layered ? 'layered structure' : 'template structure'})`);
+// Keep the sections that apply (structure, release gate), drop the others and the markers.
+const gate = process.env.RELEASE_GATE === '1';
+const finish = (md) => md
+  .replace(/<!-- structure:(\w+) -->\n([\s\S]*?)<!-- \/structure:\1 -->\n/g, (_, name, body) => (name === (layered ? 'layered' : 'template') ? body : ''))
+  .replace(/<!-- release-gate -->\n([\s\S]*?)<!-- \/release-gate -->\n/g, (_, body) => (gate ? body : ''))
+  .replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
+
+// AGENTS.md: ours is regenerated with CLAUDE.md; Expo's generic one (or none) is replaced.
+const ours = fs.existsSync('AGENTS.md') && /scaffolded with rn-starter/.test(fs.readFileSync('AGENTS.md', 'utf8'));
+if (process.env.KEPT !== '1' || !ours) {
+  fs.writeFileSync('AGENTS.md', finish(render('AGENTS.md')));
+  console.log(`wrote AGENTS.md (${layered ? 'layered structure' : 'template structure'})`);
+} else console.log('kept existing AGENTS.md (--force to replace)');
+if (process.env.KEPT !== '1') {
+  fs.writeFileSync('CLAUDE.md', finish(render('CLAUDE.md')));
+  console.log('wrote CLAUDE.md');
+} else {
+  // A kept CLAUDE.md still learns about a release gate installed now.
+  const current = fs.readFileSync('CLAUDE.md', 'utf8');
+  const bullet = (render('CLAUDE.md').match(/<!-- release-gate -->\n([\s\S]*?)<!-- \/release-gate -->/) || [])[1];
+  if (gate && bullet && !current.includes('release-gate.mjs')) {
+    fs.writeFileSync('CLAUDE.md', current.trimEnd() + '\n' + bullet.trimEnd() + '\n');
+    console.log('kept existing CLAUDE.md, added the release gate line');
+  } else console.log('kept existing CLAUDE.md (--force to replace)');
+}
 EOF
-  written+=(CLAUDE.md)
-else
-  kept=1
-  echo "kept existing CLAUDE.md (--force to replace)"
-fi
+written+=(AGENTS.md)
+[ "$kept" -eq 0 ] && written+=(CLAUDE.md)
 
 # Format the generated files with the project's Prettier now, so lint-staged doesn't rewrite them
 # in the first commit.
@@ -208,13 +234,16 @@ fi
 
 echo
 log "Summary"
-echo "CLAUDE.md                         $([ "$kept" -eq 1 ] && echo 'existing file kept' || echo 'written')"
+echo "AGENTS.md                         project rules for any coding agent"
+echo "CLAUDE.md                         $([ "$kept" -eq 1 ] && echo 'existing file kept' || echo 'written'): @AGENTS.md + Claude Code hooks and subagents"
 echo ".claude/settings.json             PostToolUse (Edit|MultiEdit|Write) → node .claude/hooks/format.mjs"
 echo ".claude/hooks/format.mjs          $( [ -f biome.json ] || [ -f biome.jsonc ] && echo 'biome check --write' || echo 'prettier --write, eslint --fix') on the edited file"
 echo ".claude/settings.json             PreToolUse (Bash|Read|Edit|Write|…) → node .claude/hooks/guard.mjs"
 echo ".claude/hooks/guard.mjs           blocks pushes to: $(node -e "try{const b=require('./.rn-starter.json').protectedBranches;if(b&&b.length){console.log(b.join(', '));process.exit(0)}}catch{}console.log('main, master')"); secret files; edits to *.gen.ts"
-echo ".claude/settings.json             PreToolUse (Bash) → node .claude/hooks/release-gate.mjs"
-echo ".claude/hooks/release-gate.mjs    production releases need a commit merged into the production branch; dev builds pass"
+if [ "$release_gate" -eq 1 ]; then
+  echo ".claude/settings.json             PreToolUse (Bash) → node .claude/hooks/release-gate.mjs"
+  echo ".claude/hooks/release-gate.mjs    production releases need a commit merged into the production branch; dev builds pass"
+fi
 echo ".claude/agents/code-reviewer.md   subagent 'code-reviewer' (read-only)"
 echo ".claude/agents/verifier.md        subagent 'verifier' (runs the app, reports only)"
 [ "$kept" -eq 1 ] && [ "$update_agents" -eq 0 ] && exit 3
