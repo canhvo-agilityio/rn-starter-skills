@@ -38,6 +38,7 @@ Deciding where something goes:
 |---|---|
 | A screen | `screens/<name>/index.tsx` + a one-line route file in `app/` |
 | UI used by one screen | `screens/<name>/components/` |
+| A primitive: `Text`, `Button`, `Input`, `Screen`, `Icon`, `Card` | `components/` from the first screen, even before a second one uses it (Primitives, below) |
 | UI used by 2+ screens (button, card shell, rating stars) | `components/` — when a new screen needs UI from another screen's `components/`, move it here (`follow-up.md`) |
 | Data that one screen changes and others show (favorites, cart) | a mutable mock in `services/` + a mutation hook (Data seams → Data that screens change) |
 | Data a screen shows (products, user, delivery status) | `services/<domain>.ts` → `hooks/use-<domain>.ts`; mock in `mocks/<domain>.ts`; type in `types/<domain>.ts` |
@@ -48,6 +49,21 @@ Deciding where something goes:
 | Infrastructure used everywhere but not UI (query client, env access) | `lib/` |
 
 Imports: use the `@/` alias across folders (`@/components/button`, `@/hooks/use-products`) and relative imports inside one screen folder (`./components/order-summary`). UI files never import `services/` or `mocks/`; shared folders never import `screens/`.
+
+## Primitives
+
+The small set of components every screen is built from, so a color, font or spacing change happens in one place:
+
+| Primitive | Covers |
+|---|---|
+| `Text` | every text: the design's variants (`title`, `heading`, `body`, `caption`, `label`), color from the theme, `numberOfLines` passthrough |
+| `Button` | the design's variants (`primary`, `secondary`, `ghost`, `destructive`) and sizes; pressed, disabled and loading states; `accessibilityRole="button"`; `testID` |
+| `Input` | label, placeholder, error message, secure entry, left / right icon; forwards the ref; focus and error borders from the theme |
+| `Screen` | safe area, background, horizontal padding, keyboard avoidance, optional scroll and pull-to-refresh |
+| `Icon` | the generated icons with `size` and a theme color name |
+| `Card`, `Divider`, `Spacer` | only when the design repeats them |
+
+Rules: screens and shared components use these instead of styling React Native's `Text`, `TextInput` or `Pressable` directly; a new variant goes into the primitive (and its test), not into a one-off style on a screen. The Expo template's `ThemedText` / `ThemedView` become `Text` / the background of `Screen` (keep the old names as re-exports while other code imports them).
 
 ## Naming and code style
 
