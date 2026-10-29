@@ -128,11 +128,21 @@ Written in Phase 4 so the release gate (`.claude/hooks/release-gate.mjs`) knows 
       "profiles": ["production", "production-simulator"], "channels": ["production"], "environment": "production" }
   ],
   "releaseBranchPrefix": "release/",
-  "approvers": []
+  "productionBranch": "prod",
+  "remote": "origin"
 }
 ```
 
-`approvers`: GitHub usernames whose approval counts for a production release. Empty means any approving review by someone other than the PR's author. Ask the dev who the release managers are; record their usernames.
+`productionBranch`: the branch whose commits may reach the production app. A release manager merges a `release/<version>` pull request (GitHub) or merge request (GitLab) into it, and **that merge is the approval**: the gate only checks, with git, that the commit being shipped is on this branch of `remote`. Use the team's production branch when it has one (`prod`, `production`); otherwise create `prod` from the last released commit (or from `main` for a first release). Don't use the branch everyday work merges into: every feature merge would then be shippable.
+
+## Protect the production branch
+
+The gate trusts the branch, so the server must make sure only release managers can put commits on it. The dev (or a repository admin) sets this up once in the web UI; it can't be done from here:
+
+- **GitHub** → *Settings → Branches* (or *Rules → Rulesets*) → a rule for the production branch: *Require a pull request before merging* with at least one approval, *Restrict who can push to matching branches* to the release managers (or a team), no force pushes, no deletion.
+- **GitLab** → *Settings → Repository → Protected branches* → the production branch: *Allowed to merge*: the release managers (Maintainers or named users), *Allowed to push and merge*: No one, *Allowed to force push*: off. On GitLab Premium, also *Settings → Merge requests → Approval rules* with the release managers as required approvers.
+
+Also add the production branch to `protectedBranches` in `.rn-starter.json`, so the project's guard and git hook refuse direct pushes to it too.
 
 ## Outside EAS
 

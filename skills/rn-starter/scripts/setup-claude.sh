@@ -5,7 +5,7 @@
 #   .claude/hooks/guard.mjs          PreToolUse hook: blocks pushes to protected branches, secret files,
 #                                    hand edits to generated files
 #   .claude/hooks/release-gate.mjs   PreToolUse hook: production builds, submits, OTA updates and release
-#                                    tags need an approved release PR (configured by rn-release-setup)
+#                                    tags need a commit merged into the production branch (configured by rn-release-setup)
 #   .claude/settings.json            registers the hooks (merged into an existing file)
 #   .claude/agents/code-reviewer.md  read-only review subagent
 #   .claude/agents/verifier.md       runs the app and checks the change, report only
@@ -214,7 +214,7 @@ echo ".claude/hooks/format.mjs          $( [ -f biome.json ] || [ -f biome.jsonc
 echo ".claude/settings.json             PreToolUse (Bash|Read|Edit|Write|…) → node .claude/hooks/guard.mjs"
 echo ".claude/hooks/guard.mjs           blocks pushes to: $(node -e "try{const b=require('./.rn-starter.json').protectedBranches;if(b&&b.length){console.log(b.join(', '));process.exit(0)}}catch{}console.log('main, master')"); secret files; edits to *.gen.ts"
 echo ".claude/settings.json             PreToolUse (Bash) → node .claude/hooks/release-gate.mjs"
-echo ".claude/hooks/release-gate.mjs    production releases need an approved release PR; dev builds pass"
+echo ".claude/hooks/release-gate.mjs    production releases need a commit merged into the production branch; dev builds pass"
 echo ".claude/agents/code-reviewer.md   subagent 'code-reviewer' (read-only)"
 echo ".claude/agents/verifier.md        subagent 'verifier' (runs the app, reports only)"
 [ "$kept" -eq 1 ] && [ "$update_agents" -eq 0 ] && exit 3
