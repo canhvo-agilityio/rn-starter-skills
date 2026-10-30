@@ -25,7 +25,7 @@ Text after a slash command is read as your request (`/rn-feature add a share but
 ## Prerequisites
 
 - **Computer:** macOS, Windows or Linux. The iOS Simulator needs macOS with Xcode installed from the App Store (a free Apple ID is enough); `rn-starter` installs everything else (Node, JDK, Android SDK and emulator, CocoaPods).
-- **Claude Code**, signed in. Optional: the Figma MCP or Claude in Chrome for designs, the GitHub or GitLab CLI (`gh`, `glab`) to open PRs / MRs for you.
+- **Claude Code**, signed in. Optional: the Figma MCP or Claude in Chrome for designs.
 - **For releases:** a free Expo account (EAS), and from you or the client an Apple Developer account and a Google Play Console account (`rn-release-setup` lists exactly which files it needs).
 
 ## Install
