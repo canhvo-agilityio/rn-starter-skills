@@ -13,7 +13,7 @@
 #   .claude/agents/code-reviewer.md  read-only review subagent
 #   .claude/agents/verifier.md       runs the app and checks the change, report only
 #
-# Usage: setup-claude.sh [--force | --update-agents] [--release-gate] [project-dir]
+# Usage: setup-claude.sh [--force | --update-agents] [--release-gate] [--keep-expo-plugin] [project-dir]
 #   --force           overwrite an existing CLAUDE.md and the two agent files
 #   --update-agents   bring a project made with an older plugin up to date: refresh the hooks and
 #                     the two agent files, keep CLAUDE.md (git diff shows what changed; re-apply any
@@ -33,12 +33,13 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 assets="$here/../assets/claude"
 
-force=0; update_agents=0; release_gate=0; dir="."
+force=0; update_agents=0; release_gate=0; keep_expo_plugin=0; dir="."
 while [ $# -gt 0 ]; do
   case "$1" in
     --force) force=1 ;;
     --update-agents) update_agents=1 ;;
     --release-gate) release_gate=1 ;;
+    --keep-expo-plugin) keep_expo_plugin=1 ;;
     -*) echo "unknown option: $1" >&2; exit 64 ;;
     *) dir="$1" ;;
   esac
@@ -60,11 +61,17 @@ log "Format and guard hooks$([ "$release_gate" -eq 1 ] && echo ', release gate')
 cp "$assets/format.mjs" .claude/hooks/format.mjs
 cp "$assets/guard.mjs" .claude/hooks/guard.mjs
 [ "$release_gate" -eq 1 ] && cp "$assets/release-gate.mjs" .claude/hooks/release-gate.mjs
-RELEASE_GATE="$release_gate" node - <<'EOF'
+RELEASE_GATE="$release_gate" KEEP_EXPO_PLUGIN="$keep_expo_plugin" node - <<'EOF'
 const fs = require('fs');
 const file = '.claude/settings.json';
 let settings = {};
 if (fs.existsSync(file)) settings = JSON.parse(fs.readFileSync(file, 'utf8'));
+// Expo's template enables its own Claude Code plugin; load only what the dev chose.
+if (process.env.KEEP_EXPO_PLUGIN !== '1' && settings.enabledPlugins && 'expo@claude-plugins-official' in settings.enabledPlugins) {
+  delete settings.enabledPlugins['expo@claude-plugins-official'];
+  if (!Object.keys(settings.enabledPlugins).length) delete settings.enabledPlugins;
+  console.log('turned off expo@claude-plugins-official from the template (--keep-expo-plugin keeps it)');
+}
 settings.hooks ??= {};
 const register = (event, matcher, script, timeout) => {
   const command = `node "$CLAUDE_PROJECT_DIR/.claude/hooks/${script}"`;
@@ -246,5 +253,5 @@ if [ "$release_gate" -eq 1 ]; then
 fi
 echo ".claude/agents/code-reviewer.md   subagent 'code-reviewer' (read-only)"
 echo ".claude/agents/verifier.md        subagent 'verifier' (runs the app, reports only)"
-[ "$kept" -eq 1 ] && [ "$update_agents" -eq 0 ] && exit 3
+[ "$kept" -eq 1 ] && [ "$update_agents" -eq 0 ] && [ "$release_gate" -eq 0 ] && exit 3
 exit 0

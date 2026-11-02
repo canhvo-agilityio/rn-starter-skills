@@ -89,6 +89,12 @@ for (const raw of (t.body || '').split('\n')) {
   const box = line.match(/^[-*+]\s+\[[ xX]\]\s+(.+)$/);
   if ((inAc && item) || box) criteria.push((box || item)[1].trim());
 }
+// Numbered criteria written inline, even several on one line: "AC1: … AC2: …", "AC 3 - …".
+const INLINE_AC = /\bA\.?C\.?\s*(\d+)\s*[:.)\-–]\s*([\s\S]*?)(?=\bA\.?C\.?\s*\d+\s*[:.)\-–]|\n\s*\n|$)/gi;
+for (const m of (t.body || '').matchAll(INLINE_AC)) {
+  const text = m[2].replace(/\s+/g, ' ').trim().replace(/[.;]\s*$/, '');
+  if (text) criteria.push(text);
+}
 
 const urls = [...new Set(all.match(/https?:\/\/[^\s)>\]"'`]+/g) || [])].map((u) => u.replace(/[.,;:]+$/, ''));
 const links = { figma: [], images: [], api: [], other: [] };

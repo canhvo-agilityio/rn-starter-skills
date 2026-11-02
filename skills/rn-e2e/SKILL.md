@@ -65,6 +65,8 @@ Flows run against mock data, so runs are repeatable. Write the dev-server variab
 bash "<skill-dir>/scripts/run-flows.sh" <project-dir> --platform ios --start-server [--tags SHOP-27] [--out <dir>]
 ```
 
+Each flow restarts the app (the open subflow), which costs about a minute a flow in Expo Go. While working on a ticket, run only its flows (`--tags <ticket>`) and leave the dev server running between runs; the whole suite runs before a release and in CI on a build, where launches are much faster.
+
 With `--start-server` and nothing on port 8081, it starts the dev server with `EXPO_NO_DOTENV=1` and those variables, and stops it after; a server already running is used as is (the JSON lists the variables it should have been started with). Flows that need the real API are tagged `api` and run only when asked.
 
 It picks `APP_ID` and `APP_URL` for the target (Expo Go on the iOS Simulator, Expo Go on the Android emulator after `adb reverse`, or a development build with `--build`), runs Maestro with a JUnit report, and prints JSON: each flow with its tags, pass / fail, the failure message and its screenshots folder.

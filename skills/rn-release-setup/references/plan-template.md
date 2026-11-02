@@ -50,6 +50,12 @@ Push sent by: <Expo push service / the backend (keys handed to <team>) / Firebas
 - Test build and submit: <Android ✓ build 4, .aab signed with SHA-1 87:1E:…, submitted as draft / not run — "set up, not proven by a build">
 - Other features found (set up outside this skill): <Google Sign-In, Maps — need the fingerprints above>
 
+## Rolling back
+
+- OTA: republish the previous update group to `production`, or `eas update:roll-back-to-embedded --channel production` (both through `rn-release`; the release gate asks a person for each).
+- Store build: pause the phased release in App Store Connect / halt the staged rollout in Play Console, then ship a fixed version as a new release.
+- Who decides a rollback: <release manager>.
+
 ## Open items
 
 - Service account key from the client.

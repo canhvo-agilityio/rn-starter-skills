@@ -19,7 +19,7 @@ The **owner** is the Expo account or organization the project belongs to. Builds
 eas init --account <owner> --non-interactive
 ```
 
-Creates `@<owner>/<slug>` (or links it if it exists) and writes `extra.eas.projectId` and `owner` into `app.json`; it also sets the dashboard icon. With a dynamic `app.config.js/ts` it can't edit the file: it prints the two values — add them to the config by hand.
+Creates `@<owner>/<slug>` (or links it if it exists) and writes `extra.eas.projectId` and `owner` into `app.json`; it also sets the dashboard icon. `eas init` and `eas update:configure` may also write keys the variants set in `app.config.js` (`ios.bundleIdentifier`, `android.package`, a per-profile `channel`): remove those from `app.json` again, so each value has one source, then check both variants resolve (`variants.md` → app.config.js). With a dynamic `app.config.js/ts` it can't edit the file: it prints the two values — add them to the config by hand.
 
 React Native CLI projects have no `app.json` expo block of their own: `eas init` adds what EAS needs; EAS builds the native projects in `ios/` and `android/` as they are (bare workflow).
 
@@ -31,7 +31,7 @@ Already linked to another owner (`project.owner` differs from the choice): stop 
 
 The profiles for the two apps (`dev`, `production`, their `*-simulator` checks, a submit profile per app) are in `variants.md` → eas.json. What each setting means:
 
-- `cli.version`: the major the skill ran with, as a floor (`>= 25.0.0`), so teammates on an older CLI get a clear error.
+- `cli.version`: the version the skill ran with (`eas-status.sh` prints it), as a floor, so teammates on an older CLI get a clear error. Keep using `npx --yes eas-cli@<version>`; a global `eas` install is often far older than the floor.
 - `appVersionSource: "remote"` + `autoIncrement: true`: EAS keeps the build number (iOS `buildNumber`, Android `versionCode`) per app and raises it on every store build — TestFlight and Play reject a number they've seen, and two devs building from different machines would otherwise collide. The first remote value is taken from the project; set it explicitly with `eas build:version:set` when the store already has higher numbers. The marketing `version` (`1.2.0`) stays in `app.json`; releases bump it.
 - `env.APP_VARIANT`: which app the profile builds (`variants.md`).
 - `*-simulator`: the same configuration (environment, channel, variant) built for the iOS Simulator and as an Android APK, used only for checking before a store build. `autoIncrement: false` so checks don't consume build numbers. Set its `channel` explicitly: `eas update:configure` otherwise writes a channel named after the profile into every profile that has none.

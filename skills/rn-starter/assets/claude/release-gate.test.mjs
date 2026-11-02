@@ -27,6 +27,7 @@ const RELEASE = {
   ],
   releaseBranchPrefix: 'release/',
   productionBranch: 'prod',
+  productionBranchProtected: '2026-11-02',
 };
 
 const git = (dir, ...args) => execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { cwd: dir, encoding: 'utf8' }).trim();
@@ -240,4 +241,82 @@ test('without a release block, prod* names are production and main is the produc
   assert.equal(gate(p, 'eas build --profile dev -p ios').decision, 'allow');
   merge(p, 'main');
   assert.equal(gate(p, 'eas build --profile production -p ios').decision, 'allow');
+});
+
+// ---------------------------------------------------------------- holes found by the pet-shop audit
+test('wrappers do not hide a production build', () => {
+  const p = project();
+  releaseBranch(p);
+  for (const c of ['bash -c "eas build --profile production"', "sh -c 'eas build --profile production'", '(eas build --profile production)',
+    '{ eas build --profile production; }', 'echo $(eas build --profile production)', 'echo `eas build --profile production`', 'eval "eas build --profile production"']) {
+    assert.equal(gate(p, c).decision, 'deny', c);
+  }
+});
+
+test("git's global options and --repo do not hide a push to the production branch", () => {
+  const p = project();
+  releaseBranch(p);
+  for (const c of ['git -C . push origin HEAD:prod', 'git -c core.x=y push origin HEAD:prod', 'git push --repo=origin HEAD:prod', 'git push --repo origin HEAD:prod']) {
+    assert.match(gate(p, c).reason, /release approval/, c);
+  }
+});
+
+test('gh / glab global flags and API paths do not hide a merge or an approval', () => {
+  const p = project();
+  for (const c of ['gh -R owner/repo pr merge 1', 'gh --repo=owner/repo pr review 1 --approve', 'gh api repos/o/r/merges -f base=prod -f head=x', 'glab -R g/p mr merge 3', 'glab api projects/1/merge_requests/3/merge -X PUT']) {
+    assert.equal(gate(p, c).decision, 'deny', c);
+  }
+});
+
+test('only an iOS Simulator build of the production app skips the merge; an Android APK does not', () => {
+  const p = project();
+  releaseBranch(p);
+  assert.equal(gate(p, 'eas build --profile production-simulator --platform ios').decision, 'allow');
+  assert.equal(gate(p, 'eas build --profile production-simulator --platform android').decision, 'deny');
+  assert.equal(gate(p, 'eas build --profile production-simulator').decision, 'deny');
+});
+
+test('--auto-submit on a dev build asks, like eas submit', () => {
+  const p = project();
+  assert.equal(gate(p, 'eas build --profile dev --auto-submit').decision, 'ask');
+});
+
+test('a variant the release block does not list is denied, even after the merge', () => {
+  const p = project();
+  releaseBranch(p);
+  merge(p);
+  assert.match(gate(p, 'APP_VARIANT=prod eas update --channel production --environment production --message x').reason, /isn't one of the apps/);
+});
+
+test("a production update must use the production app's EAS environment", () => {
+  const p = project();
+  releaseBranch(p);
+  merge(p);
+  assert.match(gate(p, 'APP_VARIANT=production eas update --channel production --environment preview --message x').reason, /--environment production/);
+  assert.match(gate(p, 'APP_VARIANT=production eas update --channel production --message x').reason, /--environment production/);
+});
+
+test('untracked files count as uncommitted changes', () => {
+  const p = project();
+  releaseBranch(p);
+  merge(p);
+  write(p.dir, 'sneaky.tsx', 'export default 1');
+  assert.match(gate(p, 'APP_VARIANT=production eas update --channel production --environment production --message x').reason, /Uncommitted changes/);
+});
+
+test('nothing ships to production until the branch protection is recorded', () => {
+  const p = project();
+  write(p.dir, '.rn-starter.json', { release: { ...RELEASE, productionBranchProtected: undefined } });
+  git(p.dir, 'commit', '-qam', 'no protection yet');
+  merge(p);
+  assert.match(gate(p, 'eas build --profile production -p ios').reason, /protected on the server/);
+});
+
+test('a release tag pushed from a commit refspec, or created in the same command, is checked too', () => {
+  const p = project();
+  releaseBranch(p);
+  assert.match(gate(p, 'git push origin HEAD:refs/tags/v1.0.1').reason, /marks a production release/);
+  assert.match(gate(p, 'git tag v1.0.1 && git push origin v1.0.1').reason, /doesn't exist yet as a tag/);
+  merge(p);
+  assert.equal(gate(p, 'git push origin HEAD:refs/tags/v1.0.1').decision, 'allow');
 });

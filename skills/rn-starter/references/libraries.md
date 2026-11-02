@@ -43,7 +43,7 @@ Verified 2026-10-27 on the `default` template (Expo SDK 58, React Native 0.88, R
 
 - `npx expo install nativewind@^4`, then `<pm> add -D tailwindcss@^3.4`. Reanimated and safe-area-context are already in the template.
 - The template has no `babel.config.js` or `metro.config.js`: create both as the guide shows (`babel-preset-expo` with `jsxImportSource: 'nativewind'` plus `nativewind/babel`; `withNativeWind(config, { input: './src/global.css' })`).
-- The template already has `src/global.css` (font variables for web), imported by its theme file. Put the three `@tailwind` lines at the top of that file instead of creating a second one, and point `input` and Tailwind's `content` (`./src/**/*.{js,jsx,ts,tsx}`) at `src/`.
+- The template already has `src/global.css` (font variables for web), imported only by its theme file. Import it in the root layout too (`src/app/_layout.tsx`: `import '@/global.css';`), or `className` stops working the day the theme file is replaced. Put the three `@tailwind` lines at the top of that file instead of creating a second one, and point `input` and Tailwind's `content` (`./src/**/*.{js,jsx,ts,tsx}`) at `src/`.
 - `nativewind-env.d.ts` (`/// <reference types="nativewind/types" />`) at the root; the first `expo-doctor` or `expo start` adds it to `tsconfig.json`'s `include` by itself.
 - Jest: the `.css` stub from `setup-quality.sh` keeps tests running, and components with `className` render, but classes don't become styles under Jest. Tests query by role and text, never by style (rn-ui `conventions.md` → Tests).
 - Check before going on: `expo-doctor`, `expo export`, and one screen with a `className` (and a `dark:` variant) on the simulator in both schemes.

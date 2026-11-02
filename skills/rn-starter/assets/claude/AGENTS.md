@@ -44,7 +44,7 @@ Follow the layout already in `src/`: put new code next to code of the same kind,
 - Files and folders are kebab-case (`product-card.tsx`, `use-products.ts`).
 - Components are arrow functions with named exports, props (when there are any) typed with an `interface <Name>Props`; route files are the only default exports.
 - {{STYLE_RULE}} Colors, spacing and fonts always come from the theme, never literals.
-- Screens are built from the primitives in `src/components/` (`Text`, `Button`, `Input`, `Screen`, `Icon`); don't style React Native's `Text`, `TextInput` or `Pressable` directly. A new variant goes into the primitive.
+- Screens are built from the primitives in `src/components/` (`Text`, `Button`, `Input`, `Screen`, `Icon`; rn-ui creates them with the first screens); don't style React Native's `Text`, `TextInput` or `Pressable` directly. A new variant goes into the primitive.
 - Icons are components in `src/components/icons/` generated from the design's SVGs in `docs/design/icons/` (rn-ui's `svg-icons.sh`). New icons are never PNGs in `assets/` (the template's own tab icons can stay until the design replaces them).
 - Constants are `UPPER_SNAKE_CASE`. Comments explain why, not what.
 - Growing lists: `FlatList` with a `memo` item and stable `renderItem` / `keyExtractor`.

@@ -52,9 +52,11 @@ Without plan mode (a non-interactive run): write the plan into the ticket file a
 - **Branch**: follow the project's naming (look at `git branch -a`, `CONTRIBUTING.md`, the commit rules in its README). Without one: `feat/<id>-<slug>`, `fix/<id>-<slug>` for a bug. Branch from the up-to-date base branch; ask which one if the project has several (`dev`, `main`).
 - **Commits**: one per plan step, in the project's format (commitlint, an issue-key prefix: read `commitlint.config.*` and `git log --oneline`). Include the ticket id where the format has a place for it. Accepting the plan covers these local commits; pushing still needs the dev's yes.
 - The git hooks run on every commit. Never `--no-verify`: a failing hook is a failing check, fix it.
-- After creating the branch, set `status: in-progress` in the ticket file; the first commit is the ticket file with its plan and that status (`docs(tickets): plan <id>` or the project's equivalent), so the plan is reviewed with the code. Step statuses and Evidence are updated in each step's commit.
+- After creating the branch, set the status with `bash "<skill-dir>/scripts/set-status.sh" <ticket file> in-progress` (never by hand or with `sed`: it checks the file meets the status and reverts it if not); the first commit is the ticket file with its plan and that status (`docs(tickets): plan <id>` or the project's equivalent), so the plan is reviewed with the code. Step statuses and Evidence are updated in each step's commit.
 
 ## Running the steps
+
+Code comments never cite the ticket file's ids (`C4`, `Q2`): the file is deleted when the ticket closes. Put the reason in the comment itself, with the ticket key if it helps (`// PROJ-412: free from $20, as the PO decided`).
 
 For each step, in order:
 
@@ -101,7 +103,7 @@ Other run targets (Android emulator, a phone): run the verifier there too when t
 
 ## Pull request
 
-1. Close the ticket file: set `status: done` in its frontmatter, run `check-ticket.sh` (it must pass: every step `done` or `skipped`, every active R# with evidence, none `fail`), and commit it with the Evidence table.
+1. Close the ticket file: `set-status.sh <ticket file> done` (it runs `check-ticket.sh` and refuses until it passes: every step `done` or `skipped`, every active R# with evidence, none `fail`), and commit it with the Evidence table.
 2. Generate the body from the ticket file, before it's removed:
    ```bash
    bash "<skill-dir>/scripts/ticket-pr.sh" <project-dir>/docs/tickets/<id>.md            # add --type-prefix for feat:/fix: titles

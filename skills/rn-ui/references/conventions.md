@@ -89,7 +89,8 @@ Rules: screens and shared components use these instead of styling React Native's
 
 - Typed props, `style` passthrough for one-off overrides, and an optional `testID` passed to the root or the pressable, so end-to-end flows (rn-e2e) can find it.
 - Uses `useTheme()` / theme tokens only.
-- Pressables have `accessibilityRole="button"` and a label when there's no visible text.
+- Pressables have `accessibilityRole="button"` and a label when there's no visible text. A pressable card merges its children into one element for VoiceOver / TalkBack, so its `accessibilityLabel` carries everything a sighted user reads on it, status included (`"Milo, available"`), not just the name. That label is also what Maestro matches by text; flows target the card's `testID`.
+- **One map per enum.** A status's label, color and icon live in one place (`utils/<domain>-status.ts` or next to the type), read by every component that shows it; never repeat the color names or labels in each component.
 - Screens wrap content in a safe-area aware container (`SafeAreaView` from `react-native-safe-area-context`, or the template's screen component). Inside tab navigators use `edges={['top']}` and don't add `insets.top` by hand.
 - **Lists** use `FlatList` (or `SectionList`) with `keyExtractor`, not `.map` in a `ScrollView`, when they can grow. The item is a `memo` component, and `renderItem` / `keyExtractor` are stable (`useCallback` or defined outside the component), so scrolling doesn't re-render every row:
   ```tsx
@@ -188,6 +189,28 @@ export const useSetFavorite = () => {
 
 Connecting the API later replaces the two service functions; hooks and screens stay. Without a query library, the same service sits behind the project's store (`stores/`) instead.
 
+### Every data screen handles its states, from the first build
+
+- **Kept data while refetching** (`placeholderData: keepPreviousData`, a filter or a search): the previous results stay on screen while the new ones load, so show that they're stale (`isPlaceholderData` → a small spinner or dimmed list) and don't show the empty state until the new results arrive (`!isPlaceholderData && data.length === 0`). A filter whose results don't change at all looks broken.
+
+Mocks answer instantly and never fail, so these are easy to skip and only show up on the real API. Build them now, on mocks:
+
+- **Loading, error, empty** on every screen that reads data, including success and confirmation screens. A failed load shows an error with a retry (and a way back on screens without a tab bar), never a spinner that never ends.
+- **Route params are untrusted.** A deep link can carry anything (`/pet/abc`). Parse the id once in the screen's hook; when it isn't valid, render the not-found state right away. A query disabled by `enabled: false` stays pending forever in TanStack Query, so never leave the screen waiting on one:
+
+  ```ts
+  // screens/pet-detail/hooks.ts
+  export const usePetDetail = (rawId: string | undefined) => {
+    const id = Number(rawId);
+    const valid = Number.isInteger(id) && id > 0;
+    const query = usePet(valid ? id : undefined); // enabled only when valid
+    return valid ? query : { ...query, isPending: false, notFound: true };
+  };
+  ```
+- **Actions check the state they need, on the screen that performs them**, not only on the button that leads there: the order screen checks the item is still available (a deep link can open it for a sold item) and shows why it can't proceed.
+- **Status codes and enums are shown as words** in the app's language (`placed` → "Đã đặt"), mapped in one place (`utils/` or the domain's types), never shown raw.
+- **Text below a large or transparent header** (iOS 26 headers float over content): put the screen's content, including its loading and error states, inside the `Screen` primitive with scrolling or the header inset, so nothing sits under the header.
+
 ## Tests (when Jest + RNTL are installed)
 
 Tests go in a `__tests__/` folder beside the code they test, named after the file: `components/__tests__/button.test.tsx`, `utils/__tests__/pricing.test.ts`, `screens/cart/__tests__/index.test.tsx`. Shared helpers (e.g. `renderWithProviders`) go in `src/test-utils.tsx`.
@@ -213,7 +236,9 @@ React Native Testing Library 14+ is async by default: `await render(...)`, and u
 - A `QueryClient` made with `new QueryClient()` keeps garbage-collection timers alive, so Jest doesn't exit (it hung for minutes, and the pre-commit hook with it). In tests use `new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })` inside `renderWithProviders`, and `queryClient.clear()` after each test.
 - Reanimated's own Jest mock fails with the Reanimated 4.x / jest-expo 58 pair seen so far (`setCSSEventHandler is not available in JSReanimated`). Keep animations out of components that need tests (a toast can animate with `Animated` from React Native), or mock the component that animates.
 
-What to test: every shared component (renders, main interaction), every logic file in `utils/` (all branches — that's where bugs cost money), and screens' key states once they handle loading/empty/error.
+What to test: every shared component (renders, main interaction), every logic file in `utils/` (all branches — that's where bugs cost money), every data hook's mapping, and **every data screen's states**: loading, error with retry, empty, not found for an invalid route param, and an action refused by state (`screens/<name>/__tests__/index.test.tsx`, rendered through `renderWithProviders` with the service mocked). These are what mocks never show and real APIs do.
+
+`setup-quality.sh` adds one sample test (`src/__tests__/setup.test.tsx`) that only proves Jest runs; delete it in the same change that adds the first real tests.
 
 ## Projects on the older feature-first layout
 
@@ -228,6 +253,7 @@ Random photo services give unrelated pictures (a mountain on a headphones card).
 ```bash
 npx eslint src                                   # includes the boundary rules if the project has them
 grep -rln "@/mocks\|@/services" src --include='*.tsx' | grep -v __tests__   # must print nothing
+grep -rLE "isError|error" src/screens/*/index.tsx                            # data screens listed here lack an error branch
 find src/app -name '*.tsx' -exec wc -l {} + | sort -n | tail -5              # route files should be tiny (layouts excepted)
 ```
 

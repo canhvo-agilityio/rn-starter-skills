@@ -23,6 +23,7 @@ command -v node >/dev/null 2>&1 || { echo "error: node not found — source rn-s
 
 node - "$file" "$mode" "$prefix" <<'EOF'
 const fs = require('fs');
+const path = require('path');
 const [file, mode, prefix] = process.argv.slice(2);
 const text = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 
@@ -78,8 +79,24 @@ const prTitle = prefix === '1' ? `${fm.type === 'bug' ? 'fix' : 'feat'}: ${lower
 const source = fm.source && /^https?:/.test(fm.source) ? `[${id}](${fm.source})` : id;
 const summary = prose('summary').split('\n').filter((l) => l.trim()).join('\n');
 
+// The branch's last commit removes the ticket file, so point at the commit that still has it.
+const rel = file.replace(/^.*?(docs\/tickets\/)/, '$1');
+let at = '';
+try {
+  const dirty = require('child_process').execFileSync('git', ['status', '--porcelain', '--', path.basename(file)],
+    { cwd: path.dirname(path.resolve(file)), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  if (dirty) {
+    console.error(`error: ${rel} has uncommitted changes; commit it first, so the PR points at the closed ticket file`);
+    process.exit(1);
+  }
+  at = require('child_process').execFileSync('git', ['log', '-1', '--format=%h', '--', path.basename(file)],
+    { cwd: path.dirname(path.resolve(file)), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+} catch {}
+const where = at ? `\`${rel}\` as of ${at} (removed when the ticket closed; \`git show ${at}:${rel}\`)` : `\`${rel}\``;
+const openQuestions = (sections.questions || []).filter((l) => /\*\*Q\d+\*\*/.test(l) && !/\bAnswer:/i.test(l)).map((l) => l.replace(/^\s*-\s*/, '- '));
+
 const body = [
-  `${source}. Analysis, plan and evidence: \`${file.replace(/^.*?(docs\/tickets\/)/, '$1')}\`.`,
+  `${source}. Analysis, plan and evidence: ${where}.`,
   '',
   summary,
   '',
@@ -91,6 +108,7 @@ const body = [
   ...(decided.length ? ['', '## Decisions', '', ...decided] : []),
   ...(assumed.length ? ['', '## Built on assumptions (not yet confirmed by their owner)', '', ...assumed] : []),
   ...(open.length ? ['', '## Still open', '', ...open] : []),
+  ...(openQuestions.length ? ['', '## Questions still waiting for an answer', '', ...openQuestions] : []),
   ...(notVerified.length || targetNotes.length ? ['', '## Not verified', '', ...notVerified, ...targetNotes] : []),
   ...(steps.length ? ['', '## Steps', '', ...steps.map((s) => `${s.step}. ${s.what} (${s.skill}; ${s['r#']})${/done/i.test(s.status) ? '' : ` — ${s.status}`}`)] : []),
 ].join('\n');
