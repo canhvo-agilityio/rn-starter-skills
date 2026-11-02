@@ -296,6 +296,8 @@ theme: {
 },
 ```
 
+**Import `global.css` in the root layout** (`src/app/_layout.tsx`: `import '@/global.css';`, first import). The Expo template imports it only from its theme file; once that file is replaced, nothing imports it and every `className` silently stops applying.
+
 Apply `themeVars[colorScheme]` as the `style` of the root view (`const { colorScheme } = useColorScheme()` from `nativewind`). For a user override, call `colorScheme.set('light' | 'dark')` from `nativewind`. It uses the `Appearance` API on native, and the Expo app still needs `userInterfaceStyle: "automatic"`. Use `font-bold` etc. only if each weight is mapped to its family as above (RN doesn't synthesize weights from one family). Restart Metro with the cache cleared after editing the config. NativeWind 5 is a release candidate that moves this config into `global.css` (`@theme`); if the project is on v5, follow its docs.
 
 ## 6. With a UI library

@@ -15,6 +15,11 @@
 // release block (rn-release-setup writes it).
 // It stops mistakes in this session, not someone determined to get around it: the real protection
 // is the branch protection on the server and who may build, submit and publish on EAS and the stores.
+// Before anything ships, the release block must record that the production branch is protected
+// (productionBranchProtected): until then, being on the branch proves nothing.
+// It looks through wrappers (bash -c, sh -c, eval, subshells, $( ), backticks) and global options
+// (git -C / -c / --repo, gh / glab -R), counts untracked files as uncommitted, and requires a production
+// OTA update's APP_VARIANT and --environment to be the production app's.
 // Commands that aren't releases are always allowed; a release to production it can't check is
 // denied. Plain Node, no dependencies.
 import { execFileSync } from 'node:child_process';
@@ -55,7 +60,26 @@ const finish = () => {
 };
 
 // ---------------------------------------------------------------- shell parsing
-const segments = (cmd) => cmd.split(/;|&&|\|\||\||\n/).map((s) => s.trim()).filter(Boolean);
+// Split on command separators and on subshell, group and substitution brackets, so
+// `(eas build …)`, `{ eas build …; }`, `$(eas build …)` and backticks are seen as commands.
+const segments = (cmd) => cmd.split(/;|&&|\|\||\||\n|\$\(|[(){}`]/).map((s) => s.trim()).filter(Boolean);
+// Shells and eval run their argument as a command: check that text too (`bash -c "eas build …"`).
+const SHELLS = ['bash', 'sh', 'zsh', 'dash', 'ksh', 'fish'];
+const expand = (cmd, depth = 0) => {
+  const out = [];
+  for (const seg of segments(cmd)) {
+    out.push(seg);
+    if (depth > 3) continue;
+    const t = tokenize(seg);
+    const k = t.findIndex((x) => SHELLS.includes(x.split('/').pop()));
+    if (k >= 0) {
+      const c = t.indexOf('-c', k);
+      if (c > k && t[c + 1]) out.push(...expand(t[c + 1], depth + 1));
+    }
+    if (t[0] === 'eval') out.push(...expand(t.slice(1).join(' '), depth + 1));
+  }
+  return out;
+};
 const tokenize = (seg) => {
   const out = [];
   let cur = '';
@@ -133,7 +157,8 @@ const profileConfig = (name, seen = new Set()) => {
 // Without a release block (a project set up before the gate), names decide: prod* is production.
 const looksProduction = (name) => /^prod/i.test(name || '');
 const fallbackApp = (prod) => ({ name: prod ? 'production' : 'dev', production: prod });
-const appByVariant = (v) => apps.find((a) => a.variant === v) ?? (v ? fallbackApp(looksProduction(v)) : null);
+// With a release block, a variant it doesn't list is unknown: app.config.js would build the dev app for it.
+const appByVariant = (v) => apps.find((a) => a.variant === v) ?? (v && !apps.length ? fallbackApp(looksProduction(v)) : null);
 const appByProfile = (name) => {
   const listed = apps.find((a) => (a.profiles || []).includes(name));
   if (listed) return listed;
@@ -172,6 +197,11 @@ const fetchProd = () => {
 // Null when `sha` is on the production branch (a release manager merged it); else the reason.
 const notApproved = (sha, what) => {
   if (!sha) return `Can't read the commit to ship (not a git repository?). ${ROUTE(what)}`;
+  // Until the server stops anyone else from pushing to the production branch, being on it proves nothing.
+  if (release && !release.productionBranchProtected) {
+    return `The release block doesn't record that ${prodBranch} is protected on the server yet (productionBranchProtected). `
+      + 'Until only release managers can merge into it, a commit on it isn\'t an approval. Protect it (rn-release-setup gives the GitHub / GitLab steps), then record the date.';
+  }
   if (!fetchProd()) {
     return `Can't fetch ${prodBranch} from ${remote} to check the approval (offline, no such branch, or git isn't signed in to the remote). Run again once it's reachable.`;
   }
@@ -184,8 +214,9 @@ const tagCommit = (tag) => run('git', ['rev-parse', '-q', '--verify', `refs/tags
   || (run('git', ['ls-remote', '--tags', remote, `refs/tags/${tag}`, `refs/tags/${tag}^{}`], 10000) || '')
     .split('\n').filter(Boolean).map((l) => l.split(/\s+/)[0]).pop() || null;
 const appVersion = () => readJson('app.json')?.expo?.version ?? readJson('package.json')?.version ?? null;
+// Untracked files count too: EAS and expo-router bundle every file that isn't ignored.
 const dirtyTracked = () => {
-  const s = run('git', ['status', '--porcelain', '--untracked-files=no']);
+  const s = run('git', ['status', '--porcelain']);
   return s === null ? false : s.length > 0;
 };
 
@@ -219,6 +250,10 @@ const checkEas = (args, env) => {
   if (!sub) return;
   const rest = args.slice(args.indexOf(sub) + 1);
   const variantApp = env.APP_VARIANT ? appByVariant(env.APP_VARIANT) : null;
+  if (env.APP_VARIANT && !variantApp) {
+    decide('deny', `APP_VARIANT=${env.APP_VARIANT} isn't one of the apps in the release block (${apps.map((a) => a.variant).join(', ')}): app.config.js would build the dev app for it. Use one of those.`);
+    return;
+  }
 
   if (sub === 'build' || sub === 'submit' || sub === 'build:version:set' || sub === 'build:version:sync') {
     const profile = flag(rest, '--profile', '-e') || 'production';
@@ -236,8 +271,9 @@ const checkEas = (args, env) => {
       if (app.production) decide('ask', `This changes the production app's build number on EAS (${sub}). Approve only if you own this release.`);
       return;
     }
+    const autoSubmit = rest.some((a) => a === '--auto-submit' || a.startsWith('--auto-submit-with-profile'));
     if (!app.production) {
-      if (sub === 'submit') decide('ask', `This submits the ${app.name} app to TestFlight / Google Play for testers. Approve only if it's the build you mean to send.`);
+      if (sub === 'submit' || autoSubmit) decide('ask', `This submits the ${app.name} app to TestFlight / Google Play for testers${autoSubmit ? ' (--auto-submit)' : ''}. Approve only if it's the build you mean to send.`);
       return;
     }
     if (sub === 'submit' && (has(rest, '--latest') || !flag(rest, '--id', '--path', '--url'))) {
@@ -245,9 +281,11 @@ const checkEas = (args, env) => {
         + 'using the build made from the merged release commit. --latest may pick another build, so the release gate can\'t tell it was approved.');
       return;
     }
-    if (sub === 'build') {
+    if (sub === 'build' && !autoSubmit) {
+      // Only an iOS Simulator build reaches no one; an Android APK or an internal build installs on real phones.
       const cfg = profileConfig(profile);
-      if (cfg?.ios?.simulator === true || cfg?.distribution === 'internal') return; // a check build: reaches no user
+      const platform = flag(rest, '--platform', '-p') || 'all';
+      if (cfg?.ios?.simulator === true && platform === 'ios') return;
     }
     const why = productionCheck('the production app', { storeBuild: true });
     if (why) decide('deny', `Shipping the production app needs an approved release. ${why}`);
@@ -278,6 +316,12 @@ const checkEas = (args, env) => {
       decide('deny', `Pass the app: APP_VARIANT=${app.variant || 'production'} eas update --channel ${channel} … Without it the update is computed for the dev app.`);
       return;
     }
+    const wantEnv = app.environment || 'production';
+    const gotEnv = flag(rest, '--environment');
+    if (gotEnv !== wantEnv) {
+      decide('deny', `An update to the ${app.name} app must use its EAS environment: --environment ${wantEnv}${gotEnv ? ` (not ${gotEnv})` : ''}. Otherwise it's built with the wrong API URL, or none (and the app falls back to mocks).`);
+      return;
+    }
     const why = productionCheck('an update to the production app', { storeBuild: false });
     if (why) decide('deny', `An OTA update reaches production users at once, with no store review, so it needs an approved release. ${why}`);
     return;
@@ -293,7 +337,7 @@ const checkEas = (args, env) => {
   }
 };
 
-const checkGitPush = (args) => {
+const checkGitPush = (args, cwd = root) => {
   const PUSH_REASON = `Merging into ${prodBranch} is the release approval, so only a release manager does it, through the release pull request or merge request. `
     + 'Push a release/<version> branch and open the PR / MR instead.';
   if (has(args, '--all', '--mirror')) {
@@ -305,8 +349,12 @@ const checkGitPush = (args) => {
     if (vtags.length) decide('deny', 'Pushing every tag could publish a release tag that was never merged. Push the release tag by name (git push origin v<version>) as the rn-release skill does.');
     return;
   }
-  const refs = args.filter((a) => !a.startsWith('-')).slice(1); // after the remote
-  const current = run('git', ['rev-parse', '--abbrev-ref', 'HEAD']);
+  // The first positional is the remote, unless --repo named it.
+  const repoFlag = args.some((a) => a === '--repo' || a.startsWith('--repo='));
+  const positional = args.filter((a, i) => !a.startsWith('-') && !(args[i - 1] === '--repo' || args[i - 1] === '-o' || args[i - 1] === '--push-option'));
+  const refs = repoFlag ? positional : positional.slice(1);
+  let current = null;
+  try { current = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch {}
   if (!refs.length && current === prodBranch) { decide('deny', PUSH_REASON); return; }
   for (const ref of refs) {
     const dst = ref.split(':').pop().replace(/^\+/, '');
@@ -316,8 +364,14 @@ const checkGitPush = (args) => {
     }
     const name = dst.replace(/^refs\/tags\//, '');
     if (!/^v\d/.test(name) || ref.startsWith(':')) continue;
-    const sha = run('git', ['rev-parse', '-q', '--verify', `refs/tags/${name}^{commit}`]);
-    if (!sha) continue; // not a tag here: nothing to push
+    // What the remote tag would point at: an existing local tag, or the source of `src:refs/tags/vX`.
+    const src = ref.includes(':') ? ref.split(':')[0].replace(/^\+/, '') : `refs/tags/${name}`;
+    const sha = run('git', ['rev-parse', '-q', '--verify', `${src}^{commit}`]);
+    if (!sha) {
+      decide('deny', `${name} doesn't exist yet as a tag here, so the release gate can't tell which commit it marks. `
+        + 'Create the tag on the shipped commit first (git tag -a), then push it by name as its own command.');
+      continue;
+    }
     const why = notApproved(sha, `tag ${name}`);
     if (why) decide('deny', `${name} marks a production release. ${why}`);
   }
@@ -325,29 +379,53 @@ const checkGitPush = (args) => {
 
 // Approving or merging a PR / MR is a person's decision; with the dev's credentials this session
 // could otherwise approve its own release.
+// Drop a CLI's global flags (`gh -R owner/repo pr merge`) so the subcommand is found.
+const stripGlobal = (a, withValue) => {
+  const out = [];
+  for (let i = 0; i < a.length; i += 1) {
+    if (withValue.includes(a[i])) { i += 1; continue; }
+    if (withValue.some((f) => f.startsWith('--') && a[i].startsWith(`${f}=`))) continue;
+    out.push(a[i]);
+  }
+  return out;
+};
 const checkReviewTools = (tokens) => {
   const gh = tokens.indexOf('gh');
   if (gh >= 0) {
-    const a = tokens.slice(gh + 1);
+    const a = stripGlobal(tokens.slice(gh + 1), ['-R', '--repo', '--hostname']);
     if (a[0] === 'pr' && a[1] === 'review' && has(a, '--approve', '-a')) decide('deny', 'Approving a pull request is a person\'s decision; this session never approves one.');
     if (a[0] === 'pr' && a[1] === 'merge') decide('deny', 'Merging a pull request is a person\'s decision; this session never merges one.');
-    if (a[0] === 'api' && a.some((x) => /\/(reviews|merge)\b/.test(x))) decide('deny', 'Approving or merging a pull request through the API is a person\'s decision.');
+    if (a[0] === 'api' && a.some((x) => /\/(reviews|merges?)\b/.test(x))) decide('deny', 'Approving or merging a pull request through the API is a person\'s decision.');
   }
   const gl = tokens.indexOf('glab');
   if (gl >= 0) {
-    const a = tokens.slice(gl + 1);
+    const a = stripGlobal(tokens.slice(gl + 1), ['-R', '--repo']);
     if (a[0] === 'mr' && ['approve', 'merge'].includes(a[1])) decide('deny', `${a[1] === 'merge' ? 'Merging' : 'Approving'} a merge request is a person's decision; this session never does it.`);
-    if (a[0] === 'api' && a.some((x) => /\/(approve|merge)\b/.test(x))) decide('deny', 'Approving or merging a merge request through the API is a person\'s decision.');
+    if (a[0] === 'api' && a.some((x) => /\/(approve|merges?)\b/.test(x))) decide('deny', 'Approving or merging a merge request through the API is a person\'s decision.');
   }
 };
 
-for (const seg of segments(command)) {
+// git's global options come before the subcommand (`git -C . push`, `git -c x=y push`).
+const GIT_GLOBAL_WITH_VALUE = ['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path'];
+const gitPush = (rest) => {
+  const g = rest.indexOf('git');
+  if (g < 0) return null;
+  let cwd = root;
+  let i = g + 1;
+  while (i < rest.length && rest[i].startsWith('-')) {
+    if (rest[i] === '-C') cwd = path.resolve(root, rest[i + 1] || '.');
+    i += GIT_GLOBAL_WITH_VALUE.includes(rest[i]) ? 2 : 1;
+  }
+  return rest[i] === 'push' ? { args: rest.slice(i + 1), cwd } : null;
+};
+
+for (const seg of expand(command)) {
   const { env, rest } = splitEnv(tokenize(seg));
   if (!rest.length) continue;
   const eas = easArgs(rest);
   if (eas) { checkEas(eas, env); continue; }
-  const g = rest.indexOf('git');
-  if (g >= 0 && rest[g + 1] === 'push') { checkGitPush(rest.slice(g + 2)); continue; }
+  const push = gitPush(rest);
+  if (push) { checkGitPush(push.args, push.cwd); continue; }
   if (rest.includes('gh') || rest.includes('glab')) checkReviewTools(rest);
 }
 finish();

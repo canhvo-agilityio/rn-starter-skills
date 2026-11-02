@@ -13,7 +13,7 @@ For each service function (`functions` in the inventory), look for the endpoint 
 | One clear endpoint | match it |
 | Several candidates (`GET /coffees` and `GET /menu/items`) | ask (Phase 2), recommending the one whose response covers the most fields the screens use |
 | No endpoint | keep the function on mocks; plan status `mock` with "no endpoint in the spec" |
-| The function filters or computes on the client (`getCoffees(categoryId)` filtering a list) | prefer the endpoint's query parameter; otherwise fetch and filter in the service, and note it |
+| The function filters or computes on the client (`getCoffees(categoryId)` filtering a list) | prefer the endpoint's query parameter, after checking with `curl` how it matches (exact, case-sensitive); otherwise fetch and filter in the service, and note it |
 | The endpoint returns more than one function needs (an order with its lines) | map once, reuse the mapper |
 | A function the mocks merged from two domains (favorites = ids + coffees) | call both endpoints in the service, or the one that embeds the other; keep the signature (Join by id, below) |
 
@@ -27,13 +27,13 @@ type CoffeeDto = components['schemas']['Coffee'];
 
 An endpoint with an inline response schema (no name): `paths['/coffees/{id}']['get']['responses'][200]['content']['application/json']`.
 
-A GET with no response schema in the spec (a warning from `fetch-openapi.sh`): call the endpoint once (`curl`), type the DTO by hand in the service next to its mapper, and add an Open point for the backend team. openapi-typescript types such a response as `never`, so cast once at the call:
+A GET with no response schema in the spec (a warning from `fetch-openapi.sh`): call the endpoint once (`curl`), type the DTO by hand in the service next to its mapper, and add an Open point for the backend team. openapi-typescript types such a response as `never`, which is assignable to any type, so annotate the variable instead of casting (the project's lint rules reject `as unknown as`):
 
 ```ts
 // Not in the spec — typed from a real response on 2026-10-22. Ask the backend team for a schema.
 interface ProfileDto { full_name: string; city?: string | null; avatar_url?: string | null }
 
-const dto = (await unwrap(api.GET('/profile'))) as unknown as ProfileDto;
+const dto: ProfileDto = await unwrap(api.GET('/profile'));
 ```
 
 ## Mapper rules

@@ -119,7 +119,7 @@ Read `references/build.md` before starting, and `references/handoff.md` for call
 
 **Phase 9: Plan in plan mode.** Enter plan mode, read the code the ticket touches, and present a plan of small steps: what, which skill (rn-ui, rn-api-connect, rn-e2e, or direct), which R#, which files, how each is checked. Every active R# is in a step; sign-in before the domains that need it; for a bug, the failing test is step 1. The dev accepting the plan is the approval. Then write it into the ticket file's Plan section, set `status: planned`.
 
-**Phase 10: Branch.** The project's branch naming, from the up-to-date base branch. Set `status: in-progress`; the first commit is the ticket file with its plan.
+**Phase 10: Branch.** The project's branch naming, from the up-to-date base branch. Set `status: in-progress` with `scripts/set-status.sh`; the first commit is the ticket file with its plan.
 
 **Phase 11: Steps.** For each step: call rn-ui, rn-api-connect or rn-e2e with the handoff arguments (or do a direct step), read its report, run the project's checks, commit in the project's format, mark the step done. A step that needs something outside its scope stops the build until the dev updates the plan.
 
@@ -127,7 +127,7 @@ Bug tickets: reproduce the bug as a test that fails for the reported reason, loc
 
 **Phase 12: Verify.** The checks from `CLAUDE.md`, the `code-reviewer` subagent on the branch, the ticket's Maestro flows (rn-e2e's `run-flows.sh --tags <id>`), then the `verifier` subagent with the ticket file, R# by R#. Fill the Evidence table: every active R# with its evidence and `pass`, `fail`, `not verified: <reason>` or `n/a`. Fails go back to their step; nothing ships `fail`. `check-ticket.sh` passes. Without the two subagents in the project, do their checklists yourself and say so.
 
-**Phase 13: Close the ticket file, then the pull request.** Set `status: done`, `check-ticket.sh` passes, commit. `scripts/ticket-pr.sh` turns the ticket file into a title and body (R# → evidence, decisions, assumptions, what's not verified); save it in your scratchpad. Then remove `docs/tickets/<id>.md` (and `docs/tickets/<id>/` if it has evidence) in the branch's last commit: the ticket file is working notes, the board keeps the requirement, the PR body keeps the evidence, and git history keeps the file. Show the dev the branch, commits, remote and base, and push and open the PR only on a yes. Never merge it.
+**Phase 13: Close the ticket file, then the pull request.** `scripts/set-status.sh <file> done` (it refuses until `check-ticket.sh` passes), commit. `scripts/ticket-pr.sh` turns the ticket file into a title and body (R# → evidence, decisions, assumptions, what's not verified); save it in your scratchpad. Then remove `docs/tickets/<id>.md` (and `docs/tickets/<id>/` if it has evidence) in the branch's last commit: the ticket file is working notes, the board keeps the requirement, the PR body keeps the evidence, and git history keeps the file. Show the dev the branch, commits, remote and base, and push and open the PR only on a yes. Never merge it.
 
 ## Principles
 

@@ -71,6 +71,17 @@ tags:
     timeout: 60000
     optional: true
 - openLink: ${APP_URL}${ROUTE}
+# Expo Go only: move its dev-tools button off the header, and close the dev menu if that opened it
+# (both optional, so the same subflow runs on a build).
+- swipe:
+    from:
+      id: "gearshape.fill"
+    direction: DOWN
+    duration: 1500
+    optional: true
+- tapOn:
+    id: "xmark"
+    optional: true
 ```
 
 ## Writing flows
@@ -149,7 +160,28 @@ The scheme is `expo.scheme` in `app.json` (Expo) or the URL scheme registered in
     optional: true
 ```
 
-Only once per launch: a second swipe on the moved button taps it. Builds don't have the button.
+Only once per launch: a second swipe on the moved button taps it. Builds don't have the button. Some Expo Go versions open the dev menu on that swipe; close it in the same subflow, right after:
+
+```yaml
+- tapOn:
+    id: "xmark"
+    optional: true
+```
+
+Check one screenshot of the first run: if the dev menu is still open, every flow fails at its first wait.
+
+**Asserting that something is gone.** `assertNotVisible` (and a `notVisible` wait) also passes before the list has rendered at all, so a broken filter looks green. Wait for what must be there first, then check what mustn't:
+
+```yaml
+- extendedWaitUntil:
+    visible:
+      id: "pet-card-3"      # the item the filter keeps
+    timeout: 10000
+- assertNotVisible:
+    id: "pet-card-7"        # the item it removes
+```
+
+A debounced search needs a flow that types and then waits past the debounce for the expected result, not one that checks immediately.
 
 **Resetting storage.** A flow that needs an empty start (a persisted cart, a first-run screen) uses `clearState`. In Expo Go that clears Expo Go's own storage, so Expo Go shows its one-time developer-menu introduction afterwards: dismiss it in the same subflow (`tapOn: { text: "Continue", optional: true }` after an optional wait). On a build, `clearState` just resets the app.
 
@@ -171,6 +203,6 @@ Only once per launch: a second swipe on the moved button taps it. Builds don't h
 | Every flow fails at its first wait, on the first tab | Native tabs: the cold start ignored the deep link; use the subflow's wait and second `openLink` |
 | An id inside a card isn't found on iOS | The pressable card is one accessibility element: assert its `accessibilityLabel` |
 | `back` does nothing on iOS | It's the Android back button; on iOS tap the header's back button by its label |
-| A tap on a header action opens Expo Go's dev menu | The dev-tools button sits on top of it: swipe it away first (Data and sign-in) |
+| A tap on a header action opens Expo Go's dev menu | The dev-tools button sits on top of it: swipe it away first, then close the menu if the swipe opened it (Data and sign-in) |
 | Every flow fails at its first wait | The setup, not the flows: dev server without `dev-server.env`, app on its sign-in screen, an Expo Go sheet. Look at one screenshot first |
 | A tap seems ignored right after navigation | Expo Go lags about a second after a transition: wait for the new screen's element before tapping or taking a screenshot |

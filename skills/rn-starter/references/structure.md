@@ -104,7 +104,8 @@ Run `npx eslint src` after adding it; it must pass on the scaffold. (Verified on
 
 - **Expo `default` template (SDK 58+)**: ships `src/app`, `src/components`, `src/hooks`, `src/constants` and the `@/` alias.
   - Move the theme into `src/theme/`: `src/constants/theme.ts` → `src/theme/tokens.ts`, `src/hooks/use-theme.ts` → `src/theme/use-theme.ts`, `src/components/themed-text.tsx` / `themed-view.tsx` → `src/theme/`. Keep their export names and fix the imports (`grep -rl "@/constants/theme\|@/hooks/use-theme\|themed-" src`). With NativeWind, Unistyles or a UI library, set the theme up as rn-ui `theme.md` describes for it instead.
-  - Turn the demo home route into the first screen: `src/screens/home/index.tsx` exporting `HomeScreen`, and make `src/app/index.tsx` a one-line re-export. Delete the `explore` demo route and its demo components only when replacing them (or when the dev wants a blank start; the template's `npm run reset-project` does this too).
+  - Turn the demo home route into the first screen: `src/screens/home/index.tsx` exporting `HomeScreen`, and make `src/app/index.tsx` a one-line re-export. Do the same for the `explore` demo (`src/screens/explore/`, a one-line route), so every route follows the layered rule; rn-ui replaces both with the design's screens.
+  - Remove the template's `reset-project` script (`scripts/reset-project.js`, its `package.json` entry and the home screen's hint that mentions it): it moves `src/` away and breaks the layered layout and Metro.
   - If an older template puts routes in `app/` at the root, move them under `src/` (expo-router detects `src/app` automatically).
 - **CLI template**: create `src/screens/home/index.tsx` from `App.tsx`'s content, keep a small `src/app/App.tsx` that sets up providers and navigation (`src/navigation/` for the navigators), and point `index.js` at it.
 

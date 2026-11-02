@@ -42,7 +42,7 @@ cd <name> && printf 'nodeLinker: hoisted\nstrictDepBuilds: false\n' > pnpm-works
 
 `strictDepBuilds: false`: pnpm 11+ refuses to run dependencies' install scripts unless approved, and by default **fails the install** over it (`ERR_PNPM_IGNORED_BUILDS` — seen with `unrs-resolver` from Expo's ESLint config and `@parcel/watcher` from Jest). With this setting it keeps skipping them (safe default; these packages ship prebuilt binaries) and only warns. pnpm then adds `allowBuilds:` entries with the value "set this to true or false"; `setup-quality.sh` turns them into `false`. Only switch one to `true` if a package actually doesn't work, and tell the dev — that lets it run its install script.
 
-`create-expo-app` also writes a generic `AGENTS.md` (it assumes the template's defaults, e.g. expo-router) and `.claude/settings.json`. With the Claude Code files chosen, `setup-claude.sh` replaces that `AGENTS.md` with one written from `.rn-starter.json` (the real stack, commands, structure and conventions). Without them, create the project with `--no-agents-md`, so no agent reads wrong defaults.
+`create-expo-app` also writes a generic `AGENTS.md` (it assumes the template's defaults, e.g. expo-router) and a `.claude/settings.json` that enables Expo's own Claude Code plugin (`expo@claude-plugins-official`); `setup-claude.sh` turns that plugin off unless the dev asked for it (`--keep-expo-plugin`), so the project loads only what they chose. With the Claude Code files chosen, `setup-claude.sh` replaces that `AGENTS.md` with one written from `.rn-starter.json` (the real stack, commands, structure and conventions). Without them, create the project with `--no-agents-md`, so no agent reads wrong defaults.
 
 ### Ignite
 
@@ -62,7 +62,7 @@ npx expo-doctor                                    # dependency/config health �
 npx expo export --platform android --output-dir .expo/export-check   # proves Metro can bundle the app, no device needed
 ```
 
-TypeScript: `expo-env.d.ts` (CSS module / asset type declarations) is only generated the first time `expo start` runs, so `tsc --noEmit` right after create reports false errors like `Cannot find module './x.module.css'`. Start the dev server once (Phase 7 does this anyway) before relying on `tsc`.
+TypeScript: `expo-env.d.ts` (CSS module / asset type declarations) is only generated the first time `expo start` runs, so `tsc --noEmit` right after create reports false errors like `Cannot find module './x.module.css'`. With code quality set up, `setup-quality.sh` commits `expo-types.d.ts` with the same reference, which removes them for good (fresh clones included). Start the dev server once (Phase 7 does this anyway) before relying on `tsc`.
 
 Templates sometimes ship with a type error of their own (seen in SDK 58: `src/components/app-tabs.web.tsx` ref type). Record the `tsc` output right after creating as the baseline; only errors that appear after your changes are yours to fix. Mention pre-existing ones to the dev rather than hacking around them.
 

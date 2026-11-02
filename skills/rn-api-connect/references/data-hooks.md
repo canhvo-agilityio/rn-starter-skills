@@ -61,6 +61,23 @@ With `select`, `data` is still `Coffee[]`, so the screen's rendering doesn't cha
 
 Keep the old `getCoffees` if other callers need the whole list (loop over pages until `next` is null) (e.g. favorites joining by id); otherwise replace it.
 
+## Filters and searches
+
+Pass the filter to the query key, and keep the previous results while the new ones load, flagged as stale:
+
+```ts
+export const usePetsByTag = (tag: string) =>
+  useQuery({
+    queryKey: ['pets', 'by-tag', tag],
+    queryFn: () => getPetsByTag(tag),
+    enabled: tag.length > 0,
+    placeholderData: keepPreviousData,
+  });
+// Screen: isPlaceholderData → stale indicator; the empty state only when !isPlaceholderData.
+```
+
+Send the filter the way the API matches it. Check with `curl` whether it's case-sensitive or exact before normalizing user input (a lowercased tag never matches an API that compares exact names); when the API can't do what the ticket asks (case-insensitive, partial), filter in the service and say so in the plan.
+
 ## Queries that wait for another
 
 A query that needs another's result (coffees of the first category, once categories have loaded) takes `enabled`:

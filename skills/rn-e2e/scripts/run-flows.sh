@@ -116,9 +116,11 @@ const xml = fs.existsSync(report) ? fs.readFileSync(report, 'utf8') : '';
 const unescape = (s) => s.replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 const runDir = path.join(out, 'run');
 const runs = fs.existsSync(runDir) ? fs.readdirSync(runDir).map((d) => path.join(runDir, d)).filter((d) => fs.statSync(d).isDirectory()) : [];
-const flows = [...xml.matchAll(/<testcase\b([^>]*)>([\s\S]*?)<\/testcase>|<testcase\b([^>]*)\/>/g)].map((m) => {
-  const attrs = m[1] || m[3] || '';
-  const body = m[2] || '';
+// Self-closing testcases (passed flows) first: otherwise the open-tag pattern would also match
+// `<testcase …/>` and swallow the next flow's <failure>, blaming the wrong flow.
+const flows = [...xml.matchAll(/<testcase\b([^>]*?)\/>|<testcase\b([^>]*)>([\s\S]*?)<\/testcase>/g)].map((m) => {
+  const attrs = m[1] ?? m[2] ?? '';
+  const body = m[3] || '';
   const attr = (k) => unescape((attrs.match(new RegExp(`\\b${k}="([^"]*)"`)) || [])[1] || '');
   const name = attr('name');
   const tags = unescape((body.match(/name="tags" value="([^"]*)"/) || [])[1] || '').split(',').map((t) => t.trim()).filter(Boolean);

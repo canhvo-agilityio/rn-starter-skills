@@ -86,7 +86,7 @@ const gitInfo = {
 const appVersion = readJson(path.join(dir, 'app.json'))?.expo?.version ?? readJson(path.join(dir, 'package.json'))?.version ?? null;
 const TICKET = /\b[A-Z][A-Z0-9]+-\d+\b|\b(?:gh|gl|ado|trello|clickup|asana|notion)-[\w]+\b|#\d+\b/g;
 // What this release would ship: HEAD (the base branch, or the release branch cut from it) since the last release.
-const range = lastTag ? `${lastTag}..HEAD` : 'HEAD';
+const range = lastTag ? `${lastTag}..HEAD` : hasProd ? `${prodRef}..HEAD` : 'HEAD';
 const log = git('log', range, '--no-merges', '--format=%H%x1f%s%x1f%an') || '';
 const commits = log.split('\n').filter(Boolean).map((l) => {
   const [sha, subject, author] = l.split('\x1f');

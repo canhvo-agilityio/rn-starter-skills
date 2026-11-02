@@ -104,7 +104,7 @@ The run-target options depend on this answer, so it must come back before you bu
    - Metro (Recommended) — default, simplest.
    - Re.Pack (Rspack) — for code splitting / Module Federation / super-apps; more config.
 4. **Template** — see `references/frameworks.md` for the list per framework and what each contains.
-5. **App name + location** — ask in plain text (not a multiple choice): app name (for CLI it must be alphanumeric, no dashes — suggest a valid one) and parent folder (default: current directory). Refuse to overwrite a non-empty folder; ask for another name instead.
+5. **App name + location** — ask in plain text (not a multiple choice): app name (for CLI it must be alphanumeric, no dashes — suggest a valid one) and parent folder (default: current directory). Refuse to overwrite a non-empty folder; ask for another name instead. A folder that holds only `.claude/` (or `.git`) counts as empty: create the app in a temporary sibling folder, then move its files in, keeping the existing `.claude/` and merging the template's `.claude/settings.json` into it.
 6. **Design input** — if the dev's request already mentions screens ("with 5 screens: Login, Home…"), a screenshot, an image or a Figma link, record it as the design input and **don't ask**. Otherwise ask once: "Should the app start with real screens?" → *No, empty app for now (Recommended for first-timers)* / *I'll list the screens* / *I have screenshots* / *I have a Figma link*. Collect the list / images / link right after the answer. The screens are built in Phase 7b, after the empty app is proven to run.
 
 ## Phase 3 — Choose libraries
@@ -255,7 +255,7 @@ If the skill isn't available, tell the dev the screens weren't generated and fin
 
 1. Append a **"Getting started"** section to the project README with: the stack chosen, how to start the app next time, how to run tests, and how to open a new terminal so PATH changes apply (`source ~/.zshrc` or open a new terminal window). If hooks or commit rules were set up, add the **commit rules** section from `references/quality.md`, so the whole team knows what runs on commit and push. If the Claude Code files were added, add their short section from the same file.
 2. Show the run-target checklist from Phase 7 (each target ✓ / ✗ / skipped).
-3. Tell the dev in 3–5 lines: what was installed, where the project is, the command to run it again on each target, and one suggested next step (e.g. "edit `src/app/index.tsx` and save — the app reloads").
+3. Tell the dev in 3–5 lines: what was installed, where the project is, the command to run it again on each target, and one suggested next step (e.g. "edit `src/app/index.tsx` and save — the app reloads"). With the Claude Code files added, say that Claude Code loads the new `code-reviewer` and `verifier` subagents and hooks only in a session started after they were written: restart Claude Code in the project before the next skill.
 
 ## When things go wrong
 

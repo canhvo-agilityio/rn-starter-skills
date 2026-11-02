@@ -24,7 +24,11 @@ Static values (`version`, plugins, icons, splash) stay in `app.json`; the varian
 ```js
 // app.config.js — one codebase, two store apps. APP_VARIANT comes from the build profile
 // (eas.json) or the command line; unset means the dev app, so nothing targets production by accident.
-const VARIANT = process.env.APP_VARIANT === 'production' ? 'production' : 'dev';
+// Any other value is a mistake (APP_VARIANT=prod): fail instead of quietly building the dev app.
+const VARIANT = process.env.APP_VARIANT || 'dev';
+if (!['dev', 'production'].includes(VARIANT)) {
+  throw new Error(`APP_VARIANT must be "dev" or "production", not "${VARIANT}"`);
+}
 
 const APPS = {
   dev: { name: 'Coffee Dev', id: 'com.acme.coffeeshop.dev', scheme: 'coffeeshop-dev' },
@@ -74,12 +78,12 @@ module.exports = ({ config }) => ({
   },
   "submit": {
     "dev": {
-      "ios": { "ascAppId": "<dev app's Apple ID>", "appleTeamId": "<TEAMID>" },
-      "android": { "track": "internal", "releaseStatus": "draft" }
+      "ios": { "bundleIdentifier": "com.acme.coffeeshop.dev", "ascAppId": "<dev app's Apple ID>", "appleTeamId": "<TEAMID>" },
+      "android": { "applicationId": "com.acme.coffeeshop.dev", "track": "internal", "releaseStatus": "draft" }
     },
     "production": {
-      "ios": { "ascAppId": "<production app's Apple ID>", "appleTeamId": "<TEAMID>" },
-      "android": { "track": "internal", "releaseStatus": "draft" }
+      "ios": { "bundleIdentifier": "com.acme.coffeeshop", "ascAppId": "<production app's Apple ID>", "appleTeamId": "<TEAMID>" },
+      "android": { "applicationId": "com.acme.coffeeshop", "track": "internal", "releaseStatus": "draft" }
     }
   }
 }
@@ -88,6 +92,8 @@ module.exports = ({ config }) => ({
 - The dev app is a **store** build too: testers install it from TestFlight and Play internal testing, with no device registration (iOS ad hoc builds need every tester's UDID).
 - `*-simulator` profiles are checks only (iOS Simulator, Android APK): they reach no user and use no build number.
 - Build numbers are per app on EAS (`appVersionSource: "remote"`), so the two apps count separately.
+- Each submit profile names its app's ids (`bundleIdentifier`, `applicationId`): `eas submit` reads the app config without the build profile's `APP_VARIANT`, so without them a production submit would resolve the dev app's ids.
+- `cli.version`: the eas-cli version the skill ran (`eas-status.sh` prints it) as the floor, and run it through `npx --yes eas-cli@<that version>`, not a global `eas` that may be years older.
 - The rest of `eas.md` → eas.json (draft release status, `ascAppId`) applies to each app.
 
 ## Environments and API URLs
@@ -129,20 +135,35 @@ Written in Phase 4 so the release gate (`.claude/hooks/release-gate.mjs`) knows 
   ],
   "releaseBranchPrefix": "release/",
   "productionBranch": "prod",
-  "remote": "origin"
+  "remote": "origin",
+  "productionBranchProtected": "2026-11-02"
 }
 ```
 
-`productionBranch`: the branch whose commits may reach the production app. A release manager merges a `release/<version>` pull request (GitHub) or merge request (GitLab) into it, and **that merge is the approval**: the gate only checks, with git, that the commit being shipped is on this branch of `remote`. Use the team's production branch when it has one (`prod`, `production`); otherwise create `prod` from the last released commit (or from `main` for a first release). Don't use the branch everyday work merges into: every feature merge would then be shippable.
+`productionBranch`: the branch whose commits may reach the production app. A release manager merges a `release/<version>` pull request (GitHub) or merge request (GitLab) into it, and **that merge is the approval**: the gate only checks, with git, that the commit being shipped is on this branch of `remote`. Use the team's production branch when it has one (`prod`, `production`). Otherwise create `prod` from **what's already been released**, never from the tip of `main`: every commit on the branch counts as approved, so creating it from `main` would approve everything there without a review.
+
+- An app already in the stores: the commit of the last release (its tag, or the commit the store build came from).
+- A first release: the **first commit** of `main`, `git rev-list --max-parents=0 main` (Expo's own "Initial commit" of the untouched template, before rn-starter's scaffold commit). The first release then goes through a release PR / MR like every later one.
+
+Not an empty commit of its own: GitHub can't open a pull request between branches with no common history. Don't use the branch everyday work merges into either: every feature merge would then be shippable.
+
+`productionBranchProtected`: the date the dev confirmed the protection below. **The gate denies every production release until it's set**, because before that anyone could push to the branch and a commit on it proves nothing.
 
 ## Protect the production branch
 
 The gate trusts the branch, so the server must make sure only release managers can put commits on it. The dev (or a repository admin) sets this up once in the web UI; it can't be done from here:
 
 - **GitHub** → *Settings → Branches* (or *Rules → Rulesets*) → a rule for the production branch: *Require a pull request before merging* with at least one approval, *Restrict who can push to matching branches* to the release managers (or a team), no force pushes, no deletion.
+- GitHub refuses branch protection on **private repositories of free accounts** (the API answers 403, the UI hides the option). Then the options are a paid plan or organization, making the repository public, or hosting on GitLab; until one of them, `productionBranchProtected` stays unset and the gate keeps production closed. Say so plainly instead of recording it as protected.
 - **GitLab** → *Settings → Repository → Protected branches* → the production branch: *Allowed to merge*: the release managers (Maintainers or named users), *Allowed to push and merge*: No one, *Allowed to force push*: off. On GitLab Premium, also *Settings → Merge requests → Approval rules* with the release managers as required approvers.
 
-Also add the production branch to `protectedBranches` in `.rn-starter.json`, so the project's guard and git hook refuse direct pushes to it too.
+Also add the production branch to `protectedBranches` in `.rn-starter.json`, so the project's guard and git hook refuse direct pushes to it too: **after** it exists on the remote, since the scaffold's pre-push hook would otherwise block the push that creates it.
+
+### Order of the one-time setup
+
+1. The dev creates the branch, in their own terminal (the gate refuses pushes to it from this session): `git push origin "$(git rev-list --max-parents=0 main)":refs/heads/prod` for a first release, or the last released commit. GitLab can also do it in the web UI (*Branches → New branch*, from that commit).
+2. The dev protects it on GitHub or GitLab (above) and confirms.
+3. Then add it to `protectedBranches` and set `productionBranchProtected` to today in the release block.
 
 ## Outside EAS
 

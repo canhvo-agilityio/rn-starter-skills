@@ -1,6 +1,6 @@
 # HTTP client, env and errors
 
-**Contents:** Env · Errors · Client · Query client · Boundary rule
+**Contents:** Env · Errors · Client · Query client · Tests · Boundary rule
 
 Four small files in `src/lib/`, written once. If the project already has a client (axios instance, a `fetch` wrapper), keep it and add only what's missing from this list: base URL from env, timeout, auth seam, one error type.
 
@@ -14,8 +14,9 @@ const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? '';
 
 export const env = {
   apiUrl,
-  // Mocks when asked for, and whenever no API URL is set (fresh clone, tests).
-  useMocks: process.env.EXPO_PUBLIC_USE_MOCKS === '1' || !apiUrl,
+  // Mocks when asked for, or in development when no API URL is set (fresh clone, tests).
+  // Never silently in a release build: there a missing URL shows the error states instead.
+  useMocks: process.env.EXPO_PUBLIC_USE_MOCKS === '1' || (!apiUrl && __DEV__),
   apiTimeoutMs: 15_000,
 };
 ```
@@ -40,7 +41,7 @@ Then tell the developer what to put in their own `.env`, in their language, e.g.
 > EXPO_PUBLIC_USE_MOCKS=0
 > ```
 
-If `.env` isn't ignored by git (`envIgnoredByGit: false`), add `.env` to `.gitignore` — that file is fine to edit. Without a `.env`, the app keeps running on mocks (`useMocks` is true when no URL is set), so nothing breaks before the dev adds it.
+If `.env` isn't ignored by git (`envIgnoredByGit: false`), add `.env` to `.gitignore` — that file is fine to edit. Without a `.env`, the app keeps running on mocks in development (`useMocks` is true when no URL is set and `__DEV__`), so nothing breaks before the dev adds it. A release build without the URL doesn't fall back to mocks: it shows the error states, so a misconfigured build is noticed instead of shipping fake data.
 
 For your own runs (Phase 5–6), turn `.env` loading off and pass the values on the command line: `EXPO_NO_DOTENV=1 EXPO_PUBLIC_API_URL=http://localhost:3000 EXPO_PUBLIC_USE_MOCKS=0 npx expo start`. Without `EXPO_NO_DOTENV=1` Expo would still load `.env` (variables already in the environment win, but the rest get loaded and their names printed in Metro's log). Expo reads env when the dev server starts — restart it to change them.
 
@@ -131,29 +132,50 @@ const auth: Middleware = {
 };
 
 // fetch has no timeout of its own; without one a dead server leaves a spinner forever.
+// This aborts a request whose headers never come; `withTimeout` in unwrap also covers a body that stalls.
 const fetchWithTimeout = (request: Request) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), env.apiTimeoutMs);
   return fetch(request, { signal: controller.signal }).finally(() => clearTimeout(timer));
 };
 
+const withTimeout = <T,>(call: Promise<T>): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new ApiError(0, 'Request timed out')), env.apiTimeoutMs);
+    call.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error: unknown) => { clearTimeout(timer); reject(error); },
+    );
+  });
+
 export const api = createClient<paths>({ baseUrl: env.apiUrl, fetch: fetchWithTimeout });
 api.use(auth);
 
 type Result<T> = { data?: T; error?: unknown; response: Response };
 
-// Turns openapi-fetch's { data, error } into a value or a thrown ApiError, which is what
-// TanStack Query expects from a queryFn.
-export const unwrap = async <T>(call: Promise<Result<T>>): Promise<T> => {
+const settle = async <T>(call: Promise<Result<T>>): Promise<Result<T>> => {
   let result: Result<T>;
   try {
-    result = await call;
-  } catch {
-    throw new ApiError(0, 'Network request failed');
+    result = await withTimeout(call);
+  } catch (error) {
+    throw error instanceof ApiError ? error : new ApiError(0, 'Network request failed');
   }
-  const { data, error, response } = result;
-  if (error !== undefined || !response.ok) throw toApiError(response.status, error);
-  return data as T;
+  if (result.error !== undefined || !result.response.ok) throw toApiError(result.response.status, result.error);
+  return result;
+};
+
+// Turns openapi-fetch's { data, error } into a value or a thrown ApiError, which is what
+// TanStack Query expects from a queryFn. A 2xx with no body where data was expected is the
+// server's fault (500), not the user's: it's retried and shown as a server error.
+export const unwrap = async <T>(call: Promise<Result<T>>): Promise<T> => {
+  const { data, response } = await settle(call);
+  if (data === undefined) throw new ApiError(500, `Empty response from ${response.url || 'the server'}`);
+  return data;
+};
+
+// For calls that answer with no body (DELETE, 204): resolves when the call succeeded.
+export const unwrapVoid = async (call: Promise<Result<unknown>>): Promise<void> => {
+  await settle(call);
 };
 ```
 
@@ -163,7 +185,7 @@ Calls are typed by path, checked against the spec:
 await unwrap(api.GET('/coffees/{id}', { params: { path: { id } } }));
 await unwrap(api.GET('/coffees', { params: { query: { category_id: categoryId, _page: page } } }));
 await unwrap(api.POST('/orders', { body: { coffee_id: coffeeId, size, quantity } }));
-await unwrap(api.DELETE('/favorites/{id}', { params: { path: { id } } }));
+await unwrapVoid(api.DELETE('/favorites/{id}', { params: { path: { id } } }));
 ```
 
 Notes (checked on Expo SDK 58, iOS Simulator and Android emulator in Expo Go):
@@ -194,6 +216,69 @@ export const queryClient = new QueryClient({
 ```
 
 Keep the project's existing options (`staleTime`, …) and its retry count (`retry: 1` → `failureCount < 1`); change only what is retried.
+
+## Tests
+
+Write these with the client, so the API branch is covered from the start (`src/lib/__tests__/`). `global.fetch` is replaced per test; no server needed.
+
+```ts
+// src/lib/__tests__/api-client.test.ts
+import { ApiError } from '../api-error';
+import { api, unwrap, unwrapVoid } from '../api-client';
+
+// openapi-fetch needs an absolute base URL; tests don't read .env.
+jest.mock('../env', () => ({ env: { apiUrl: 'https://api.test', useMocks: false, apiTimeoutMs: 15_000 } }));
+
+const realFetch = globalThis.fetch;
+const respond = (status: number, body?: unknown) =>
+  jest.fn().mockResolvedValue(new Response(body === undefined ? null : JSON.stringify(body), {
+    status, headers: { 'Content-Type': 'application/json' },
+  }));
+
+afterEach(() => { globalThis.fetch = realFetch; });
+
+test('returns the body of a 2xx', async () => {
+  globalThis.fetch = respond(200, { id: 1 });
+  await expect(unwrap(api.GET('/coffees/{id}', { params: { path: { id: 1 } } }))).resolves.toEqual({ id: 1 });
+});
+
+test('a 4xx becomes an ApiError with the status and the backend message', async () => {
+  globalThis.fetch = respond(404, { message: 'Not found' });
+  await expect(unwrap(api.GET('/coffees/{id}', { params: { path: { id: 9 } } }))).rejects.toMatchObject({ status: 404, message: 'Not found' });
+});
+
+test('no response is status 0', async () => {
+  globalThis.fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed'));
+  await expect(unwrap(api.GET('/coffees'))).rejects.toMatchObject({ status: 0 });
+});
+
+test('an empty 2xx where data was expected is a 500; unwrapVoid accepts it', async () => {
+  globalThis.fetch = respond(200);
+  await expect(unwrap(api.GET('/coffees'))).rejects.toBeInstanceOf(ApiError);
+  globalThis.fetch = respond(204);
+  await expect(unwrapVoid(api.DELETE('/favorites/{id}', { params: { path: { id: 1 } } }))).resolves.toBeUndefined();
+});
+```
+
+```ts
+// src/lib/__tests__/query-client.test.ts
+import { ApiError } from '../api-error';
+import { queryClient } from '../query-client';
+
+const retry = queryClient.getDefaultOptions().queries?.retry as (count: number, error: unknown) => boolean;
+
+// Matches the template's `failureCount < 2`; with the project's own count, change MAX.
+const MAX = 2;
+
+test('a 4xx is never retried; a 5xx or no response is retried up to MAX times', () => {
+  expect(retry(0, new ApiError(404, 'x'))).toBe(false);
+  expect(retry(0, new ApiError(500, 'x'))).toBe(true);
+  expect(retry(MAX - 1, new ApiError(0, 'x'))).toBe(true);
+  expect(retry(MAX, new ApiError(503, 'x'))).toBe(false);
+});
+```
+
+Adapt the paths to the project's spec (each path in a test must exist in `api.gen.ts`). `globalThis.fetch`, not `global.fetch`: TypeScript 6 doesn't know `global` without Node's types. The timeout is a constant in `env.ts`; a test that needs it uses `jest.useFakeTimers()` and a `fetch` that never resolves.
 
 ## Boundary rule
 

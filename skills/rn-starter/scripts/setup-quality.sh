@@ -80,13 +80,15 @@ if [ "$want_test" -eq 1 ]; then
   if [ -f tsconfig.json ] && [ ! -f jest-env.d.ts ]; then
     printf '/// <reference types="jest" />\n' > jest-env.d.ts
   fi
-  mkdir -p __tests__
-  if ! ls __tests__/*.test.* >/dev/null 2>&1; then
-    cat > __tests__/example.test.tsx <<'EOF'
+  # The sample test lives with the code (src/__tests__/) in a src/ layout, not in a root __tests__/.
+  test_dir=__tests__; [ -d src ] && test_dir=src/__tests__
+  mkdir -p "$test_dir"
+  if ! ls "$test_dir"/*.test.* __tests__/*.test.* >/dev/null 2>&1; then
+    cat > "$test_dir/setup.test.tsx" <<'EOF'
 import { render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
-// Sample test proving the setup works. Replace with tests for real components.
+// Sample test proving the setup works. Delete it in the change that adds the first real tests (rn-ui does).
 // React Native Testing Library 14+: render and user events are async — always await them.
 test('renders text', async () => {
   await render(<Text>Hello</Text>);
@@ -147,7 +149,9 @@ if [ -n "$pre_push" ]; then
       # The list lives in .rn-starter.json (protectedBranches), shared with the Claude guard hook.
       cat <<'EOF'
 protected="$(node -e "try{const b=require('./.rn-starter.json').protectedBranches;if(Array.isArray(b)&&b.length){console.log(b.join(' '));process.exit(0)}}catch{}console.log('main master')")"
-while read -r _local_ref _local_sha remote_ref _remote_sha; do
+while read -r _local_ref _local_sha remote_ref remote_sha; do
+  # Creating the branch on a new remote (its sha is all zeros) is the one-time setup, not a change.
+  case "$remote_sha" in *[!0]*) ;; *) continue ;; esac
   branch="${remote_ref#refs/heads/}"
   for p in $protected; do
     if [ "$branch" = "$p" ]; then
@@ -181,16 +185,23 @@ if [ "$pm" = pnpm ] && [ -f pnpm-workspace.yaml ]; then
   sed -i.bak -E 's/: set this to true or false$/: false/' pnpm-workspace.yaml && rm -f pnpm-workspace.yaml.bak
 fi
 
+# ------------------------------------------------------------------ files every clone needs
+# Expo only writes expo-env.d.ts (asset and CSS-module types) on the first `expo start`, and the
+# template gitignores it, so a fresh clone fails tsc (and the pre-push hook, and CI) until then.
+# A committed file with the same reference fixes that for everyone.
+if [ "$is_expo" -eq 1 ] && [ ! -f expo-types.d.ts ]; then
+  printf '// Expo asset and CSS-module types, committed so a fresh clone type-checks before `expo start`.\n/// <reference types="expo/types" />\n' > expo-types.d.ts
+fi
+# The template ignores only .env*.local; a plain .env holds secrets too.
+if [ -f .gitignore ] && ! grep -qx '.env' .gitignore; then
+  printf '\n# local environment (secrets); the template stays tracked\n.env\n.env.*\n!.env.example\n!.env.sample\n!.env.template\n' >> .gitignore
+fi
+
 # ------------------------------------------------------------------ type check baseline
 typecheck_hook=0
 { has_item "$pre_commit" typecheck || has_item "$pre_push" typecheck; } && typecheck_hook=1
 tsc_errors=0
 if [ "$typecheck_hook" -eq 1 ] && [ -f tsconfig.json ]; then
-  # Expo generates expo-env.d.ts (asset/CSS module types) on the first `expo start`;
-  # create it now so tsc doesn't report false errors. The template already gitignores it.
-  if [ "$is_expo" -eq 1 ] && [ ! -f expo-env.d.ts ]; then
-    printf '/// <reference types="expo/types" />\n\n// NOTE: This file should not be edited and should be in your git ignore\n' > expo-env.d.ts
-  fi
   tsc_errors="$(npx tsc --noEmit 2>/dev/null | grep -c 'error TS' || true)"
 fi
 
