@@ -212,10 +212,10 @@ Write `.rn-starter.json` at the project root with the recorded choices, so later
   "devBuild": false, "runTargets": ["ios-simulator"], "protectedBranches": ["main", "dev", "stag", "prod"],
   "quality": { "unitTests": "jest-rntl", "preCommit": ["lint", "format", "related-tests"],
                "prePush": ["typecheck", "test", "protect"], "commitMsg": "conventional", "claude": true },
-  "createdWith": "rn-starter 1.0.0" }
+  "createdWith": "rn-starter 1.1.0" }
 ```
 
-`structure` is `layered` or `template` (kept as is). `protectedBranches` lists the branches nobody pushes to directly (only when the dev chose to block pushes; omit it otherwise). `uiLibrary` is `none` or `react-native-paper`. `devBuild` is `true` when an Expo project needs a development build instead of Expo Go (Unistyles, or another library with native code Expo Go lacks).
+`createdWith` is the plugin version from its `plugin.json`. `structure` is `layered` or `template` (kept as is). `protectedBranches` lists the branches nobody pushes to directly (only when the dev chose to block pushes; omit it otherwise). `uiLibrary` is `none` or `react-native-paper`. `devBuild` is `true` when an Expo project needs a development build instead of Expo Go (Unistyles, or another library with native code Expo Go lacks).
 
 Make sure the project is a git repo: run `git -C <project> rev-parse --is-inside-work-tree`, and if it isn't one (CLI is created with `--skip-git-init`; Expo skips `git init` in some cases, e.g. with `--no-install` or inside a folder that's already a repo's subfolder), run `git init` in the project now. Every later step (hooks, the first commit) needs it. Then, if any code-quality option was chosen, set it up with `scripts/setup-quality.sh` and run the checks in "Verify" — both in `references/quality.md`. Apply any custom ("Other") rules on top of the generated files before verifying. If Claude Code setup was chosen, run `scripts/setup-claude.sh` **after** `.rn-starter.json` and the quality tooling exist (it reads both) and check it as in `references/quality.md` → "Claude Code files".
 

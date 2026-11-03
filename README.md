@@ -36,12 +36,11 @@ claude plugin marketplace add canhvo-agilityio/rn-starter-skills
 claude plugin install rn-starter@rn-starter-skills
 ```
 
-Restart Claude Code and start it in the project folder (or its parent for a new app). To update, reinstall (the version number may not change between pushes):
+Restart Claude Code and start it in the project folder (or its parent for a new app). To update, then restart:
 
 ```bash
 claude plugin marketplace update rn-starter-skills
-claude plugin uninstall rn-starter@rn-starter-skills
-claude plugin install rn-starter@rn-starter-skills
+claude plugin update rn-starter@rn-starter-skills
 ```
 
 A project created with an older version gets the new hooks and subagents with `setup-claude.sh --update-agents`.
