@@ -320,3 +320,23 @@ test('a release tag pushed from a commit refspec, or created in the same command
   merge(p);
   assert.equal(gate(p, 'git push origin HEAD:refs/tags/v1.0.1').decision, 'allow');
 });
+
+test('package scripts and project shell files are checked for what they run', () => {
+  const p = project();
+  write(p.dir, 'package.json', { scripts: {
+    'ship:ios': 'eas build --profile production -p ios', prerelease: 'eas update --channel production --environment production --message x',
+    release: 'echo go', deploy: 'bash scripts/deploy.sh', 'build:dev': 'eas build --profile dev -p ios',
+  } });
+  fs.mkdirSync(path.join(p.dir, 'scripts'));
+  write(p.dir, 'scripts/deploy.sh', '#!/bin/sh\n# eas submit --profile dev\nset -e\nnpx eas-cli@25.3.0 submit --profile production --latest\n');
+  git(p.dir, 'add', '-A'); git(p.dir, 'commit', '-qm', 'scripts');
+  releaseBranch(p);
+  for (const cmd of ['npm run ship:ios', 'yarn ship:ios', 'pnpm run ship:ios', 'bun run ship:ios', 'npm run release',
+    'npm run deploy', 'sh scripts/deploy.sh', './scripts/deploy.sh', 'bash -c "pnpm ship:ios"']) {
+    assert.equal(gate(p, cmd).decision, 'deny', cmd);
+  }
+  assert.equal(gate(p, 'npm run build:dev').decision, 'allow');
+  assert.equal(gate(p, 'npm install && npm test').decision, 'allow');
+  merge(p);
+  assert.equal(gate(p, 'npm run ship:ios').decision, 'allow');
+});
