@@ -17,7 +17,8 @@
 // is the branch protection on the server and who may build, submit and publish on EAS and the stores.
 // Before anything ships, the release block must record that the production branch is protected
 // (productionBranchProtected): until then, being on the branch proves nothing.
-// It looks through wrappers (bash -c, sh -c, eval, subshells, $( ), backticks) and global options
+// It looks through wrappers (bash -c, sh -c, eval, subshells, $( ), backticks), package scripts
+// (npm / yarn / pnpm / bun run, with their pre / post scripts), shell files in the project, and global options
 // (git -C / -c / --repo, gh / glab -R), counts untracked files as uncommitted, and requires a production
 // OTA update's APP_VARIANT and --environment to be the production app's.
 // Commands that aren't releases are always allowed; a release to production it can't check is
@@ -77,8 +78,37 @@ const expand = (cmd, depth = 0) => {
       if (c > k && t[c + 1]) out.push(...expand(t[c + 1], depth + 1));
     }
     if (t[0] === 'eval') out.push(...expand(t.slice(1).join(' '), depth + 1));
+    for (const text of hiddenCommands(t)) out.push(...expand(text, depth + 1));
   }
   return out;
+};
+// Commands a package script or a project shell file runs aren't in the command line
+// (`npm run release` → `eas build --profile production`): read them from package.json or the file.
+const PACKAGE_MANAGERS = ['npm', 'yarn', 'pnpm', 'bun'];
+const NPM_RUN = ['run', 'run-script', 'rum', 'urn'];
+const NPM_LIFECYCLE = ['start', 'test', 'stop', 'restart'];
+const hiddenCommands = (tokens) => {
+  const t = splitEnv(tokens).rest;
+  const pm = PACKAGE_MANAGERS.indexOf(t[0]?.split('/').pop());
+  if (pm >= 0) {
+    const args = t.slice(1).filter((a) => !a.startsWith('-'));
+    let name;
+    if (pm === 0) name = NPM_RUN.includes(args[0]) ? args[1] : NPM_LIFECYCLE.includes(args[0]) ? args[0] : null;
+    else name = args[0] === 'run' ? args[1] : args[0];
+    const scripts = readJson('package.json')?.scripts ?? {};
+    return name && scripts[name] ? [scripts[`pre${name}`], scripts[name], scripts[`post${name}`]].filter(Boolean) : [];
+  }
+  // `bash scripts/release.sh`, `./release.sh`: a file inside the project, comments left out.
+  const shellAt = t.findIndex((x) => SHELLS.includes(x.split('/').pop()));
+  const file = shellAt >= 0 && !t.includes('-c') ? t.slice(shellAt + 1).find((a) => !a.startsWith('-')) : t[0];
+  if (!file || !(/\.(sh|bash|zsh)$/.test(file) || (shellAt >= 0 && file.includes('/')))) return [];
+  const full = path.resolve(root, file);
+  if (!full.startsWith(root + path.sep)) return [];
+  try {
+    return [fs.readFileSync(full, 'utf8').split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')];
+  } catch {
+    return [];
+  }
 };
 const tokenize = (seg) => {
   const out = [];
